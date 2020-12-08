@@ -32,9 +32,19 @@ f
 ```{r}
 # Read in the first sheet of the file using read_excel function
 db <- read_excel(f, sheet = 1)
+
+# Look at the data
+View(db) # Pop out in new tab
+head(db) # Look at first few lines
+db # Look at the whole thing
 ```
 
 ## Participant metaproteomic data
+
+```{r}
+# For you to fill in!
+# Shortcuts for notebooks in RStudio below
+```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
