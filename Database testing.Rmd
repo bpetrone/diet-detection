@@ -41,6 +41,8 @@ head(db)
 
 ## Participant metaproteomic data
 
+### Combine files
+
 ```{r}
 # List files
 fs <- list.files(here('data', 'raw',
@@ -66,6 +68,7 @@ proteins.df <- bind_rows(dfs, .id = 'id')
 rm(fs, dfs)
 ```
 
+### Clean
 ```{r}
 proteins.df <- 
      proteins.df %>% 
@@ -79,3 +82,467 @@ proteins.df <-
 ```{r}
 head(proteins.df)
 ```
+### Format as phyloseq object
+
+
+
+## DFC menu data (phyloseq)
+
+# Precision-recall
+
+### Iterate over deltas 1-7
+
+```{r}
+# Make dataframe for storing results
+metrics <- data.frame(delta = NULL,
+                      level = NULL,
+                      subject = NULL, 
+                      food = NULL,
+                      n_compare = NULL,
+                      precision = NULL,
+                      recall = NULL)
+```
+
+#### Overall and per-food metrics
+
+Including grouping at taxonomic levels
+
+```{r}
+menus <- list(ps.menu.ra, ps.menu.species, ps.menu.genus, ps.menu.family)
+names(menus) <- c('all', 'species', 'genus', 'family')
+
+trnLs <- list(ps.trnL.ra, ps.trnL.species, ps.trnL.genus, ps.trnL.family)
+names(trnLs) <- c('all', 'species', 'genus', 'family')
+```
+
+```{r}
+for (delta in deltas){
+        # So reconcile the samples for one object, and then apply it to all of them.
+        # Rename each trnL sample with its updated lag day
+        trnLs <- lapply(trnLs,
+                        function(x){
+                                sample_names(x) <- sample_data(x)[[delta]]
+                                x
+                                })
+
+        # Extract OTU tables
+        asvtabs.trnL <- lapply(trnLs, function(x){otu_table(x)@.Data})
+        
+        asvtabs.menu <- lapply(menus, function(x){otu_table(x)@.Data})
+        
+        # Subset to only overlapping samples
+        # Find if any samples don't have accompanying diet data;
+        # expect this to happen some of the time, especially early in stay 
+        # Regardless of taxonomic level summarizing, the samples will be the
+        # same across each "leveled" phyloseq object
+        
+        # Get shared samples from one phyloseq object
+        shared <- intersect(row.names(asvtabs.trnL[[1]]), 
+                            row.names(asvtabs.menu[[1]]))
+        cat(delta, 'has missing entries: ', 
+            dim(asvtabs.trnL[[1]])[1]- length(shared), '\n')
+        
+        # Subset to shared samples
+        asvtabs.trnL.shared <- lapply(asvtabs.trnL,
+                                      function(x){x[shared, ]})
+        asvtabs.menu.shared <- lapply(asvtabs.menu,
+                                      function(x){x[shared, ]})
+        
+        # Calculate precision and recall
+        asv.pos <- lapply(asvtabs.trnL.shared, function(x){x > thresh.trnL})
+        menu.pos <- lapply(asvtabs.menu.shared, function(x){x > 0})
+
+        tp <- mapply(function(obs, known){obs & known}, asv.pos, menu.pos)
+        tn <- mapply(function(obs, known){!obs & !known}, asv.pos, menu.pos)
+        fp <- mapply(function(obs, known){obs & !known}, asv.pos, menu.pos)
+        fn <- mapply(function(obs, known){!obs & known}, asv.pos, menu.pos)
+        
+        rec <- mapply(function(tp, fn){sum(tp)/(sum(tp) + sum(fn))}, 
+                      tp, fn)
+        
+        prec <- mapply(function(tp, fp){sum(tp)/(sum(tp) + sum(fp))}, 
+                       tp, fp)
+        
+        rec.cols <- 
+                mapply(function(tp, fn){colSums(tp)/(colSums(tp) + colSums(fn))},
+                       tp, fn)
+        
+        prec.cols <- 
+                mapply(function(tp, fp){colSums(tp)/(colSums(tp) + colSums(fp))},
+                       tp, fp)
+        
+        for (i in seq_along(asv.pos)){
+                # Add values to metrics
+                # Overall
+                metrics <- bind_rows(metrics,
+                                     data.frame(delta = delta,
+                                                subject = NA,
+                                                level = names(asv.pos)[i],
+                                                food = NA,
+                                                n_compare = length(asv.pos[[i]]),
+                                                recall = rec[[i]],
+                                                precision = prec[[i]]))
+                # By-food
+                metrics <- bind_rows(metrics,
+                                     data.frame(delta = delta,
+                                                subject = NA,
+                                                level = names(asv.pos)[i],
+                                                food = names(rec.cols[[i]]),
+                                                n_compare = dim(asv.pos[[i]])[1],
+                                                recall = rec.cols[[i]],
+                                                precision = prec.cols[[i]]))
+                
+        }
+       
+}
+```
+
+#### Per-subject metrics
+
+```{r}
+subjects <- unique(samdf.trnL$subject) # Sequenced subjects
+
+for (subject in subjects){
+        for (delta in deltas){
+                # Rename each trnL sample with its updated lag day
+                trnLs <- lapply(trnLs,
+                                function(x){
+                                        sample_names(x) <- sample_data(x)[[delta]]
+                                        x
+                                })
+
+        # Extract OTU tables
+                asvtabs.trnL <- lapply(trnLs, function(x){otu_table(x)@.Data})
+                asvtabs.menu <- lapply(menus, function(x){otu_table(x)@.Data})
+                
+                # Subset to rows corresponding to subject of interest
+                asvtabs.trnL <- lapply(asvtabs.trnL, 
+                                       function(x){
+                                               x[grep(pattern = subject, 
+                                                      row.names(x)), ]
+                                       })
+                asvtabs.menu <- lapply(asvtabs.menu, 
+                                       function(x){
+                                               x[grep(pattern = subject, 
+                                                      row.names(x)), ]
+                                       })
+                
+                # Subset to only overlapping samples
+                # Find if any samples don't have accompanying diet data;
+                # expect this to happen some of the time, especially early in stay 
+                
+                # Get shared samples from one phyloseq object
+                shared <- intersect(row.names(asvtabs.trnL[[1]]), 
+                                    row.names(asvtabs.menu[[1]]))
+                cat(subject, delta, 'has missing entries: ', 
+                    dim(asvtabs.trnL[[1]])[1]- length(shared), '\n')
+                
+                # Subset to shared samples
+                asvtabs.trnL.shared <- lapply(asvtabs.trnL,
+                                              function(x){x[shared, ]})
+                asvtabs.menu.shared <- lapply(asvtabs.menu,
+                                              function(x){x[shared, ]})
+                
+                # Calculate precision and recall
+                asv.pos <- lapply(asvtabs.trnL.shared, function(x){x > thresh.trnL})
+                menu.pos <- lapply(asvtabs.menu.shared, function(x){x > 0})
+                
+                tp <- mapply(function(obs, known){obs & known}, asv.pos, menu.pos)
+                tn <- mapply(function(obs, known){!obs & !known}, asv.pos, menu.pos)
+                fp <- mapply(function(obs, known){obs & !known}, asv.pos, menu.pos)
+                fn <- mapply(function(obs, known){!obs & known}, asv.pos, menu.pos)
+                
+                rec <- mapply(function(tp, fn){sum(tp)/(sum(tp) + sum(fn))}, 
+                              tp, fn)
+                
+                prec <- mapply(function(tp, fp){sum(tp)/(sum(tp) + sum(fp))}, 
+                               tp, fp)
+                
+                rec.cols <- 
+                        mapply(function(tp, fn){
+                                colSums(tp)/(colSums(tp) + colSums(fn))
+                                },
+                               tp, fn)
+                
+                prec.cols <- 
+                        mapply(function(tp, fp){
+                                colSums(tp)/(colSums(tp) + colSums(fp))
+                                },
+                               tp, fp)
+                
+                for (i in seq_along(asv.pos)){
+                        # Add values to metrics
+                        # Overall
+                        metrics <- bind_rows(metrics,
+                                             data.frame(delta = delta,
+                                                        subject = subject,
+                                                        level = names(asv.pos)[i],
+                                                        food = NA,
+                                                        n_compare = length(asv.pos[[i]]),
+                                                        recall = rec[[i]],
+                                                        precision = prec[[i]]))
+                        # By-food
+                        metrics <- bind_rows(metrics,
+                                             data.frame(delta = delta,
+                                                        subject = subject,
+                                                        level = names(asv.pos)[i],
+                                                        food = names(rec.cols[[i]]),
+                                                        n_compare = dim(asv.pos[[i]])[1],
+                                                        recall = rec.cols[[i]],
+                                                        precision = prec.cols[[i]]))
+                }
+        }
+}
+```
+
+Add F-measure, the harmonic mean of precision and recall. (The harmonic mean is the reciprocal of the arithmetic mean of the reciprocals of observations in a dataset).
+
+```{r}
+metrics <- mutate(metrics,
+                  f.meas = (2 * recall * precision)/(recall + precision))
+```
+
+## Visualize
+
+```{r}
+dim(metrics)
+```
+
+### Overall (all subjects, all foods)
+Read in null model data to add to plot
+```{r}
+null.model <- 
+        here('results', 'miniseq', '20191206', '20200924_Null model.csv') %>% 
+        read_csv()
+```
+
+
+```{r}
+metrics.overall.df <- 
+        metrics %>% 
+        filter(is.na(food) & is.na(subject)) %>% # Remove any food-specific entries
+        pivot_longer(cols = recall:f.meas, 
+                     names_to = 'metric', values_to = 'value') %>% 
+        select(-c(subject, food)) %>% 
+        mutate(delta.num = as.numeric(gsub('delta', '', delta)))
+
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggplot(metrics.overall.df, aes(x = delta.num, y = value, color = metric,
+                               alpha = metric)) +
+        geom_point() +
+        geom_line() +
+        geom_hline(data = null.model, aes(yintercept = avg.prec), 
+                   color = '#00BA38', linetype = 'dashed') +
+        # geom_ribbon(data = null.model, aes(ymin=avg.prec-sd.prec,
+        #                                    ymax=avg.prec+sd.prec, alpha=0.2),
+        #             color = '#00BA38') +
+        geom_hline(data = null.model, aes(yintercept = avg.rec), 
+                   color = '#619CFF', linetype = 'dashed') +
+        facet_wrap(~level) +
+        scale_alpha_manual(values = c(1, 0.3, 0.3)) + 
+        theme_classic() +
+        labs(y = 'Value', x = 'Lag day')
+
+# Relevant plotIDs
+# 2020-08-31.706: First pass
+# 2020-09-09.87: With family/genus/species added, free y-axis, with F measure
+# 2020-09-09.818: Above with fixed y-axis
+# 2020-09-22.512: With Outside Meals added, free y
+# 2020-09-22.697: With Outside Meals added, fixed y
+# 2020-09-22.96: With 0.001% read threshold for trnL data, free y
+# 2020-09-22.902: With 0.001% read threshold for trnL data, fixed y
+# 2020-09-22.220: With 0.01% read threshold for trnL data, free y
+# 2020-09-24.476: No threshold with null model added
+# 2020-09-24.246: Above with fixed scale
+
+ggsave(here('results', 'miniseq', '20191206',
+            paste0(plotID, '_Population recall-precision, 1 wk lag, with level and null model, free y.png')),
+       height = 6)
+```
+
+### By subject
+
+```{r}
+metrics.subject.df <- 
+        metrics %>% 
+        filter(level == 'all') %>% 
+        filter(!is.na(subject) & is.na(food)) %>% 
+        pivot_longer(cols = recall:f.meas, 
+                     names_to = 'metric', values_to = 'value') %>% 
+        select(-food) %>% 
+        mutate(delta.num = as.numeric(gsub('delta', '', delta)))
+        
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggplot(metrics.subject.df, 
+       aes(x = delta.num, y = value, color = metric, alpha = metric)) +
+        geom_point() +
+        geom_line() +
+        facet_wrap(~subject) + 
+        # facet_grid(vars(level), vars(subject)) +
+        scale_alpha_manual(values = c(1, 0.3, 0.3)) + 
+        xlab('Delta') + ylab('Value') + 
+        theme_classic()
+
+# Relevant plotIDs
+# 2020-09-01.969: First pass
+# 2020-09-20.765: With updated menu, all faceting variables on one plot
+# 2020-09-22.380: Above with Outside Meals added
+# 2020-09-22.37: Above with 0.0001% read threshold cutoff
+# 2020-09-24.327: All taxa only for simpler plot, no threshold cutoff
+
+ggsave(here('results', 'miniseq', '20191206',
+            paste0(plotID, 
+                   '_Per-subject recall-precision, 1 wk lag.png')),
+       height = 2)
+```
+
+### By food
+
+#### Level: All
+
+```{r}
+metrics.food.df %>%
+        filter(level == 'all' & metric == 'f.meas') %>% 
+        ggplot(aes(x = delta.num, y = value, color = food)) +
+        geom_point() +
+        geom_line() +
+        theme(legend.position = 'none')
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggplot(metrics.food.df, aes(x = delta.num, y = value)) +
+        geom_jitter(alpha = 0.1, width = 0.2) +
+        stat_summary(fun.y = mean, fun.ymin = mean, fun.ymax = mean,
+               geom = "crossbar", width = 0.8, color = 'red') +
+        facet_wrap(~metric) +
+        theme(legend.position = 'none') + 
+        xlab('Delta') + ylab('Value')
+
+# Relevant plotIDs
+# 2020-09-01.97
+
+ggsave(here('results', 'miniseq', '20191206',
+            paste0(plotID, 
+                   '_Per-food recall-precision, 1 wk lag, no adjustments.png')),
+       height = 4)
+```
+
+
+#### With subject-specific lag
+
+```{r}
+metrics.food.subject.df <- 
+        metrics %>% 
+        filter(!is.na(subject) & !is.na(food)) %>% 
+        pivot_longer(cols = recall:f.meas, 
+                     names_to = 'metric', values_to = 'value') %>% 
+        mutate(delta.num = as.numeric(gsub('delta', '', delta)),
+               delta = as.factor(delta)) 
+```
+
+```{r}
+# Note that for violin plot, x-axis has to be a categorical variable
+metrics.food.subject.df %>% 
+        filter(metric == 'f.meas') %>% 
+        ggplot(aes(x = delta, y = value), by = food) +
+        # geom_point() +
+        # geom_line() +
+        # geom_violin() +
+        geom_boxplot() +
+        facet_wrap(~subject) + 
+        ylim(c(0, 1))
+```
+Ok, so think the problem here is that a food could exhibit good recall and precision one day, but poor other days, and these are all being averaged together.
+
+Maybe what I want to do is pick the best lag day's precision/recall for each food, and plot those. 
+
+```{r}
+metrics.food.subject.df %>% 
+        filter(level == 'species' & metric == 'f.meas') %>% 
+        filter(!is.na(value)) %>% 
+        group_by(subject, food) %>% 
+        filter(value == max(value)) %>% 
+        ggplot(aes(x = delta.num)) +
+        geom_histogram() +
+        facet_wrap(~subject)
+```
+
+# Mantel
+
+Let's just try one lag day right now:
+```{r}
+delta <- 'delta1'
+sample_names(ps.trnL.ra) <- sample_data(ps.trnL.ra)[[delta]]
+```
+
+Extract ASV tables and synchronize samples
+```{r}
+asvtab.trnL <- otu_table(ps.trnL.ra)@.Data
+asvtab.menu <- otu_table(ps.menu.ra)@.Data
+
+# Subset to only overlapping samples
+
+# Get shared samples from one phyloseq object
+shared <- intersect(row.names(asvtab.trnL), row.names(asvtab.menu))
+cat(delta, 'has missing entries: ', dim(asvtab.trnL)[1]- length(shared), '\n')
+
+# Subset to shared samples
+asvtab.trnL.shared <- asvtab.trnL[shared, ]
+asvtab.menu.shared <- asvtab.menu[shared, ]
+
+# Replace in phyloseq object
+ps.trnL.shared <- phyloseq(otu_table(asvtab.trnL.shared, taxa_are_rows = FALSE),
+                           tax_table(ps.trnL.ra),
+                           sample_data(ps.trnL.ra))
+ps.menu.shared <- phyloseq(otu_table(asvtab.menu.shared, taxa_are_rows = FALSE),
+                           tax_table(ps.menu.ra),
+                           sample_data(ps.menu.ra))
+```
+
+Distance matrix of trnL
+```{r}
+dist.trnL <- distance(ps.trnL.shared, method = 'bray', type = 'samples')
+dist.menu <- distance(ps.menu.shared, method = 'bray', type = 'samples')
+```
+
+Distance matrix of menu
+
+```{r}
+vegan::mantel(dist.trnL, dist.menu)
+```
+
+# Ordinate menu
+
+```{r}
+ps.menu.noJN55 <- subset_samples(ps.menu.ra, ID != 'JN55')
+
+ord.menu <- ordinate(ps.menu.noJN55, method = 'PCoA', distance = 'bray')
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+plot_ordination(ps.menu.noJN55, ord.menu, type = 'samples', color = 'ID') +
+        geom_point(size = 3) +
+        scale_color_manual(values = colors[c(7, 5, 6)]) +
+        theme_classic() + 
+        theme(aspect.ratio = 1)
+
+# Relevant plotIDs
+# 2020-09-23.537 First pass, all taxonomic levels, B-C
+
+ggsave(here('results', 'miniseq', '20191206',
+            paste0(plotID, 
+                   '_Menu ordination, B-C, all taxonomic levels.png')),
+       height = 4)
+```
+
+```{r}
+samdf <- as(sample_data(ps.menu.noJN55), 'data.frame')
+vegan::adonis(distance(ps.menu.noJN55, method = 'bray', type = 'samples') ~ ID,
+              samdf)
+```
+
