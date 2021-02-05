@@ -177,13 +177,28 @@ join.prefix <-
      # Get missed rows in last join
      filter(is.na(common_name) & is.na(category)) %>% 
      select(-(scientific_name:category))  # Drop empty join columns
-```
 
-```{r}
+# Join by prefix
 join.prefix <- 
      db %>% 
      select(scientific_name, common_name, category, `PreFix Used`) %>% 
      right_join(join.prefix, by = c('PreFix Used' = 'prefix')) 
+```
+
+```{r}
+# Bind together OS- and prefix-based joins to return to the full dataset
+
+# Drop prefix columns 
+proteins.df <- select(proteins.df, -prefix)
+join.prefix <- select(join.prefix, -`PreFix Used`)
+
+# Check all columns the same
+all(names(join.prefix) == names(proteins.df))
+
+# Join
+proteins.df <- bind_rows(proteins.df, join.prefix)
+dim(proteins.df) # How many entries?
+any(is.na(proteins.df$scientific_name)) # Any missing entries?
 ```
 
 ### Format as phyloseq object
