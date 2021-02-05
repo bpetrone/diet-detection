@@ -203,9 +203,34 @@ any(is.na(proteins.df$scientific_name)) # Any missing entries?
 
 ### Format as phyloseq object
 
-```{r}
+#### Sample data
 
+```{r}
+samdf <-
+     proteins.df %>%
+     mutate(sample = paste(subj, date, sep = '_')) %>%
+     select(subj, date, sample) %>%
+     distinct() %>% # Remove duplicated rows
+     column_to_rownames(var = 'sample')
 ```
+
+#### OTU table
+
+```{r}
+psm.counts.wide <-
+     proteins.df %>%
+     mutate(sample = paste(subj, date, sep = '_')) %>% # Create unique label
+     # Need to group & summarize, because may be multiple peptides/food
+     group_by(sample, scientific_name) %>%
+     summarize(abundance = sum(`# PSMs`)) %>%
+     pivot_wider(names_from = scientific_name,
+                 values_from = abundance, # Total # PSMs
+                 values_fill = 0) %>% # If no entry, log as 0
+     column_to_rownames(var = 'sample')
+```
+
+#### Taxonomy table
+
 
 
 ## DFC menu data (phyloseq)
