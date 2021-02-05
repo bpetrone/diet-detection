@@ -177,21 +177,6 @@ join.prefix <-
      # Get missed rows in last join
      filter(is.na(common_name) & is.na(category)) %>% 
      select(-(scientific_name:category))  # Drop empty join columns
-
-# How many columns have a missing prefix (i.e. they don't match an OS or a prefix label?)
-ex <- 'OS=(.*)\\sOX=' # Need to relabel OS
-missing <- 
-     join.prefix %>%  
-     filter(is.na(prefix)) %>% 
-     mutate(OS = helper(Description, ex))
-
-# Drop these columns from the list to be joined
-join.prefix <- filter(join.prefix, !(is.na(prefix)))
-```
-
-```{r}
-# Manually label missing values
-unique(missing$OS)
 ```
 
 ```{r}
