@@ -5,6 +5,9 @@ output:
     df_print: paged
 ---
 
+First priority: Are there any obvious species missing?
+False positives and false negatives
+
 Here we are evaluating the preliminary data shared by the Kleiner lab at NCSU to determine if their metaproteomic database should be adjusted (e.g. filtering out homologs to human proteins, other ideas?) before continuing with analysis of the DFC samples.
 
 # R setup
@@ -33,8 +36,13 @@ db <- read_excel(here('data', 'processed', 'DietaryDB_ForDavidLab.xlsx'),
 head(db)
 ```
 ```{r}
-# Manual update: specify scientific name for tilapia
+# Manual updates
+# Specify scientific name for tilapia
 db$scientific_name[db$scientific_name == 'Tilapia'] <- 'Oreochromis niloticus'
+# Correct misspelling for mallard duck
+db$scientific_name[db$scientific_name == 'Anas platyrhynchose'] <- 'Anas platyrhynchos'
+# Switch var. to subsp. for durum
+db$scientific_name[db$scientific_name == 'Triticum turgidum var. durum'] <- 'Triticum turgidum subsp. durum'
 ```
 
 ## Participant metaproteomic data
@@ -125,10 +133,13 @@ proteins.df <- mutate(proteins.df, OS = helper(Description, ex))
 ```
 
 ```{r}
-# Manual correction to match database: Vigna radiata var. radiata (mung bean) to Vigna radiata; Mentha piperita (peppermint) to Mentha x piperita
+# Manual correction to match database (V.radiata, M. piperita)
+# Manual correction to match NCBI taxonomy (A. bisporus, A. platensis)
 
 proteins.df$OS[proteins.df$OS == 'Vigna radiata var. radiata'] <- 'Vigna radiata'
 proteins.df$OS[proteins.df$OS == 'Mentha piperita'] <- 'Mentha x piperita'
+proteins.df$OS[proteins.df$OS == 'Agaricus bisporus var. burnettii (strain JB137-S8 / ATCC MYA-4627 / FGSC 10392)'] <- 'Agaricus bisporus'
+proteins.df$OS[proteins.df$OS == 'Arthrospira platensis (strain NIES-39 / IAM M-135)'] <- 'Arthrospira platensis'
 ```
 
 ```{r}
@@ -231,6 +242,91 @@ psm.counts.wide <-
 
 #### Taxonomy table
 
+Regardless of whether I go on to use taxids as names, I do need to query to build the taxonomy table for the phyloseq object.
+```{r}
+binomial.only <-
+     proteins.df %>%
+     select(scientific_name) %>%
+     distinct()
+
+taxids <- taxa::lookup_tax_data(binomial.only,
+                                type = 'taxon_name',
+                                column = 'scientific_name',
+                                database = 'ncbi')
+```
+
+What wasn't found?
+```{r}
+result <- taxids$data$query_data
+result$scientific_name[result$taxon_id == 'unknown']
+```
+
+Get taxonomy
+```{r}
+taxtab.protein <-
+     taxa::taxonomy_table(taxids,
+                          use_ranks = c('superkingdom', 'kingdom',
+                                        'phylum', 'order', 'family', 'genus',
+                                        'species', 'subspecies',
+                                        'varietas'),
+                          add_id_col = TRUE)
+```
+
+Note that not all taxids are terminally listed here:
+```{r}
+dim(taxtab.protein)[1]
+length(unique(taxids$data$query_data$taxon_id))
+```
+
+Think this is because some are internal nodes.
+Figure this out and add their taxonomy too.
+
+```{r}
+add <- setdiff(unique(taxids$data$query_data$taxon_id), taxtab.protein$taxon_id)
+
+# Manually inspect
+taxids$data$query_data %>%
+     filter(taxon_id %in% add)
+```
+So yes, this seems to be what's happening.
+Now quickly build the rows to add to the table
+Just do manually for now: write main table, trim these rows, and read back in
+
+```{r eval = FALSE, echo = FALSE}
+# write_csv(taxtab.protein,
+#           here('data', 'processed',
+#                '20210208_Internal taxonomy table nodes.csv'))
+
+add.rows <-
+     here('data', 'processed', 'miniseq', '20191206',
+          '20200828_Internal taxonomy table nodes.csv') %>%
+     read_csv(col_types = cols(.default = 'c'))
+```
+
+```{r eval = FALSE, echo = FALSE}
+# Bind together
+taxtab.menu <-
+        taxtab.menu %>%
+        bind_rows(add.rows) %>%
+        as.data.frame() # This is required in order for lowest level step to work-- so weird-- the code below doesn't seem to work on a tibble
+```
+
+Add lowest level name as row name
+
+```{r eval = FALSE, echo = FALSE}
+# This gets the right-most, non-NA value
+lowest.index <- max.col(!is.na(taxtab.menu), 'last')
+
+# Make row-column pairs to pull and add to taxonomy
+taxtab.menu$lowest.level <- taxtab.menu[cbind(seq_along(lowest.index),
+                                            lowest.index)]
+
+# Now drop taxid, and convert terminal name to row name
+taxtab.menu <-
+        taxtab.menu %>%
+        select(-taxon_id) %>%
+        column_to_rownames(var = 'lowest.level')
+```
 
 
 ## DFC menu data (phyloseq)
