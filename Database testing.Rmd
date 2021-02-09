@@ -140,6 +140,7 @@ proteins.df$OS[proteins.df$OS == 'Vigna radiata var. radiata'] <- 'Vigna radiata
 proteins.df$OS[proteins.df$OS == 'Mentha piperita'] <- 'Mentha x piperita'
 proteins.df$OS[proteins.df$OS == 'Agaricus bisporus var. burnettii (strain JB137-S8 / ATCC MYA-4627 / FGSC 10392)'] <- 'Agaricus bisporus'
 proteins.df$OS[proteins.df$OS == 'Arthrospira platensis (strain NIES-39 / IAM M-135)'] <- 'Arthrospira platensis'
+proteins.df$OS[proteins.df$OS == 'Arthrospira platensis C1'] <- 'Arthrospira platensis'
 ```
 
 ```{r}
@@ -266,9 +267,10 @@ Get taxonomy
 taxtab.protein <-
      taxa::taxonomy_table(taxids,
                           use_ranks = c('superkingdom', 'kingdom',
-                                        'phylum', 'order', 'family', 'genus',
-                                        'species', 'subspecies',
-                                        'varietas'),
+                                        'phylum', 'superorder', 'order', 
+                                        'suborder', 'class', 'superfamily',
+                                        'family', 'genus', 'species',
+                                        'subspecies', 'varietas'),
                           add_id_col = TRUE)
 ```
 
@@ -286,48 +288,46 @@ add <- setdiff(unique(taxids$data$query_data$taxon_id), taxtab.protein$taxon_id)
 
 # Manually inspect
 taxids$data$query_data %>%
-     filter(taxon_id %in% add)
+     filter(taxon_id %in% add) %>% View()
 ```
 So yes, this seems to be what's happening.
 Now quickly build the rows to add to the table
-Just do manually for now: write main table, trim these rows, and read back in
 
-```{r eval = FALSE, echo = FALSE}
+```{r}
 # write_csv(taxtab.protein,
 #           here('data', 'processed',
 #                '20210208_Internal taxonomy table nodes.csv'))
 
 add.rows <-
-     here('data', 'processed', 'miniseq', '20191206',
-          '20200828_Internal taxonomy table nodes.csv') %>%
+     here('data', 'processed', 
+          '20210208_Internal taxonomy table nodes.csv') %>%
      read_csv(col_types = cols(.default = 'c'))
 ```
 
-```{r eval = FALSE, echo = FALSE}
+```{r}
 # Bind together
-taxtab.menu <-
-        taxtab.menu %>%
+taxtab.protein <-
+        taxtab.protein %>%
         bind_rows(add.rows) %>%
         as.data.frame() # This is required in order for lowest level step to work-- so weird-- the code below doesn't seem to work on a tibble
 ```
 
 Add lowest level name as row name
 
-```{r eval = FALSE, echo = FALSE}
+```{r}
 # This gets the right-most, non-NA value
-lowest.index <- max.col(!is.na(taxtab.menu), 'last')
+lowest.index <- max.col(!is.na(taxtab.protein), 'last')
 
 # Make row-column pairs to pull and add to taxonomy
-taxtab.menu$lowest.level <- taxtab.menu[cbind(seq_along(lowest.index),
+taxtab.protein$lowest.level <- taxtab.protein[cbind(seq_along(lowest.index),
                                             lowest.index)]
 
 # Now drop taxid, and convert terminal name to row name
-taxtab.menu <-
-        taxtab.menu %>%
+taxtab.protein <-
+        taxtab.protein %>%
         select(-taxon_id) %>%
         column_to_rownames(var = 'lowest.level')
 ```
-
 
 ## DFC menu data (phyloseq)
 
