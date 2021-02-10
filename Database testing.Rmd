@@ -117,43 +117,57 @@ Using a combination of OS (embedded in Description column) and prefix assigned i
 
 ```{r}
 head(proteins.df$Description)
+cat('\n')
+head(proteins.df$Accession)
 ```
 
 ```{r}
-# Extract OS from Description column
+# Separate prefix into its own column
 
-# Get the string between 'OS=' and 'OX='
+# Helper function for use inside mutate
 helper <- function(str, ex){
      substring <- str_match(str, ex)
      substring[, 2] # Second column has capture group
 }
 
-ex <- 'OS=(.*)\\sOX='
-proteins.df <- mutate(proteins.df, OS = helper(Description, ex))
+# Extract prefix before '_'
+proteins.df <- mutate(proteins.df, prefix = helper(Accession, '(\\w+)_.*'))
 ```
 
 ```{r}
-# Manual correction to match database (V.radiata, M. piperita)
-# Manual correction to match NCBI taxonomy (A. bisporus, A. platensis)
+# How many missing entries?
+sum(is.na(proteins.df$prefix))
+```
+
+```{r}
+# Extract OS from Description column
+proteins.df <- mutate(proteins.df, OS = helper(Description, 'OS=(.*)\\sOX='))
+```
+
+```{r}
+filter(proteins.df, is.na(prefix)) %>% pull(OS) %>% unique()
+```
+
+In some cases, the OS is more specific than it should be to match back to database. 
+```{r}
+# Manual correction to match database (V.radiata, M. piperita, O. sativa, B. vulgaris)
 
 proteins.df$OS[proteins.df$OS == 'Vigna radiata var. radiata'] <- 'Vigna radiata'
 proteins.df$OS[proteins.df$OS == 'Mentha piperita'] <- 'Mentha x piperita'
+proteins.df$OS[proteins.df$OS == 'Oryza sativa subsp. japonica'] <- 'Oryza sativa'
+proteins.df$OS[proteins.df$OS == 'Musa acuminata subsp. malaccensis'] <- 'Musa acuminata'
+
+# Manual correction to match NCBI taxonomy (A. bisporus, A. platensis)
+
 proteins.df$OS[proteins.df$OS == 'Agaricus bisporus var. burnettii (strain JB137-S8 / ATCC MYA-4627 / FGSC 10392)'] <- 'Agaricus bisporus'
 proteins.df$OS[proteins.df$OS == 'Arthrospira platensis (strain NIES-39 / IAM M-135)'] <- 'Arthrospira platensis'
 proteins.df$OS[proteins.df$OS == 'Arthrospira platensis C1'] <- 'Arthrospira platensis'
+proteins.df$OS[proteins.df$OS == 'Laetiporus sulphureus 93-53'] <- 'Laetiporus sulphureus'
 ```
 
 ```{r}
 n_distinct(proteins.df$OS) # Total number
 sum(unique(proteins.df$OS) %in% db$scientific_name) # Number matching database name
-```
-
-For missing entries, can try matching to prefix in database instead
-```{r}
-# Separate prefix into its own column
-# Extract prefix before '_'
-
-proteins.df <- mutate(proteins.df, prefix = helper(Accession, '(\\w+)_.*'))
 ```
 
 ```{r}
@@ -315,7 +329,7 @@ taxtab.protein <-
 Add lowest level name as row name
 
 ```{r}
-# This gets the right-most, non-NA value
+# This gets the right-most, non-NA values
 lowest.index <- max.col(!is.na(taxtab.protein), 'last')
 
 # Make row-column pairs to pull and add to taxonomy
