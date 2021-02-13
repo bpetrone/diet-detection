@@ -19,9 +19,10 @@ opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```
 
 ```{r libraries, echo=FALSE}}
-library(here) # For relative file paths
-library(readxl) # For reading Excel files
-library(tidyverse) # For lots of nice "data wrangling" tools in R
+library(here) 
+library(phyloseq) 
+library(readxl) # For parsing Excel files
+library(tidyverse) 
 ```
 
 # Read in files
@@ -43,7 +44,13 @@ db$scientific_name[db$scientific_name == 'Tilapia'] <- 'Oreochromis niloticus'
 db$scientific_name[db$scientific_name == 'Anas platyrhynchose'] <- 'Anas platyrhynchos'
 # Switch var. to subsp. for durum
 db$scientific_name[db$scientific_name == 'Triticum turgidum var. durum'] <- 'Triticum turgidum subsp. durum'
-```
+# Correct spelling of water buffalo
+db$scientific_name[db$scientific_name == 'Bubalis bubalis'] <- 'Bubalus bubalis'
+# Think something weird about formatting of "x" in Musa x paradisiaca, not being recognized
+db$scientific_name[db$common_name == 'plantain'] <- 'Musa x paradisiaca'
+# Remove zante currant, which is redundant with V. vinifera
+db <- filter(db, common_name != 'zante currant')
+``` 
 
 ## Participant metaproteomic data
 
@@ -154,75 +161,73 @@ In some cases, the OS is more specific than it should be to match back to databa
 
 proteins.df$OS[proteins.df$OS == 'Vigna radiata var. radiata'] <- 'Vigna radiata'
 proteins.df$OS[proteins.df$OS == 'Mentha piperita'] <- 'Mentha x piperita'
-proteins.df$OS[proteins.df$OS == 'Oryza sativa subsp. japonica'] <- 'Oryza sativa'
-proteins.df$OS[proteins.df$OS == 'Musa acuminata subsp. malaccensis'] <- 'Musa acuminata'
 
-# Manual correction to match NCBI taxonomy (A. bisporus, A. platensis)
+# P. nigrum prefix labeled as Pne, should be Pni by database
 
-proteins.df$OS[proteins.df$OS == 'Agaricus bisporus var. burnettii (strain JB137-S8 / ATCC MYA-4627 / FGSC 10392)'] <- 'Agaricus bisporus'
-proteins.df$OS[proteins.df$OS == 'Arthrospira platensis (strain NIES-39 / IAM M-135)'] <- 'Arthrospira platensis'
-proteins.df$OS[proteins.df$OS == 'Arthrospira platensis C1'] <- 'Arthrospira platensis'
-proteins.df$OS[proteins.df$OS == 'Laetiporus sulphureus 93-53'] <- 'Laetiporus sulphureus'
+proteins.df$prefix[proteins.df$prefix == 'Pne'] <- 'Pni'
 ```
 
 ```{r}
-n_distinct(proteins.df$OS) # Total number
-sum(unique(proteins.df$OS) %in% db$scientific_name) # Number matching database name
-```
-
-```{r}
-# NAs
-sum(is.na(proteins.df$OS))
-sum(is.na(proteins.df$prefix))
-```
-
-```{r}
-# Of matches, how many missed by OS matching?
-proteins.df$OS[!(proteins.df$OS %in% db$scientific_name)] %>%
-     unique() %>% 
-     length()
-
-# Of matches, how many missed by prefix matching?
-proteins.df$prefix[!(proteins.df$prefix %in% db$`PreFix Used`)] %>% 
-     unique() %>% 
-     length()
-```
-
-Okay, so more missing values for prefixes, but more manual mapping needed for OS.  Need to remember here that this isn't an exact correspondence between the OS query and the assigned prefix, but I can try roughing it for now.  
-
-```{r}
-# Join by OS
-proteins.df <- 
-     db %>% 
-     select(scientific_name, common_name, category) %>% 
-     right_join(proteins.df, by = c('scientific_name' = 'OS')) 
-
-# Find those OS that don't have entries.  These are to be joined by prefix
-join.prefix <- 
-     proteins.df %>% 
-     # Get missed rows in last join
-     filter(is.na(common_name) & is.na(category)) %>% 
-     select(-(scientific_name:category))  # Drop empty join columns
+# Label with prefix unless unavailable; otherwise label by OS
 
 # Join by prefix
 join.prefix <- 
-     db %>% 
-     select(scientific_name, common_name, category, `PreFix Used`) %>% 
-     right_join(join.prefix, by = c('PreFix Used' = 'prefix')) 
+     proteins.df %>% 
+     # Remove rows without a prefix label
+     filter(!is.na(prefix)) %>% 
+     # Remove any duplicated prefixes based on initial results
+     filter(!(prefix %in% c('Pgr', 'Shi', 'Scer', 'Sso', 'Vvi'))) %>%  
+     left_join(select(db, scientific_name:category, `PreFix Used`), 
+               by = c('prefix' = 'PreFix Used'))
+
+# How many should there be?
+proteins.df %>% 
+     # Get missed rows in last join
+     filter(!is.na(prefix)) %>% 
+     # Remove any duplicated prefixes based on initial results
+     filter(!(prefix %in% c('Pgr', 'Shi', 'Scer', 'Sso', 'Vvi'))) %>% 
+     dim
+
+# How many are there?
+dim(join.prefix)
+```
+
+On first pass through, these dimensions didn't check out-- turns out there are some prefixes with duplicated entries. Only Pgr and Shi come up here
+
+Pgr: Assigned to both Prunus grayana (japanese bird cherry) and Punica granatum (pomegranate)
+Shi: Assigned to both Salvia hispanica (chia) and Scorzonera hispanica (salsify)
+Scer: Saccharomyces cerevisiae (yeast) and Secale cereale (rye)
+Sso: Salsola soda (saltwort) and Smallanthus sonchifolius (yacon)
+Vvi: Vaccinium vitis-idaea (lingonberry) and Vitis vinifera (grape)
+
+```{r}
+# Now, find those entries not joined by prefix, and join by OS instead
+join.os <- 
+     proteins.df %>% 
+     # Get missed rows in last join
+     filter(is.na(prefix) | prefix %in% c('Pgr', 'Shi', 'Scer', 
+                                          'Sso', 'Vvi')) %>% 
+     left_join(select(db, scientific_name:category),
+               by = c('OS' = 'scientific_name')) %>% 
+     rename(scientific_name = OS)
+
+# Check dimensions are appropriate
+cat('Combined dimensions of OS and prefix entries:', dim(join.os)[1] + dim(join.prefix)[1], '\n')
+cat('Dimensions of input:', dim(proteins.df)[1])
 ```
 
 ```{r}
 # Bind together OS- and prefix-based joins to return to the full dataset
 
 # Drop prefix columns 
-proteins.df <- select(proteins.df, -prefix)
-join.prefix <- select(join.prefix, -`PreFix Used`)
+join.prefix <- select(join.prefix, -c(prefix, OS))
+join.os <- select(join.os, -prefix)
 
 # Check all columns the same
-all(names(join.prefix) == names(proteins.df))
+all(names(join.prefix) == names(join.os))
 
 # Join
-proteins.df <- bind_rows(proteins.df, join.prefix)
+proteins.df <- bind_rows(join.os, join.prefix)
 dim(proteins.df) # How many entries?
 any(is.na(proteins.df$scientific_name)) # Any missing entries?
 ```
@@ -280,10 +285,10 @@ Get taxonomy
 ```{r}
 taxtab.protein <-
      taxa::taxonomy_table(taxids,
-                          use_ranks = c('superkingdom', 'kingdom',
-                                        'phylum', 'superorder', 'order', 
-                                        'suborder', 'class', 'superfamily',
-                                        'family', 'genus', 'species',
+                          use_ranks = c('superkingdom', 'kingdom', 'phylum', 
+                                        'class', 'superorder', 
+                                        'order', 'superfamily', 
+                                        'family', 'genus', 'species', 
                                         'subspecies', 'varietas'),
                           add_id_col = TRUE)
 ```
@@ -294,20 +299,16 @@ dim(taxtab.protein)[1]
 length(unique(taxids$data$query_data$taxon_id))
 ```
 
-Think this is because some are internal nodes.
-Figure this out and add their taxonomy too.
+This is because some are internal nodes. Manually add their taxonomy too:
 
 ```{r}
 add <- setdiff(unique(taxids$data$query_data$taxon_id), taxtab.protein$taxon_id)
 
 # Manually inspect
-taxids$data$query_data %>%
-     filter(taxon_id %in% add) %>% View()
-```
-So yes, this seems to be what's happening.
-Now quickly build the rows to add to the table
+# taxids$data$query_data %>%
+#      filter(taxon_id %in% add) %>% View()
 
-```{r}
+# Write full table, subset these columns out
 # write_csv(taxtab.protein,
 #           here('data', 'processed',
 #                '20210208_Internal taxonomy table nodes.csv'))
@@ -343,7 +344,35 @@ taxtab.protein <-
         column_to_rownames(var = 'lowest.level')
 ```
 
-## DFC menu data (phyloseq)
+```{r}
+# Check everything matches
+setdiff(names(psm.counts.wide), row.names(taxtab.protein))
+setdiff(row.names(taxtab.protein), names(psm.counts.wide))
+```
+
+```{r}
+# Make phyloseq object
+ps.protein <- phyloseq(otu_table(psm.counts.wide, taxa_are_rows = FALSE),
+                       sample_data(samdf),
+                       tax_table(as.matrix(taxtab.protein)))
+
+ps.protein
+
+# saveRDS(ps.protein, here('data', 'processed', '20210212_ps.rds'))
+```
+
+## Metaproteomic phyloseq
+
+```{r}
+ps.protein <- readRDS(here('data', 'processed', '20210212_ps.rds'))
+```
+
+## DFC menu data phyloseq
+
+```{r}
+ps.menu <- 
+```
+
 
 # Precision-recall
 
