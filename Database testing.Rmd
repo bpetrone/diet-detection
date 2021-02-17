@@ -28,14 +28,14 @@ library(tidyverse)
 
 ## Current reference database
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Read in the first sheet of the file using read_excel function
 db <- read_excel(here('data', 'processed', 'DietaryDB_ForDavidLab.xlsx'), 
                  sheet = 1, 
                  n_max = 547) # Exclude annotations at end of file
 head(db)
 ```
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Manual updates
 # Specify scientific name for tilapia
 db$scientific_name[db$scientific_name == 'Tilapia'] <- 'Oreochromis niloticus'
@@ -55,7 +55,7 @@ db <- filter(db, common_name != 'zante currant')
 
 ### Combine files
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # List files
 fs <- list.files(here('data', 'raw',
                      'Proteins_IndividualResultFiles_RealisticFoodsWithMicrobiota'),
@@ -81,7 +81,7 @@ rm(fs, dfs)
 ```
 
 ### Clean
-```{r}
+```{r eval = FALSE, echo = FALSE}
 proteins.df <- 
      proteins.df %>% 
      # Clean up ID column
@@ -91,16 +91,16 @@ proteins.df <-
      mutate(date = as.Date(date, format = '%d%b%y'))
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 head(proteins.df)
 ```
-```{r}
+```{r eval = FALSE, echo = FALSE}
 dim(proteins.df)
 ```
 
 ### Filter 
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Filter to only food-derived proteins (this removes majority)
 proteins.df <- 
      proteins.df %>% 
@@ -110,7 +110,7 @@ proteins.df <-
 dim(proteins.df)
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Remove proteins labeled as not found in sample
 # Very low abundance (though non-zero counts), only one from wheat
 proteins.df <- filter(proteins.df, `Found in Sample` != 'Not Found')
@@ -121,13 +121,13 @@ dim(proteins.df)
 
 Using a combination of OS (embedded in Description column) and prefix assigned in database.
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 head(proteins.df$Description)
 cat('\n')
 head(proteins.df$Accession)
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Separate prefix into its own column
 
 # Helper function for use inside mutate
@@ -140,22 +140,22 @@ helper <- function(str, ex){
 proteins.df <- mutate(proteins.df, prefix = helper(Accession, '(\\w+)_.*'))
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # How many missing entries?
 sum(is.na(proteins.df$prefix))
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Extract OS from Description column
 proteins.df <- mutate(proteins.df, OS = helper(Description, 'OS=(.*)\\sOX='))
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 filter(proteins.df, is.na(prefix)) %>% pull(OS) %>% unique()
 ```
 
 In some cases, the OS is more specific than it should be to match back to database. 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Manual correction to match database (V.radiata, M. piperita, O. sativa, B. vulgaris)
 
 proteins.df$OS[proteins.df$OS == 'Vigna radiata var. radiata'] <- 'Vigna radiata'
@@ -166,7 +166,7 @@ proteins.df$OS[proteins.df$OS == 'Mentha piperita'] <- 'Mentha x piperita'
 proteins.df$prefix[proteins.df$prefix == 'Pne'] <- 'Pni'
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Label with prefix unless unavailable; otherwise label by OS
 
 # Join by prefix
@@ -199,7 +199,7 @@ Scer: Saccharomyces cerevisiae (yeast) and Secale cereale (rye)
 Sso: Salsola soda (saltwort) and Smallanthus sonchifolius (yacon)
 Vvi: Vaccinium vitis-idaea (lingonberry) and Vitis vinifera (grape)
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Now, find those entries not joined by prefix, and join by OS instead
 join.os <- 
      proteins.df %>% 
@@ -215,7 +215,7 @@ cat('Combined dimensions of OS and prefix entries:', dim(join.os)[1] + dim(join.
 cat('Dimensions of input:', dim(proteins.df)[1])
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Bind together OS- and prefix-based joins to return to the full dataset
 
 # Drop prefix columns 
@@ -235,7 +235,7 @@ any(is.na(proteins.df$scientific_name)) # Any missing entries?
 
 #### Sample data
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 samdf <-
      proteins.df %>%
      mutate(sample = paste(subj, date, sep = '_')) %>%
@@ -246,7 +246,7 @@ samdf <-
 
 #### OTU table
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 psm.counts.wide <-
      proteins.df %>%
      mutate(sample = paste(subj, date, sep = '_')) %>% # Create unique label
@@ -262,7 +262,7 @@ psm.counts.wide <-
 #### Taxonomy table
 
 Regardless of whether I go on to use taxids as names, I do need to query to build the taxonomy table for the phyloseq object.
-```{r}
+```{r eval = FALSE, echo = FALSE}
 binomial.only <-
      proteins.df %>%
      select(scientific_name) %>%
@@ -275,13 +275,13 @@ taxids <- taxa::lookup_tax_data(binomial.only,
 ```
 
 What wasn't found?
-```{r}
+```{r eval = FALSE, echo = FALSE}
 result <- taxids$data$query_data
 result$scientific_name[result$taxon_id == 'unknown']
 ```
 
 Get taxonomy
-```{r}
+```{r eval = FALSE, echo = FALSE}
 taxtab.protein <-
      taxa::taxonomy_table(taxids,
                           use_ranks = c('superkingdom', 'kingdom', 'phylum', 
@@ -293,14 +293,14 @@ taxtab.protein <-
 ```
 
 Note that not all taxids are terminally listed here:
-```{r}
+```{r eval = FALSE, echo = FALSE}
 dim(taxtab.protein)[1]
 length(unique(taxids$data$query_data$taxon_id))
 ```
 
 This is because some are internal nodes. Manually add their taxonomy too:
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 add <- setdiff(unique(taxids$data$query_data$taxon_id), taxtab.protein$taxon_id)
 
 # Manually inspect
@@ -318,7 +318,7 @@ add.rows <-
      read_csv(col_types = cols(.default = 'c'))
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Bind together
 taxtab.protein <-
         taxtab.protein %>%
@@ -328,7 +328,7 @@ taxtab.protein <-
 
 Add lowest level name as row name
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # This gets the right-most, non-NA values
 lowest.index <- max.col(!is.na(taxtab.protein), 'last')
 
@@ -343,13 +343,13 @@ taxtab.protein <-
         column_to_rownames(var = 'lowest.level')
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Check everything matches
 setdiff(names(psm.counts.wide), row.names(taxtab.protein))
 setdiff(row.names(taxtab.protein), names(psm.counts.wide))
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 # Make phyloseq object
 ps.protein <- phyloseq(otu_table(psm.counts.wide, taxa_are_rows = FALSE),
                        sample_data(samdf),
