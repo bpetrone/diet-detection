@@ -17,7 +17,7 @@ require("knitr")
 opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```
 
-```{r libraries, echo=FALSE}}
+```{r libraries, echo=FALSE}
 library(here) 
 library(phyloseq) 
 library(readxl) # For parsing Excel files
@@ -50,7 +50,6 @@ db$scientific_name[db$common_name == 'plantain'] <- 'Musa x paradisiaca'
 # Remove zante currant, which is redundant with V. vinifera
 db <- filter(db, common_name != 'zante currant')
 ``` 
-
 ## Participant metaproteomic data
 
 ### Combine files
@@ -378,8 +377,9 @@ ps.menu
 
 ## Per-sample details
 
-How many food taxa consumed daily (menu)?
-```{r}
+Overall view:
+```{r echo = FALSE}
+# How many food taxa consumed daily (menu)?
 melt.menu <- psmelt(ps.menu)
 counts.menu <- 
      melt.menu %>% 
@@ -388,8 +388,8 @@ counts.menu <-
      count(name = 'menu_taxa')
 ```
 
-How many food taxa detected daily (metaproteomics)?
-```{r}
+```{r echo = FALSE}
+# How many food taxa detected daily (metaproteomics)?
 melt.protein <- psmelt(ps.protein)
 counts.protein <- 
      melt.protein %>% 
@@ -416,22 +416,22 @@ counts.long$dataset <- factor(counts.long$dataset,
 
 head(counts)
 ```
-Overall view:
-
 ```{r}
 ggplot(counts.long, aes(x = dataset, y = value)) +
      geom_boxplot() +
-     labs(y = 'Number of taxa', x = 'Source') +
-     theme_bw()
+     labs(title = 'Number of food taxa identified by source',
+          y = 'Number of taxa') +
+     theme_bw() +
+     theme(axis.title.x = element_blank())
 ```
 
-```{r}
+```{r echo = FALSE}
 t.test(counts$menu_taxa, counts$protein_taxa)
 ```
 
 By subject:
 
-```{r}
+```{r echo = FALSE}
 ggplot(counts.long, aes(x = ID, y = value)) +
      geom_boxplot() +
      facet_wrap(~ dataset) + 
@@ -441,7 +441,7 @@ ggplot(counts.long, aes(x = ID, y = value)) +
 ```
 By subject and day: 
 
-```{r}
+```{r echo = FALSE}
 ggplot(counts.long, aes(x = date, y = value)) +
      geom_point(aes(color = dataset)) +
      facet_wrap(~ ID, nrow = 2, scales = 'free_x') + 
@@ -474,19 +474,20 @@ for (delta in 1:7){
 sample_data(ps.protein) <- column_to_rownames(samdf.protein, var = 'row')
 
 # Get menu sample names that are 1 day prior to each stool sample
-day.before <- intersect(samdf.protein$delta1, samdf.menu$row)
+day.before <- intersect(samdf.protein$delta1, sample_names(ps.menu))
 ```
 
 How many food species recorded in menu (day prior to sample)?
 
-```{r}
+```{r echo = FALSE}
 prune_samples(day.before, ps.menu) %>% # Select only day before samples
      prune_taxa(taxa_sums(.) > 0, .) %>% # Remove taxa no longer detected
      ntaxa()
 ```
 
 How many food species detected with metaproteomics?
-```{r}
+
+```{r echo = FALSE}
 subset_samples(ps.protein, delta1 %in% day.before) %>% # 
      prune_taxa(taxa_sums(.) > 0, .) %>% # Remove taxa no longer detected
      ntaxa()
@@ -526,7 +527,7 @@ setdiff(taxa.protein, taxa.menu)
 
 Are we looking at the right time period?  Is a 24-hour period too recent? 
 
-```{r}
+```{r echo = FALSE}
 # Make dataframe for storing results
 metrics <- data.frame(delta = NULL,
                       subject = NULL, 
@@ -542,7 +543,7 @@ deltas <- # Days delta from menu
      names()
 ```
 
-```{r}
+```{r echo = FALSE}
 for (subject in subjects){
      for (delta in deltas){
           # Rename each metaproteomic sample with its updated lag day
@@ -596,7 +597,7 @@ for (subject in subjects){
 }
 ```
 
-```{r}
+```{r echo = FALSE}
 # Clean up for plotting
 metrics <- mutate(metrics, delta = factor(gsub('delta', '', delta),
                                           levels = c(1, 2, 3, 4, 5, 6, 7)))
@@ -609,33 +610,36 @@ metrics.long <- pivot_longer(metrics,
 head(metrics)
 ```
 
-```{r}
+```{r echo = FALSE}
 # True positive
 metrics.long %>% 
      filter(category == 'tp') %>% 
      ggplot(aes(x = delta, y = count)) +
      geom_boxplot() +
      facet_wrap(~ subject) +
+     labs(title = 'True positives, by subject and lag day to menu') +
      theme_bw()
 ```
 
-```{r}
+```{r echo = FALSE}
 # False positive
 metrics.long %>% 
      filter(category == 'fp') %>% 
      ggplot(aes(x = delta, y = count)) +
      geom_boxplot() +
      facet_wrap(~ subject) +
+     labs(title = 'False positives, by subject and lag day to menu') +
      theme_bw()
 ```
 
-```{r}
+```{r echo = FALSE}
 # False negative
 metrics.long %>% 
      filter(category == 'fn') %>% 
      ggplot(aes(x = delta, y = count)) +
      geom_boxplot() +
      facet_wrap(~ subject) +
+     labs(title = 'False negatives, by subject and lag day to menu') +
      theme_bw()
 ```
 
