@@ -505,21 +505,38 @@ This comparison is a bit tricky because some food taxa names aren't fully specif
 * 
 
 ```{r}
-setdiff(row.names(taxtab.protein), row.names(taxtab.menu))
+fp <- setdiff(row.names(taxtab.protein), row.names(taxtab.menu))
+fp
 ```
+
+What kingdom do these originate from?  Do we have more false-positive animals than plants, for example?
+
+```{r}
+# Pull these rows from the taxonomy table
+fp.taxonomy <- taxtab.protein[fp, ]
+fp.taxonomy %>% 
+     data.frame() %>% 
+     group_by(phylum) %>% 
+     count() %>% 
+     arrange(desc(n))
+```
+Interesting-- at least in this high-level view, it's mostly plants. 
+
+Try visualizing with metacoder?
 
 ### Pairing with 1-2 days prior intake
 
-For this broadest level comparison, let's look only at the day prior to sampling.  
+For this broadest level comparison, let's look only at the two days prior to sampling.
 
 ```{r echo = FALSE}
+# Pull sample data for stool samples
 samdf.protein <- 
      sample_data(ps.protein) %>% 
      as('data.frame') %>% 
      rownames_to_column(var = 'row')
 
-# Label each stool sample with a delta
-for (delta in 1:7){
+# Label each stool sample with its two preceding days
+for (delta in 1:2){
      varname <- paste0('delta', delta)
      samdf.protein <- mutate(samdf.protein, 
                              !!varname := paste(subj, date - delta, 
@@ -528,55 +545,100 @@ for (delta in 1:7){
 
 # Replace in phyloseq object
 sample_data(ps.protein) <- column_to_rownames(samdf.protein, var = 'row')
-
-# Get menu sample names that are 1 day prior to each stool sample
-day.before <- intersect(samdf.protein$delta1, sample_names(ps.menu))
 ```
-
-How many food species recorded in menu (day prior to sample)?
-
-```{r echo = FALSE}
-prune_samples(day.before, ps.menu) %>% # Select only day before samples
-     prune_taxa(taxa_sums(.) > 0, .) %>% # Remove taxa no longer detected
-     ntaxa()
-```
-
-How many food species detected with metaproteomics?
-
-```{r echo = FALSE}
-subset_samples(ps.protein, delta1 %in% day.before) %>% # 
-     prune_taxa(taxa_sums(.) > 0, .) %>% # Remove taxa no longer detected
-     ntaxa()
-```
-
-Overlap between the two?
 
 ```{r}
-taxa.protein <- 
-     ps.protein %>% 
-     subset_samples(delta1 %in% day.before) %>%
-     prune_taxa(taxa_sums(.) > 0, .) %>%
-     taxa_names()
+# Can't use merge_samples on phyloseq here because some samples make up >1 merge
 
-taxa.menu <- 
-     ps.menu %>% 
-     prune_samples(day.before, .) %>% 
-     prune_taxa(taxa_sums(.) > 0, .) %>%
-     taxa_names()
+# Do manually on ASV table
+asvtab.menu <- otu_table(ps.menu)@.Data
+asvtab.menu.12 <- data.frame()
 
-intersect(taxa.protein, taxa.menu)
+for (sample in seq(dim(samdf.protein)[1])){
+     # Pull menu day -1
+     one.before <- asvtab.menu[samdf.protein$delta1[sample], ]
+     # Pull menu day -2
+     two.before <- asvtab.menu[samdf.protein$delta2[sample], ]
+     # Merge and place in new, aggregated OTU table
+     asvtab.menu.12 <- rbind(asvtab.menu.12,
+                             one.before + two.before)
+     # Update food names (only has to be done once)
+     if (sample == 1){names(asvtab.menu.12) <- names(one.before + two.before)}
+     # Update sample name
+     row.names(asvtab.menu.12)[sample] <- samdf.protein$row[sample]
+}
+
+# Now rebuild a subsetted phyloseq object
+ps.menu.12 <- phyloseq(otu_table(asvtab.menu.12, taxa_are_rows = FALSE),
+                       sample_data(ps.protein), # Now this matches
+                       tax_table(ps.menu)) # Menu-specific taxonomy
+
+# Remove any taxa that aren't present any longer
+ps.menu.12 <- prune_taxa(taxa_sums(ps.menu.12) > 0, ps.menu.12)
+ps.menu.12
 ```
 
-Species found in menu, not by metaproteomics
+There are `r ntaxa(ps.menu.12)` recorded in the menu in the 2 days prior to each sample, and `r ntaxa(ps.protein)` detected by metaproteomics.
+
+Overlap between the two? Good-- this is pretty similar in overall number to the full dataset (not filtering by menu day-- that gave 69 intersecting taxon names). 
+
+A bit tricky because not all options are compatibly named.  Try grouping to genus level to smooth over at least some of this.
 
 ```{r}
-setdiff(taxa.menu, taxa.protein)
+ps.menu.12 <- tax_glom(ps.menu.12, 'genus')
+taxa_names(ps.menu.12) <- tax_table(ps.menu.12)[, 'genus']
+
+ps.protein <- tax_glom(ps.protein, 'genus')
+taxa_names(ps.protein) <- tax_table(ps.protein)[, 'genus']
 ```
 
-Species found by metaproteomics, not in menu
+
+#### TP
 
 ```{r}
-setdiff(taxa.protein, taxa.menu)
+tp <- intersect(taxa_names(ps.protein), taxa_names(ps.menu.12))
+tp
+```
+
+```{r}
+taxtab.protein <- tax_table(ps.protein)@.Data
+# True positives by phylum
+taxtab.protein[tp, ] %>% 
+     data.frame() %>% 
+     group_by(phylum) %>% 
+     count() %>% 
+     arrange(desc(n))
+```
+
+#### FN
+
+```{r}
+fn <- setdiff(taxa_names(ps.menu.12), taxa_names(ps.protein))
+fn
+```
+
+```{r}
+# False negatives by phylum
+taxtab.menu.12 <- tax_table(ps.menu.12)@.Data
+taxtab.menu.12[fn, ] %>% 
+     data.frame() %>% 
+     group_by(phylum) %>% 
+     count() %>% 
+     arrange(desc(n))
+```
+#### FP
+```{r}
+fp <- setdiff(taxa_names(ps.protein), taxa_names(ps.menu.12))
+fp
+```
+
+False positives by phylum:
+```{r}
+taxtab.protein[fp, ] %>% 
+     data.frame() %>% 
+     group_by(phylum) %>% 
+     count() %>% 
+     arrange(desc(n))
 ```
 
 ## Effect of comparison day
