@@ -386,46 +386,24 @@ ps.trnL <- readRDS(here('data', 'processed', 'phyloseq',
 ps.trnL
 ```
 
+```{r}
+# Rename samples by subject_date for compatibility
+sample_names(ps.trnL) <- paste(sample_data(ps.trnL)$subject,
+                               sample_data(ps.trnL)$date, sep = '_')
+```
+
 ### Filtering
 
-This experiment contained PCRs amplified with an annealing temp of 55 or 63C.  63C gives fewer accessory bands, and also yields more reads through current pipeline, so subset to only these samples.
-
 ```{r}
-ps.trnL <- subset_samples(ps.trnL, anneal_t == '63')
-# Remove taxa that now have 0 counts (67 in all)
-ps.trnL <- prune_taxa(taxa_sums(ps.trnL) != 0, ps.trnL)
+# This experiment contained PCRs amplified with an annealing temp of 55 or 63C.  63C gives fewer accessory bands, and also yields more reads through current pipeline, so subset to only these samples.
+ps.trnL <- 
+     subset_samples(ps.trnL, anneal_t == '63') %>% 
+     prune_taxa(taxa_sums(.) > 0, .) %>% 
+     # Remove SVs not identified to a food
+     subset_taxa(!is.na(superkingdom))
+
 ps.trnL
 ```
-
-Remove sequence variants not identified to a food in current database
-```{r}
-ps.trnL.foods <- subset_taxa(ps.trnL, !is.na(superkingdom)) # Removes 32 taxa
-```
-
-What percentage of reads is this?
-
-```{r}
-# Pull taxonomic data
-taxdf <- 
-     tax_table(ps.trnL.foods) %>%
-     as.data.frame() %>%
-     rownames_to_column(var = 'asv')
-
-# Join to sums
-tax.sums <- 
-     data.frame(sum = taxa_sums(ps.trnL)) %>%
-     rownames_to_column(var = 'asv') %>%
-     full_join(taxdf, by = 'asv')
-```
-
-```{r}
-total <- sum(tax.sums$sum)
-
-filter(tax.sums, !is.na(superkingdom)) %>%
-     select(sum) %>%
-     sum()/total
-```
-
 
 ### 12SV5
 
@@ -435,7 +413,6 @@ ps.12SV5 <- readRDS(here('data', 'processed', 'phyloseq',
 
 ps.12SV5
 ```
-
 
 # Exploratory comparison
 
@@ -517,6 +494,29 @@ ggplot(counts.long, aes(x = date, y = value)) +
 ```
 
 ## Metaproteomics x menu
+
+### Overall dataset
+
+```{r}
+taxtab.protein <- tax_table(ps.protein)@.Data
+taxtab.menu <- tax_table(ps.menu)@.Data
+```
+
+What species are shared between metaproteomic and menu datasets (regardless of menu date?)
+```{r}
+intersect(row.names(taxtab.protein), row.names(taxtab.menu))
+```
+
+What species are in metaproteomic dataset that are never recorded in menu data (on any day?)
+
+This comparison is a bit tricky because some food taxa names aren't fully specified in our transcription of the menu.  Examples:
+* 
+
+```{r}
+setdiff(row.names(taxtab.protein), row.names(taxtab.menu))
+```
+
+### Pairing with 1-2 days prior intake
 
 For this broadest level comparison, let's look only at the day prior to sampling.  
 
