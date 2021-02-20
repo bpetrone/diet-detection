@@ -371,7 +371,7 @@ ps.protein
 
 ```{r}
 ps.menu <- readRDS(here('data', 'processed', 'phyloseq',
-                        '20210215_ps_menu.rds'))
+                        '20210220_ps_menu.rds'))
 ps.menu
 ```
 
@@ -380,8 +380,13 @@ ps.menu
 ### trnL
 
 ```{r}
-ps.trnL <- readRDS(here('data', 'processed', 'phyloseq',
-                        '20200225_ps_trnL.rds'))
+# This experiment contained PCRs amplified with an annealing temp of 55 or 63C; filter to only those at 63.
+ps.trnL <- 
+     readRDS(here('data', 'processed', 'phyloseq',
+                        '20200225_ps_trnL.rds')) %>% 
+     subset_samples(anneal_t == '63') %>% # Subset to 63C samples
+     prune_taxa(taxa_sums(.) > 0, .) %>% # Remove taxa now with 0 reads
+     subset_taxa(!is.na(superkingdom)) # Remove SVs not identified to a food
 
 ps.trnL
 ```
@@ -390,19 +395,6 @@ ps.trnL
 # Rename samples by subject_date for compatibility
 sample_names(ps.trnL) <- paste(sample_data(ps.trnL)$subject,
                                sample_data(ps.trnL)$date, sep = '_')
-```
-
-### Filtering
-
-```{r}
-# This experiment contained PCRs amplified with an annealing temp of 55 or 63C.  63C gives fewer accessory bands, and also yields more reads through current pipeline, so subset to only these samples.
-ps.trnL <- 
-     subset_samples(ps.trnL, anneal_t == '63') %>% 
-     prune_taxa(taxa_sums(.) > 0, .) %>% 
-     # Remove SVs not identified to a food
-     subset_taxa(!is.na(superkingdom))
-
-ps.trnL
 ```
 
 ### 12SV5
