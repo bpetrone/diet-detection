@@ -5,8 +5,7 @@ output:
     df_print: paged
 ---
 
-First priority: Are there any obvious species missing?
-False positives and false negatives
+Pass stuff ranked by sens, specificity
 
 Here we are evaluating the preliminary data shared by the Kleiner lab at NCSU to determine if their metaproteomic database should be adjusted (e.g. filtering out homologs to human proteins, other ideas?) before continuing with analysis of the DFC samples.
 
@@ -639,5 +638,154 @@ taxtab.protein[fp, ] %>%
      group_by(phylum) %>% 
      count() %>% 
      arrange(desc(n))
+```
+
+### Paired samples, per-food
+
+```{r}
+# Make dataframe for storing results
+metrics <- data.frame(subject = NULL, 
+                      food = NULL,
+                      n_compare = NULL,
+                      tp = NULL,
+                      tn = NULL,
+                      fp = NULL,
+                      fn = NULL)
+```
+
+```{r}
+# Extract OTU tables
+asvtab.protein <- otu_table(ps.protein)@.Data
+asvtab.menu.12 <- otu_table(ps.menu.12)@.Data
+
+# Synchronize names (not all genera in common between the two)
+dim(asvtab.protein)
+dim(asvtab.menu.12)
+length(union(colnames(asvtab.menu.12), colnames(asvtab.protein)))
+```
+
+```{r}
+# Helper function to pad out columns
+pad_columns <- function(x, y, fill = 0){
+     # Takes two matrices and synchronizes columns across them, filling added 
+     # cols with a set value
+     # Returns a list of the two updated matrices
+     
+     # Find missing columns in both matrices
+     missing.x <- setdiff(colnames(y), colnames(x))
+     missing.y <- setdiff(colnames(x), colnames(y))
+     
+     # Pad out columns of x
+     fill.x <- matrix(fill, 
+                      nrow = dim(x)[1],
+                      ncol = length(missing.x))
+     colnames(fill.x) <- missing.x 
+     x <- cbind(x, fill.x)
+     
+     # Pad out columns of y
+     fill.y <- matrix(fill, 
+                      nrow = dim(y)[1],
+                      ncol = length(missing.y))
+     colnames(fill.y) <- missing.y
+     y <- cbind(y, fill.y)
+     
+     # Arrange the columns so they appear in identical order
+     u <- sort(union(colnames(x), colnames(y)))
+     x <- x[, u]
+     y <- y[, u]
+     
+     list(x, y)
+}
+```
+
+```{r}
+padded <- pad_columns(asvtab.protein, asvtab.menu.12)
+asvtab.protein <- padded[[1]]
+asvtab.menu.12 <- padded[[2]]
+
+rm(padded)
+```
+
+```{r}
+# Confirm row and column names are equal before proceeding
+all(row.names(asvtab.protein) == row.names(asvtab.menu.12))
+all(colnames(asvtab.protein) == colnames(asvtab.menu.12))
+```
+
+```{r}
+# Label predictions 
+protein.pos <- asvtab.protein > 0
+menu.pos <- asvtab.menu.12 > 0
+
+tp <- protein.pos & menu.pos
+tn <- !protein.pos & !menu.pos
+fp <- protein.pos & !menu.pos
+fn <- !protein.pos & menu.pos
+
+pred <- bind_rows(colSums(tp),
+                  colSums(tn),
+                  colSums(fp),
+                  colSums(fn))
+
+pred$prediction <- c('tp', 'tn', 'fp', 'fn')
+
+pred <- select(pred, prediction, everything())
+```
+
+```{r}
+# Reformat to long for visualization
+pred.long <- pivot_longer(pred,
+                          cols = -prediction,
+                          names_to = 'taxon',
+                          values_to = 'count')
+
+# Factor data for visualization
+# Calculate F-measure to be used downstream
+pred.summary <- 
+     pred.long %>% 
+     pivot_wider(names_from = prediction, values_from = count) %>% 
+     mutate(recall = tp/(tp + fn),
+            precision = tp/(tp + fp),
+            f_measure = (2 * recall * precision)/(recall + precision)) %>% 
+     arrange(desc(f_measure), fn, fp)
+
+# Assign label for faceting plot
+# Done by manually inspecting pred.summary
+breaks <- c(rep(1, 28), rep(2, 28), rep(3, 39), rep(4, 32))
+pred.summary$facet <- breaks
+
+pred.long <- 
+     pred.summary %>% 
+     select(taxon, facet) %>% 
+     right_join(pred.long) %>% 
+     select(facet, taxon, everything())
+
+pred.long <- 
+     pred.long %>% 
+     mutate(taxon = factor(taxon, levels = pred.summary$taxon),
+            prediction = factor(prediction, levels = c('tp', 'tn', 'fp', 'fn'),
+                                labels = c('True positive', 'True negative',
+                                           'False positive', 'False negative')))
+```
+
+```{r}
+ggplot(pred.long, aes(x = taxon, y = count, fill = prediction)) +
+     geom_bar(position = 'stack', stat = 'identity') +
+     scale_fill_manual(values = c('#1A9850','#D73027', '#A6D96A', '#FDAE61')) +
+     facet_wrap(~facet, nrow = 4, scale = 'free_x') +
+     theme_bw() +
+     theme(axis.text.x = element_text(angle = 45, hjust = 1),
+           axis.text.y = element_blank(),
+           axis.title = element_blank(),
+           legend.position = 'top',
+           legend.title = element_blank(), 
+           plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
+           strip.text.x = element_blank()) 
+
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', paste0(plotID, '_By-food predictions compared to menu.pdf')),
+       height = 8, width = 8)
+# 2021-02-22.677
 ```
 
