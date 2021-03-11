@@ -1,0 +1,131 @@
+---
+title: "Estimating individualized transit times"
+author: "Brianna Petrone"
+output: html_notebook
+---
+
+```{r}
+library(here)
+library(phyloseq)
+library(tidyverse)
+```
+
+## Read in files
+
+### Metaproteomic phyloseq
+
+```{r}
+ps.protein <- readRDS(here('data', 'processed', 'phyloseq',
+                           '20210212_ps_mp.rds'))
+ps.protein
+```
+
+### DFC menu data phyloseq
+
+```{r}
+ps.menu <- readRDS(here('data', 'processed', 'phyloseq',
+                        '20210220_ps_menu.rds'))
+ps.menu
+```
+
+### Metabarcoding phyloseqs
+
+#### trnL
+
+```{r}
+# This experiment contained PCRs amplified with an annealing temp of 55 or 63C; filter to only those at 63.
+ps.trnL <- 
+     readRDS(here('data', 'processed', 'phyloseq',
+                        '20200225_ps_trnL.rds')) %>% 
+     subset_samples(anneal_t == '63') %>% # Subset to 63C samples
+     prune_taxa(taxa_sums(.) > 0, .) %>% # Remove taxa now with 0 reads
+     subset_taxa(!is.na(superkingdom)) # Remove SVs not identified to a food
+
+ps.trnL
+```
+
+```{r}
+# Rename samples by subject_date for compatibility
+sample_names(ps.trnL) <- paste(sample_data(ps.trnL)$subject,
+                               sample_data(ps.trnL)$date, sep = '_')
+```
+
+#### 12SV5
+
+```{r}
+ps.12SV5 <- readRDS(here('data', 'processed', 'phyloseq',
+                         '20201014_ps_12SV5.rds'))
+
+ps.12SV5
+```
+
+## Find uniquely detected foods
+
+```{r}
+subjects <- unique(sample_data(ps.protein)$subj)
+subjects
+```
+
+```{r}
+# Helper function to find uniquely detected foods for a given subject
+get_unique <- function(ps, subject){
+     # Input: a phyloseq object and the subject of interest
+     # Returns: a taxonomy table containing only those taxa detected in
+     # a single sample
+     
+     # Subset to only the subject desired
+     ps <- subset_samples(ps, subj == subject)
+     # Get their ASV table
+     asvtab <-otu_table(ps)@.Data
+
+     uniques <- names(which(colSums(asvtab > 0) == 1))
+     uniques
+}
+```
+
+### Plant
+
+#### Metaproteomic
+
+```{r}
+# Find unique foods for each subject
+for (subject in subjects){
+     assign(paste('unique.protein', subject, sep = '.'),
+            get_unique(ps.protein, subject))
+}
+```
+
+```{r}
+# Do any of these come up in all four subjects?
+Reduce(intersect, list(unique.protein.AK65, unique.protein.JN55,
+                       unique.protein.ML48, unique.protein.PC74))
+```
+
+```{r}
+unique.protein.AK65
+```
+
+```{r}
+unique.protein.JN55
+```
+
+```{r}
+unique.protein.ML48
+```
+
+```{r}
+unique.protein.PC74
+```
+
+Follow-on thoughts: 
+* How believable is the signal in each case? 
+     + Is it abundant? (High number of PSMs)?
+     + Is it backed up by menu data/trnL? (Menu data would be the necessary feature to get at transit time).
+
+#### Metabarcoding
+
+### Animal
+
+#### Metaproteomic
+
+#### Metabarcoding
