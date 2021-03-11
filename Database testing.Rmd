@@ -19,6 +19,7 @@ opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```{r libraries, echo=FALSE}
 library(here) 
 library(phyloseq) 
+library(RColorBrewer)
 library(readxl) # For parsing Excel files
 library(tidyverse) 
 ```
@@ -643,17 +644,6 @@ taxtab.protein[fp, ] %>%
 ### Paired samples, per-food
 
 ```{r}
-# Make dataframe for storing results
-metrics <- data.frame(subject = NULL, 
-                      food = NULL,
-                      n_compare = NULL,
-                      tp = NULL,
-                      tn = NULL,
-                      fp = NULL,
-                      fn = NULL)
-```
-
-```{r}
 # Extract OTU tables
 asvtab.protein <- otu_table(ps.protein)@.Data
 asvtab.menu.12 <- otu_table(ps.menu.12)@.Data
@@ -771,7 +761,8 @@ pred.long <-
 ```{r}
 ggplot(pred.long, aes(x = taxon, y = count, fill = prediction)) +
      geom_bar(position = 'stack', stat = 'identity') +
-     scale_fill_manual(values = c('#1A9850','#D73027', '#A6D96A', '#FDAE61')) +
+     scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
+                                  '#D7191C', '#FDAE61')) + # FP, FN
      facet_wrap(~facet, nrow = 4, scale = 'free_x') +
      theme_bw() +
      theme(axis.text.x = element_text(angle = 45, hjust = 1),
@@ -787,5 +778,6 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results', paste0(plotID, '_By-food predictions compared to menu.pdf')),
        height = 8, width = 8)
 # 2021-02-22.677
+# 2021-03-10.682
 ```
 
