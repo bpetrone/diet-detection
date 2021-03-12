@@ -4,6 +4,11 @@ author: "Brianna Petrone"
 output: html_notebook
 ---
 
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
 ```{r}
 library(here)
 library(phyloseq)
