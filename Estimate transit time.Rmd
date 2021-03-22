@@ -84,8 +84,8 @@ get_unique <- function(ps, subject){
      # Get their ASV table
      asvtab <- otu_table(ps)@.Data
 
-     uniques.protein <- names(which(colSums(asvtab > 0) == 1))
-     uniques.protein
+     uniques <- names(which(colSums(asvtab > 0) == 1))
+     uniques
 }
 ```
 
@@ -93,16 +93,16 @@ get_unique <- function(ps, subject){
 
 ```{r}
 # For storing results
-uniques.protein.protein <- data.frame()
+uniques.protein <- data.frame()
 
 # Find unique foods for each subject
 for (subject in subjects){
-     uniques.protein.protein <- 
+     uniques.protein <- 
           # Get uniques.protein
           data.frame(subj = subject, 
                      food = get_unique(ps.protein, subject)) %>% 
           # Add to results dataframe
-          bind_rows(uniques.protein.protein, .)
+          bind_rows(uniques.protein, .)
 }
 ```
 
@@ -188,16 +188,16 @@ sample_data(ps.menu) <- samdf.menu
 
 ```{r}
 # For storing results
-uniques.protein.menu <- data.frame()
+uniques.menu <- data.frame()
 
 # Find unique foods for each subject
 for (subject in subjects){
-     uniques.protein.menu <- 
+     uniques.menu <- 
           # Get uniques.protein
           data.frame(subj = subject, 
                      food = get_unique(ps.menu, subject)) %>% 
           # Add to results dataframe
-          bind_rows(uniques.protein.menu, .)
+          bind_rows(uniques.menu, .)
 }
 ```
 
@@ -205,15 +205,17 @@ for (subject in subjects){
 # Add amount consumed (dry weight here)
 melt.menu <- psmelt(ps.menu)
 
-uniques.protein.menu <- 
+uniques.menu <- 
      melt.menu %>% 
      filter(Abundance != 0) %>% 
      select(subj, Sample, food = OTU, Abundance) %>% 
-     right_join(uniques.protein.menu, by = c('subj', 'food')) %>% 
+     right_join(uniques.menu, by = c('subj', 'food')) %>% 
      arrange(subj, desc(Abundance))
 ```
 
-# Intersection
+## Intersection
 
-## Unique in metaproteomics, menu
+### Unique in metaproteomics, menu
+
+
 
