@@ -59,11 +59,20 @@ sample_names(ps.trnL) <- paste(sample_data(ps.trnL)$subject,
 #### 12SV5
 
 ```{r}
-ps.12SV5 <- readRDS(here('data', 'processed', 'phyloseq',
-                         '20201014_ps_12SV5.rds'))
-
+# This experiment contained PCRs carried out with and without blocking primers.  Consider blocked samples only:
+ps.12SV5 <- 
+     readRDS(here('data', 'processed', 'phyloseq',
+                         '20201014_ps_12SV5.rds')) %>% 
+     # TODO
 ps.12SV5
 ```
+
+#### Merge
+
+```{r}
+# TODO
+```
+
 
 ## Find uniquely detected foods
 
@@ -174,6 +183,51 @@ uniques.protein %>%
 
 #### trnL
 
+```{r}
+# Update subject to subj to be compatible with function
+samdf.trnL <- as(sample_data(ps.trnL), 'data.frame')
+samdf.trnL <- rename(samdf.trnL, subj = subject)
+
+sample_data(ps.trnL) <- samdf.trnL
+```
+
+```{r}
+# For storing results
+uniques.trnL <- data.frame()
+
+# Find unique foods for each subject
+# Note!! JN55 not sequenced here
+# TODO: Repeat once JN55 added to phyloseq object
+for (subject in c('AK65', 'ML48', 'PC74')){
+     uniques.trnL <- 
+          # Get uniques.trnL
+          data.frame(subj = subject, 
+                     food = get_unique(ps.trnL, subject)) %>% 
+          # Add to results dataframe
+          bind_rows(uniques.trnL, .)
+}
+```
+
+```{r}
+# Do any of these come up in all four subjects?
+uniques.trnL %>% 
+     group_by(food) %>% 
+     count() %>% 
+     filter(n > 1)
+```
+
+```{r}
+# Add PSM counts
+melt.protein <- psmelt(ps.protein)
+
+uniques.trnL <- 
+     melt.protein %>% 
+     filter(Abundance != 0) %>% 
+     select(subj, Sample, food = OTU, Abundance) %>% 
+     right_join(uniques.trnL, by = c('subj', 'food')) %>% 
+     arrange(subj, desc(Abundance))
+```
+
 #### 12SV5
 
 ### Menu
@@ -217,5 +271,77 @@ uniques.menu <-
 
 ### Unique in metaproteomics, menu
 
+```{r}
+intersect.menu.protein <- 
+     full_join(uniques.menu, uniques.protein,
+          by = c('subj', 'food')) %>% 
+     select(subj, food,
+            menu_abd = Abundance.x, psm_abd = Abundance.y,
+            menu_sample = Sample.x, psm_sample = Sample.y) %>% 
+     arrange(subj, desc(psm_abd))
+     
+intersect.menu.protein %>% 
+     filter(!is.na(menu_abd) & !is.na(psm_abd))
+```
+So overall, this is encouraging in that the detected PSMs almost always come after the food was recorded as consumed in the menu.  However, this seems only to work for PSMs that are detected in very low absolute amounts.  Can I do a manual comparison to see if names aren't matching up?
+
+#### Manual notes
+
+##### AK65
+
+*Sesamum indicum*: detected in stool on 2019/09/26.  In menu, can occur from sesame oil, sesame seeds, or tahini.
+
+```{r}
+ps.menu %>% 
+     subset_taxa(genus == 'Sesamum') %>% 
+     subset_samples(subj == 'AK65') %>% 
+     prune_samples(sample_sums(.) > 0, .) %>% 
+     otu_table()
+```
+
+9/17: Garlicky Sesame Broccoli (sesame oil)
+9/18: Spicy Stir-Fried Snow Peas (toasted sesame seeds), totaling 1 g dry weight
+9/24: Sesame Snap Peas w/Carrots and Peppers (sesame oil, toasted sesame seeds); Sesame-Shiitake Bok Choy (sesame oil, toasted sesame seeds). Seeds totaling 1.467 g dry weight
+9/27: Vietnamese Chicken Meatballs (sesame oil)
+
+*Apium graveolens*: detected in stool on 2019/09/27
+
+```{r}
+ps.menu %>% 
+     subset_taxa(species == 'Apium graveolens') %>% 
+     subset_samples(subj == 'AK65') %>% 
+     prune_samples(sample_sums(.) > 0, .) %>% 
+     otu_table()
+```
+
+9/26: Radish, Celery & Snap Pea Salad (raw celery)
+
+*Oreochromis niloticus* (tilapia): Interestingly, recorded only once in menu (9/23), but turns up with bimodal distribution in stool samples:
+
+```{r}
+ps.protein %>% 
+     subset_samples(subj == 'AK65') %>% 
+     subset_taxa(genus == 'Oreochromis') %>% 
+     otu_table() %>% 
+     data.frame(PSMs = .) %>% 
+     rownames_to_column(var = 'sample') %>% 
+     mutate(date = as.Date(gsub('AK65_', '', sample))) %>% 
+     ggplot(aes(x = date, y = Oreochromis.niloticus)) +
+     geom_bar(stat = 'identity') +
+     geom_vline(xintercept = as.Date('2019-09-23'),
+                color = 'red', alpha = 0.5, linetype = 'dashed') +
+     labs(y = 'PSMs') +
+     theme_bw() +
+     theme(axis.title.x = element_blank())
+```
 
 
+### Unique in metabarcoding, menu
+
+
+```{r}
+
+```
+
+
+### Unique in metabarcoding, metaproteomics
