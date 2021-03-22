@@ -30,6 +30,7 @@ ps.protein
 ```{r}
 ps.menu <- readRDS(here('data', 'processed', 'phyloseq',
                         '20210220_ps_menu.rds'))
+
 ps.menu
 ```
 
@@ -81,36 +82,33 @@ get_unique <- function(ps, subject){
      # Subset to only the subject desired
      ps <- subset_samples(ps, subj == subject)
      # Get their ASV table
-     asvtab <-otu_table(ps)@.Data
+     asvtab <- otu_table(ps)@.Data
 
-     uniques <- names(which(colSums(asvtab > 0) == 1))
-     uniques
+     uniques.protein <- names(which(colSums(asvtab > 0) == 1))
+     uniques.protein
 }
 ```
 
-### Plant
-
-#### Metaproteomic
+### Metaproteomic
 
 ```{r}
 # For storing results
-uniques <- data.frame()
+uniques.protein.protein <- data.frame()
 
 # Find unique foods for each subject
 for (subject in subjects){
-     uniques <- 
-          # Get uniques
+     uniques.protein.protein <- 
+          # Get uniques.protein
           data.frame(subj = subject, 
                      food = get_unique(ps.protein, subject)) %>% 
           # Add to results dataframe
-          bind_rows(uniques, .)
-             
+          bind_rows(uniques.protein.protein, .)
 }
 ```
 
 ```{r}
 # Do any of these come up in all four subjects?
-uniques %>% 
+uniques.protein %>% 
      group_by(food) %>% 
      count() %>% 
      filter(n > 1)
@@ -120,11 +118,11 @@ uniques %>%
 # Add PSM counts
 melt.protein <- psmelt(ps.protein)
 
-uniques <- 
+uniques.protein <- 
      melt.protein %>% 
      filter(Abundance != 0) %>% 
      select(subj, Sample, food = OTU, Abundance) %>% 
-     right_join(uniques, by = c('subj', 'food')) %>% 
+     right_join(uniques.protein, by = c('subj', 'food')) %>% 
      arrange(subj, desc(Abundance))
 ```
 
@@ -137,19 +135,20 @@ Follow-on thoughts:
 # How to connect to menu data? Visually?
 # Refactor food by count
 foods.desc <- 
-     uniques %>% 
+     uniques.protein %>% 
      group_by(food) %>% 
      summarize(tot.psms = sum(Abundance)) %>% 
      arrange(desc(tot.psms))
 
-uniques$food <- factor(uniques$food,
+uniques.protein$food <- factor(uniques.protein$food,
                        levels = foods.desc$food)
+
 rm(foods.desc)
 ```
 
 ```{r}
 # Only foods with >5 counts, per input from Ali
-uniques %>% 
+uniques.protein %>% 
      filter(Abundance > 5) %>% 
      ggplot(aes(x = food, y = Abundance)) +
      geom_bar(stat = 'identity') +
@@ -162,20 +161,59 @@ uniques %>%
 ```
 
 ```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+# plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 # 2021-03-12.132
 
-ggsave(here('results', 'transit time', 
-            paste0(plotID, '_Unique foods per-participant, with PSMs.png')),
-       height = 7, width = 8)
+# ggsave(here('results', 'transit time', 
+#             paste0(plotID, '_Unique foods per-participant, with PSMs.png')),
+#        height = 7, width = 8)
 ```
 
+### Metabarcoding
 
-#### Metabarcoding
+#### trnL
 
-### Animal
+#### 12SV5
 
-#### Metaproteomic
+### Menu
 
-#### Metabarcoding
+```{r}
+# Update ID to subj to be compatible with function
+samdf.menu <- as(sample_data(ps.menu), 'data.frame')
+samdf.menu <- rename(samdf.menu, subj = ID)
+
+sample_data(ps.menu) <- samdf.menu
+```
+
+```{r}
+# For storing results
+uniques.protein.menu <- data.frame()
+
+# Find unique foods for each subject
+for (subject in subjects){
+     uniques.protein.menu <- 
+          # Get uniques.protein
+          data.frame(subj = subject, 
+                     food = get_unique(ps.menu, subject)) %>% 
+          # Add to results dataframe
+          bind_rows(uniques.protein.menu, .)
+}
+```
+
+```{r}
+# Add amount consumed (dry weight here)
+melt.menu <- psmelt(ps.menu)
+
+uniques.protein.menu <- 
+     melt.menu %>% 
+     filter(Abundance != 0) %>% 
+     select(subj, Sample, food = OTU, Abundance) %>% 
+     right_join(uniques.protein.menu, by = c('subj', 'food')) %>% 
+     arrange(subj, desc(Abundance))
+```
+
+# Intersection
+
+## Unique in metaproteomics, menu
+
