@@ -49,6 +49,8 @@ db$scientific_name[db$scientific_name == 'Bubalis bubalis'] <- 'Bubalus bubalis'
 db$scientific_name[db$common_name == 'plantain'] <- 'Musa x paradisiaca'
 # Remove zante currant, which is redundant with V. vinifera
 db <- filter(db, common_name != 'zante currant')
+# Switch amaranth to its homotypic synonym used by NCBI taxonomy
+db$scientific_name[db$scientific_name == 'Amaranthus cruentus'] <- 'Amaranthus hybridus subsp. cruentus'
 ``` 
 ## Participant metaproteomic data
 
@@ -56,9 +58,15 @@ db <- filter(db, common_name != 'zante currant')
 
 ```{r eval = FALSE, echo = FALSE}
 # List files
-fs <- list.files(here('data', 'raw',
-                     'Proteins_IndividualResultFiles_RealisticFoodsWithMicrobiota'),
-                  pattern = ".xlsx", full.names = T)
+# fs <- 
+#      here('data', 'raw',
+#           'Proteins_IndividualResultFiles_RealisticFoodsWithMicrobiota') %>% 
+#      list.files(pattern = ".xlsx", full.names = T)
+
+fs <-
+     here('data', 'raw',
+          'NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
+     list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
 dfs <- 
@@ -153,17 +161,21 @@ proteins.df <- mutate(proteins.df, OS = helper(Description, 'OS=(.*)\\sOX='))
 filter(proteins.df, is.na(prefix)) %>% pull(OS) %>% unique()
 ```
 
-In some cases, the OS is more specific than it should be to match back to database. 
+In some cases, the OS is more specific than it should be to match back to database. There is one prefix typo: Piper nigrum should be Pni, not Pne
 ```{r eval = FALSE, echo = FALSE}
-# Manual correction to match database (V.radiata, M. piperita, O. sativa, B. vulgaris)
+# Manual correction to match database 
 
 proteins.df$OS[proteins.df$OS == 'Vigna radiata var. radiata'] <- 'Vigna radiata'
-proteins.df$OS[proteins.df$OS == 'Mentha piperita'] <- 'Mentha x piperita'
-
-# P. nigrum prefix labeled as Pne, should be Pni by database
-
-proteins.df$prefix[proteins.df$prefix == 'Pne'] <- 'Pni'
+proteins.df$prefix[proteins.df$OS == 'Piper nigrum'] <- 'Pni'
 ```
+
+On first pass through, dimensions after join didn't check out-- turns out there are some prefixes with duplicated entries. Only Pgr and Shi come up here
+
+Pgr: Assigned to both Prunus grayana (japanese bird cherry) and Punica granatum (pomegranate)
+Shi: Assigned to both Salvia hispanica (chia) and Scorzonera hispanica (salsify)
+Scer: Saccharomyces cerevisiae (yeast) and Secale cereale (rye)
+Sso: Salsola soda (saltwort) and Smallanthus sonchifolius (yacon)
+Vvi: Vaccinium vitis-idaea (lingonberry) and Vitis vinifera (grape)
 
 ```{r eval = FALSE, echo = FALSE}
 # Label with prefix unless unavailable; otherwise label by OS
@@ -174,7 +186,7 @@ join.prefix <-
      # Remove rows without a prefix label
      filter(!is.na(prefix)) %>% 
      # Remove any duplicated prefixes based on initial results
-     filter(!(prefix %in% c('Pgr', 'Shi', 'Scer', 'Sso', 'Vvi'))) %>%  
+     filter(!(prefix %in% c('Pgr', 'Shi', 'Scer', 'Sso', 'Vvi'))) %>%
      left_join(select(db, scientific_name:category, `PreFix Used`), 
                by = c('prefix' = 'PreFix Used'))
 
@@ -184,19 +196,11 @@ proteins.df %>%
      filter(!is.na(prefix)) %>% 
      # Remove any duplicated prefixes based on initial results
      filter(!(prefix %in% c('Pgr', 'Shi', 'Scer', 'Sso', 'Vvi'))) %>% 
-     dim
+     dim()
 
 # How many are there?
 dim(join.prefix)
 ```
-
-On first pass through, these dimensions didn't check out-- turns out there are some prefixes with duplicated entries. Only Pgr and Shi come up here
-
-Pgr: Assigned to both Prunus grayana (japanese bird cherry) and Punica granatum (pomegranate)
-Shi: Assigned to both Salvia hispanica (chia) and Scorzonera hispanica (salsify)
-Scer: Saccharomyces cerevisiae (yeast) and Secale cereale (rye)
-Sso: Salsola soda (saltwort) and Smallanthus sonchifolius (yacon)
-Vvi: Vaccinium vitis-idaea (lingonberry) and Vitis vinifera (grape)
 
 ```{r eval = FALSE, echo = FALSE}
 # Now, find those entries not joined by prefix, and join by OS instead
@@ -303,17 +307,17 @@ This is because some are internal nodes. Manually add their taxonomy too:
 add <- setdiff(unique(taxids$data$query_data$taxon_id), taxtab.protein$taxon_id)
 
 # Manually inspect
-# taxids$data$query_data %>%
-#      filter(taxon_id %in% add) %>% View()
+taxids$data$query_data %>%
+     filter(taxon_id %in% add) %>% View()
 
 # Write full table, subset these columns out
 # write_csv(taxtab.protein,
 #           here('data', 'processed',
-#                '20210208_Internal taxonomy table nodes.csv'))
+#                '20210408_Internal taxonomy table nodes.csv'))
 
 add.rows <-
      here('data', 'processed', 
-          '20210208_Internal taxonomy table nodes.csv') %>%
+          '20210408_Internal taxonomy table nodes.csv') %>%
      read_csv(col_types = cols(.default = 'c'))
 ```
 
@@ -356,7 +360,7 @@ ps.protein <- phyloseq(otu_table(psm.counts.wide, taxa_are_rows = FALSE),
 
 ps.protein
 
-# saveRDS(ps.protein, here('data', 'processed', 'phyloseq', '20210212_ps.rds'))
+# saveRDS(ps.protein, here('data', 'processed', 'phyloseq', '20210408_ps.rds'))
 ```
 
 ## Metaproteomic phyloseq
