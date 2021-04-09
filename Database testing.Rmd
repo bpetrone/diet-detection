@@ -115,7 +115,10 @@ dim(proteins.df)
 ```{r eval = FALSE, echo = FALSE}
 # Remove proteins labeled as not found in sample
 # Very low abundance (though non-zero counts), only one from wheat
-proteins.df <- filter(proteins.df, `Found in Sample` != 'Not Found')
+proteins.df <- 
+     filter(proteins.df, 
+            `Found in Sample` %in% c('High', 'Medium', NA))
+
 dim(proteins.df)
 ```
 
