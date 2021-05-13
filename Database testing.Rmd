@@ -382,20 +382,31 @@ ps.menu
 ### trnL
 
 ```{r}
-# This experiment contained PCRs amplified with an annealing temp of 55 or 63C; filter to only those at 63.
+# Made in combined MiniSeq notebook in DFC project folder
 ps.trnL <- 
      readRDS(here('data', 'processed', 'phyloseq',
-                        '20200225_ps_trnL.rds')) %>% 
-     subset_samples(anneal_t == '63') %>% # Subset to 63C samples
-     prune_taxa(taxa_sums(.) > 0, .) %>% # Remove taxa now with 0 reads
-     subset_taxa(!is.na(superkingdom)) # Remove SVs not identified to a food
-
+                  '20210409_ps_trnL.rds')) 
 ps.trnL
 ```
 
 ```{r}
+# Subset to only those taxa identified to some position in the plant phylogeny
+unlabeled <- 
+     data.frame(ps.trnL@tax_table) %>% 
+     filter(is.na(superkingdom)) %>% 
+     row.names()
+
+asvtab.trnL <- ps.trnL@otu_table
+
+cat('Percent of reads not assigned to a plant taxon:', 
+    sum(asvtab.trnL[, unlabeled])/sum(asvtab.trnL) * 100)
+
+ps.trnL <- subset_taxa(ps.trnL, !is.na(superkingdom))
+```
+
+```{r}
 # Rename samples by subject_date for compatibility
-sample_names(ps.trnL) <- paste(sample_data(ps.trnL)$subject,
+sample_names(ps.trnL) <- paste(sample_data(ps.trnL)$subj,
                                sample_data(ps.trnL)$date, sep = '_')
 ```
 
@@ -403,9 +414,58 @@ sample_names(ps.trnL) <- paste(sample_data(ps.trnL)$subject,
 
 ```{r}
 ps.12SV5 <- readRDS(here('data', 'processed', 'phyloseq',
-                         '20201014_ps_12SV5.rds'))
+                         '20210409_ps_12SV5.rds'))
 
 ps.12SV5
+```
+
+```{r}
+# Remove unblocked samples and controls
+# (Note that DFC42 is the extraction blank)
+ps.12SV5 <- 
+     ps.12SV5 %>% 
+     subset_samples(blocking == 'b' & !is.na(subj))
+
+ps.12SV5
+```
+
+```{r}
+# Remove human reads
+taxtab.12SV5 <- data.frame(ps.12SV5@tax_table)
+asv.human <- 
+     taxtab.12SV5 %>%
+     filter(genus == 'Homo') %>% 
+     row.names()
+
+ps.12SV5 <- prune_taxa(!(taxa_names(ps.12SV5) %in% asv.human),
+                       ps.12SV5)
+```
+
+```{r}
+# Subset to only those taxa identified to some position in the animal phylogeny
+unlabeled <- 
+     data.frame(ps.12SV5@tax_table) %>% 
+     filter(is.na(superkingdom)) %>% 
+     row.names()
+
+asvtab.12SV5 <- ps.12SV5@otu_table
+
+cat('Percent of reads not assigned to an animal taxon:', 
+    sum(asvtab.12SV5[, unlabeled])/sum(asvtab.12SV5) * 100)
+
+ps.12SV5 <- subset_taxa(ps.12SV5, !is.na(superkingdom))
+```
+
+```{r}
+# Rename samples by subject_date for compatibility
+sample_names(ps.12SV5) <- paste(sample_data(ps.12SV5)$subj,
+                                sample_data(ps.12SV5)$date, sep = '_')
+```
+
+## Join
+
+```{r}
+# Having trouble merging because of character/date formats, need to sort this out but hold off for now
 ```
 
 # Exploratory comparison
@@ -419,7 +479,7 @@ melt.menu <- psmelt(ps.menu)
 counts.menu <- 
      melt.menu %>% 
      filter(Abundance > 0) %>% 
-     group_by(ID, date) %>% 
+     group_by(ID, date, kingdom) %>% 
      count(name = 'menu_taxa')
 ```
 
@@ -428,15 +488,39 @@ counts.menu <-
 melt.protein <- psmelt(ps.protein)
 counts.protein <- 
      melt.protein %>% 
-     filter(Abundance > 0) %>% 
-     group_by(subj, date) %>% 
+     filter(Abundance > 4) %>% 
+     group_by(subj, date, kingdom) %>% 
      count(name = 'protein_taxa')
 ```
 
 ```{r}
+# How many food taxa detected daily (metabarcoding)?
+melt.trnL <- psmelt(ps.trnL)
+counts.trnL <- 
+     melt.trnL %>% 
+     filter(Abundance > 0) %>% 
+     group_by(subj, date, kingdom) %>% 
+     count(name = 'dna_taxa')
+
+melt.12SV5 <- psmelt(ps.12SV5)
+counts.12SV5 <- 
+     melt.12SV5 %>% 
+     filter(Abundance > 0) %>% 
+     group_by(subj, date, kingdom) %>% 
+     count(name = 'dna_taxa')
+
+# Join together
+counts.mb <- full_join(counts.trnL, counts.12SV5)
+rm(counts.trnL, counts.12SV5)
+```
+
+```{r}
 # Combine
-counts <- left_join(counts.menu, counts.protein,
-                    by = c('ID' = 'subj', 'date'))
+counts <- 
+     counts.menu %>% 
+     left_join(counts.protein, by = c('ID' = 'subj', 'date', 'kingdom')) %>% 
+     left_join(counts.mb, by = c('ID' = 'subj', 'date', 'kingdom'))
+     
 
 # Long version for plotting
 counts.long <- pivot_longer(counts, 
@@ -446,48 +530,107 @@ counts.long <- pivot_longer(counts,
 
 # Update names for plotting
 counts.long$dataset <- factor(counts.long$dataset, 
-                              levels = c('menu_taxa', 'protein_taxa'), 
-                              labels = c('Recorded menu', 'Metaproteomics'))
-
-head(counts)
+                              levels = c('menu_taxa', 'protein_taxa',
+                                         'dna_taxa'), 
+                              labels = c('Recorded menu', 'Metaproteomics',
+                                         'Metabarcoding'))
 ```
+
 ```{r}
-ggplot(counts.long, aes(x = dataset, y = value)) +
+# Now do the same, but for only the samples in common between all 3 datasets
+counts.shared <- 
+     counts %>% 
+     filter(((!is.na(menu_taxa) & !is.na(protein_taxa) & !is.na(dna_taxa))))
+
+# Long version for plotting
+counts.shared.long <- pivot_longer(counts.shared , 
+                                   cols = ends_with('taxa'),
+                                   names_to = 'dataset',
+                                   values_to = 'value')
+
+# Update names for plotting
+counts.shared.long$dataset <- factor(counts.shared.long$dataset, 
+                                     levels = c('menu_taxa', 
+                                                'protein_taxa',
+                                                'dna_taxa'), 
+                                     labels = c('Recorded menu',
+                                                'Metaproteomics',
+                                                'Metabarcoding'))
+```
+
+```{r}
+ggplot(counts.long, aes(x = kingdom, y = value, fill = dataset)) +
      geom_boxplot() +
      labs(title = 'Number of food taxa identified by source',
-          y = 'Number of taxa') +
+          subtitle = '>4 PSMs per taxa filter',
+          y = 'Number of taxa', fill = 'Source') +
      theme_bw() +
      theme(axis.title.x = element_blank())
+
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+# ggsave(here('results', paste0(plotID, '_Number of food taxa by source, >4 PSM filter.pdf')),
+#        height = 4)
+```
+
+```{r}
+ggplot(counts.shared.long, aes(x = kingdom, y = value, fill = dataset)) +
+     geom_boxplot() +
+     labs(title = 'Number of food taxa identified by source',
+          subtitle = '>4 PSMs per taxa filter',
+          y = 'Number of taxa', fill = 'Source') +
+     theme_bw() +
+     theme(axis.title.x = element_blank())
+
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+# ggsave(here('results', paste0(plotID, '_Number of food taxa by source, shared samples only.pdf')),
+# height = 4, width = 4)
 ```
 
 ```{r echo = FALSE}
 t.test(counts$menu_taxa, counts$protein_taxa)
 ```
 
-By subject:
+Patterns of recorded foods by day of week: 
 
 ```{r echo = FALSE}
-ggplot(counts.long, aes(x = ID, y = value)) +
-     geom_boxplot() +
-     facet_wrap(~ dataset) + 
-     labs(y = 'Number of taxa') +
-     theme_bw() +
-     theme(axis.title.x = element_blank())
-```
-By subject and day: 
-
-```{r echo = FALSE}
-ggplot(counts.long, aes(x = date, y = value)) +
+counts.long %>% 
+     group_by(ID, date, dataset) %>% 
+     summarize(value = sum(value, na.rm = TRUE)) %>% 
+     filter(dataset == 'Recorded menu') %>% 
+     ggplot(aes(x = date, y = value)) +
      geom_point(aes(color = dataset)) +
-     facet_wrap(~ ID, nrow = 2, scales = 'free_x') + 
+     facet_wrap(~ ID, nrow = 4, scales = 'free_x') + 
      labs(x = 'Date', y = 'Number of taxa') +
      theme_bw() +
      theme(axis.title.x = element_blank(),
            legend.title = element_blank(),
            legend.position = 'bottom')
+
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+# ggsave(here('results', 
+#             paste0(plotID, 
+#                    '_Number of food taxa in menu by day.pdf')),
+#        height = 7, width = 4)
 ```
 
 ## Metaproteomics x menu
+
+### Apply PSM filter to phyloseq object
+
+```{r}
+## Need to be careful-- this would only apply to the following code chunk, later on can impose a threshold without altering the phyloseq object
+# otutab <- otu_table(ps.protein)@.Data
+# otutab[otutab <= 4] = 0
+# 
+# # Replace in phyloseq object
+# ps.protein <- phyloseq(otu_table(otutab, taxa_are_rows = FALSE),
+#                        sample_data(ps.protein),
+#                        tax_table(ps.protein))
+# 
+# # Now remove any taxa with zero counts
+# ps.protein <- prune_taxa(taxa_sums(ps.protein) > 0,
+#                          ps.protein)
+```
 
 ### Overall dataset
 
@@ -594,55 +737,6 @@ ps.protein <- tax_glom(ps.protein, 'genus')
 taxa_names(ps.protein) <- tax_table(ps.protein)[, 'genus']
 ```
 
-
-#### TP
-
-```{r}
-tp <- intersect(taxa_names(ps.protein), taxa_names(ps.menu.12))
-tp
-```
-
-```{r}
-taxtab.protein <- tax_table(ps.protein)@.Data
-# True positives by phylum
-taxtab.protein[tp, ] %>% 
-     data.frame() %>% 
-     group_by(phylum) %>% 
-     count() %>% 
-     arrange(desc(n))
-```
-
-#### FN
-
-```{r}
-fn <- setdiff(taxa_names(ps.menu.12), taxa_names(ps.protein))
-fn
-```
-
-```{r}
-# False negatives by phylum
-taxtab.menu.12 <- tax_table(ps.menu.12)@.Data
-taxtab.menu.12[fn, ] %>% 
-     data.frame() %>% 
-     group_by(phylum) %>% 
-     count() %>% 
-     arrange(desc(n))
-```
-#### FP
-```{r}
-fp <- setdiff(taxa_names(ps.protein), taxa_names(ps.menu.12))
-fp
-```
-
-False positives by phylum:
-```{r}
-taxtab.protein[fp, ] %>% 
-     data.frame() %>% 
-     group_by(phylum) %>% 
-     count() %>% 
-     arrange(desc(n))
-```
-
 ### Paired samples, per-food
 
 ```{r}
@@ -706,7 +800,7 @@ all(colnames(asvtab.protein) == colnames(asvtab.menu.12))
 
 ```{r}
 # Label predictions 
-protein.pos <- asvtab.protein > 0
+protein.pos <- asvtab.protein > 4
 menu.pos <- asvtab.menu.12 > 0
 
 tp <- protein.pos & menu.pos
@@ -743,7 +837,7 @@ pred.summary <-
 
 # Assign label for faceting plot
 # Done by manually inspecting pred.summary
-breaks <- c(rep(1, 28), rep(2, 28), rep(3, 39), rep(4, 32))
+breaks <- c(rep(1, 30), rep(2, 33), rep(3, 37), rep(4, 33))
 pred.summary$facet <- breaks
 
 pred.long <- 
@@ -777,9 +871,163 @@ ggplot(pred.long, aes(x = taxon, y = count, fill = prediction)) +
 
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results', paste0(plotID, '_By-food predictions compared to menu.pdf')),
+ggsave(here('results', paste0(plotID, '_By-food predictions compared to menu, >4 PSMs per taxon filter.pdf')),
        height = 8, width = 8)
-# 2021-02-22.677
-# 2021-03-10.682
+# 2021-02-22.677: First pass
+# 2021-03-10.682: Re-colored
+# 2021-04-09.985: Database v2, no PSM filter
+# 2021-04-09.831: Database v2, >4 PSMs/taxon/sample filter
 ```
+
+## Metaproteomics x metabarcoding 
+
+### Paired samples, per-food
+
+```{r}
+# Extract OTU tables
+asvtab.protein <- otu_table(ps.protein)@.Data
+asvtab.trnL <- otu_table(ps.trnL)@.Data 
+asvtab.12SV5 <- otu_table(ps.12SV5)@.Data 
+
+# Combine metabarcoding (have to do here because I'm having trouble with merge_phyloseq, above)
+shared.mb <- intersect(row.names(asvtab.trnL), row.names(asvtab.12SV5))
+asvtab.mb <- cbind(asvtab.trnL[shared.mb,],
+                   asvtab.12SV5[shared.mb,])
+
+# Synchronize names (not all genera in common between the two)
+dim(asvtab.protein)
+dim(asvtab.menu.12)
+length(union(colnames(asvtab.menu.12), colnames(asvtab.protein)))
+```
+
+```{r}
+# Helper function to pad out columns
+pad_columns <- function(x, y, fill = 0){
+     # Takes two matrices and synchronizes columns across them, filling added 
+     # cols with a set value
+     # Returns a list of the two updated matrices
+     
+     # Find missing columns in both matrices
+     missing.x <- setdiff(colnames(y), colnames(x))
+     missing.y <- setdiff(colnames(x), colnames(y))
+     
+     # Pad out columns of x
+     fill.x <- matrix(fill, 
+                      nrow = dim(x)[1],
+                      ncol = length(missing.x))
+     colnames(fill.x) <- missing.x 
+     x <- cbind(x, fill.x)
+     
+     # Pad out columns of y
+     fill.y <- matrix(fill, 
+                      nrow = dim(y)[1],
+                      ncol = length(missing.y))
+     colnames(fill.y) <- missing.y
+     y <- cbind(y, fill.y)
+     
+     # Arrange the columns so they appear in identical order
+     u <- sort(union(colnames(x), colnames(y)))
+     x <- x[, u]
+     y <- y[, u]
+     
+     list(x, y)
+}
+```
+
+```{r}
+padded <- pad_columns(asvtab.protein, asvtab.menu.12)
+asvtab.protein <- padded[[1]]
+asvtab.menu.12 <- padded[[2]]
+
+rm(padded)
+```
+
+```{r}
+# Confirm row and column names are equal before proceeding
+all(row.names(asvtab.protein) == row.names(asvtab.menu.12))
+all(colnames(asvtab.protein) == colnames(asvtab.menu.12))
+```
+
+```{r}
+# Label predictions 
+protein.pos <- asvtab.protein > 4
+menu.pos <- asvtab.menu.12 > 0
+
+tp <- protein.pos & menu.pos
+tn <- !protein.pos & !menu.pos
+fp <- protein.pos & !menu.pos
+fn <- !protein.pos & menu.pos
+
+pred <- bind_rows(colSums(tp),
+                  colSums(tn),
+                  colSums(fp),
+                  colSums(fn))
+
+pred$prediction <- c('tp', 'tn', 'fp', 'fn')
+
+pred <- select(pred, prediction, everything())
+```
+
+```{r}
+# Reformat to long for visualization
+pred.long <- pivot_longer(pred,
+                          cols = -prediction,
+                          names_to = 'taxon',
+                          values_to = 'count')
+
+# Factor data for visualization
+# Calculate F-measure to be used downstream
+pred.summary <- 
+     pred.long %>% 
+     pivot_wider(names_from = prediction, values_from = count) %>% 
+     mutate(recall = tp/(tp + fn),
+            precision = tp/(tp + fp),
+            f_measure = (2 * recall * precision)/(recall + precision)) %>% 
+     arrange(desc(f_measure), fn, fp)
+
+# Assign label for faceting plot
+# Done by manually inspecting pred.summary
+breaks <- c(rep(1, 30), rep(2, 33), rep(3, 37), rep(4, 33))
+pred.summary$facet <- breaks
+
+pred.long <- 
+     pred.summary %>% 
+     select(taxon, facet) %>% 
+     right_join(pred.long) %>% 
+     select(facet, taxon, everything())
+
+pred.long <- 
+     pred.long %>% 
+     mutate(taxon = factor(taxon, levels = pred.summary$taxon),
+            prediction = factor(prediction, levels = c('tp', 'tn', 'fp', 'fn'),
+                                labels = c('True positive', 'True negative',
+                                           'False positive', 'False negative')))
+```
+
+```{r}
+ggplot(pred.long, aes(x = taxon, y = count, fill = prediction)) +
+     geom_bar(position = 'stack', stat = 'identity') +
+     scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
+                                  '#D7191C', '#FDAE61')) + # FP, FN
+     facet_wrap(~facet, nrow = 4, scale = 'free_x') +
+     theme_bw() +
+     theme(axis.text.x = element_text(angle = 45, hjust = 1),
+           axis.text.y = element_blank(),
+           axis.title = element_blank(),
+           legend.position = 'top',
+           legend.title = element_blank(), 
+           plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
+           strip.text.x = element_blank()) 
+
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', paste0(plotID, '_By-food predictions compared to menu, >4 PSMs per taxon filter.pdf')),
+       height = 8, width = 8)
+# 2021-02-22.677: First pass
+# 2021-03-10.682: Re-colored
+# 2021-04-09.985: Database v2, no PSM filter
+# 2021-04-09.831: Database v2, >4 PSMs/taxon/sample filter
+```
+
+
 
