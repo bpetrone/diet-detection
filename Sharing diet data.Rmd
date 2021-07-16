@@ -28,8 +28,6 @@ samples <-
 
 ## Diet data 
 
-Using version shared by Sharon on ***
-
 ### Exported menus
 
 ```{r}
@@ -62,6 +60,7 @@ Do data cleaning and type adjustments
 menus <-
      menus %>%
      select(-id) %>% # Remove RealChoices ID
+     rename(menu_item_name = `menu item name`) %>% 
      mutate(date = as.Date(date, format = "%m/%d/%Y"),
             ID = factor(ID, levels = c('PC74', 'AK65', 'ML48', 'JN55'))) %>%
      mutate_at(vars(c(servings, calories:fats)), as.numeric)
@@ -100,24 +99,21 @@ dim(menus.13)[1] # 825
 
 ```{r}
 # Variable named for unique recipes consumed from weeks 1-3
-# Revised by Sharon on 9/4-- caught some errors with wheat
-# Revised again on 9/22-- adding quantity
 menus.13.unique <-
      here('..', 'dfc', 'data', 'processed', 'RealChoices',
-          '20200916_PC74,AK65,ML48_Coded menu v4 (quantity).csv') %>%
+          'WORKING_PC74,AK65,ML48_Coded menu v4 (quantity).csv') %>%
      read_csv(col_types = cols(.default = 'f',
                                ingredient_list = 'c',
                                family = 'c', subfamily = 'c',
                                genus = 'c', species = 'c', subspecies = 'c',
                                variety = 'c', cultivar_grp = 'c',
                                recipe_amount = 'n', servings_per_recipe = 'n',
-                               FDC_ID = 'c', est_grams_consumed = 'n')) %>% 
-     rename(`menu item name` = menu_item_name) # Rename to match JN55 header
+                               FDC_ID = 'c', est_grams_consumed = 'n'))
 
 # Add JN55-specific meals (coded in a separate batch)
 menus.13.unique <- 
      here('..', 'dfc', 'data', 'processed', 'RealChoices',
-          '20200916_JN55_Coded menu v3 (quantity).csv') %>%
+          'WORKING_JN55_Coded menu v3 (quantity).csv') %>%
      read_csv(col_types = cols(.default = 'f',
                                ingredient_list = 'c',
                                family = 'c', subfamily = 'c',
@@ -145,12 +141,13 @@ Outside meals data adds 137 line-item entries to 4830 from the exported menu dat
 ```{r}
 menus.outside <-
         here('..', 'dfc', 'data', 'processed', 'RealChoices',
-             '20200909_Outside meals manual export v4 (quantity).csv') %>%
+             'WORKING_Outside meals manual export v4 (quantity).csv') %>%
         read_csv(col_types = cols(.default = 'f',
                                   Date = 'c',
                                   ingredient_list = 'c',
                                   family = 'c', subfamily = 'c',
-                                  genus = 'c', species = 'c', subspecies = 'c',
+                                  genus = 'c', species = 'c', 
+                                  subspecies = 'c',
                                   variety = 'c', cultivar_grp = 'c',
                                   recipe_amount = 'n',
                                   servings_per_recipe = 'n', FDC_ID = 'c',
@@ -172,13 +169,16 @@ menus.outside <-
         menus.outside %>%
         rename(ID = Participant,
                date = Date,
+               location = Location,
                meal = Meal,
-               `menu item name` = Food) %>%
+               menu_item_name = Food) %>%
         mutate(status = 'Served',
                day.delta = as.integer(date - start[ID]),
                servings = 1, # Set this by default (especially if using presence-absence, needs to be non-NA)
-               `serving size` = NA) %>%
-        select(-Location)
+               `serving size` = NA)
+
+# Add location information to DFC menu
+menus.13$location = 'DFC cafeteria'
 ```
 
 ```{r}
