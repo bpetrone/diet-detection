@@ -60,7 +60,7 @@ Do data cleaning and type adjustments
 menus <-
      menus %>%
      select(-id) %>% # Remove RealChoices ID
-     rename(menu_item_name = `menu item name`) %>% 
+     rename(menu_item_name = menu_item_name) %>% 
      mutate(date = as.Date(date, format = "%m/%d/%Y"),
             ID = factor(ID, levels = c('PC74', 'AK65', 'ML48', 'JN55'))) %>%
      mutate_at(vars(c(servings, calories:fats)), as.numeric)
@@ -203,7 +203,6 @@ filter(menus.13, is.na(est_grams_consumed)) %>%
         pull(ID) %>%
         unique()
 ```
-Only for JN55-- one entry, don't worry about this for now, follow up with Sharon.
 
 ```{r}
 menus.13 <- mutate(menus.13,
@@ -322,7 +321,7 @@ exclude <- c('Salad Bar',
              'Fresh Fruit Choice')
 
 before <- dim(menus.13)[1]
-menus.13 <- filter(menus.13, !(`menu item name` %in% exclude))
+menus.13 <- filter(menus.13, !(menu_item_name %in% exclude))
 after <- dim(menus.13)[1]
 ```
 
@@ -366,7 +365,7 @@ menu.subset <-
      diet.subset %>% 
      select(-delta) %>% 
      left_join(menus.13) %>% 
-     select(ID, date, meal, `menu item name`, `serving size`, 
+     select(ID, date, meal, menu_item_name, `serving size`, 
             est_grams_consumed_total, `Item Name`, taxon_name, animal:fungus)   
             # Refine columns to only those Ali will need
 ```
