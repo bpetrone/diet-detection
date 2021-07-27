@@ -855,6 +855,14 @@ pred.long <-
 ```
 
 ```{r}
+# Save for comparison to metabarcoding data
+saveRDS(pred.long,
+        here('data', 'processed', 'performance-metrics', 
+             'Metaproteomic v. menu predictions by food, 1-2d prior, >4 counts per taxon filter.rds'))
+```
+
+
+```{r}
 ggplot(pred.long, aes(x = taxon, y = count, fill = prediction)) +
      geom_bar(position = 'stack', stat = 'identity') +
      scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
