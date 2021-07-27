@@ -344,7 +344,7 @@ Also remove these for now: this excludes an additional `r sum(is.na(menus.13$tax
 
 # Subset to shared samples
 
-Ali requested 2 days of eating prior to the sample.
+Ali requested 2 days of eating prior to the sample, except for PC74.  For this subject, share all available data.
 
 ```{r}
 samples <- mutate(samples, 
@@ -375,9 +375,23 @@ dim(menus.13)
 dim(menu.subset)
 ```
 
+```{r}
+# PC74
+diet.subset.pc74 <- 
+     menus.13 %>%
+     filter(ID == 'PC74') %>% 
+     select(ID, date, location, meal, menu_item_name, `serving size`, 
+            est_grams_consumed_total, `Item Name`, taxon_name, animal:fungus)   
+            # Refine columns to only those Ali will need
+```
+
+
 Save file
 ```{r}
 # write_csv(menu.subset, 
 #           here('data', 'processed', '20200929_2 days prior paired menu.csv'))
+
+write_csv(diet.subset.pc74,
+          here('data', 'processed', '20210716_PC74 full menu.csv'))
 ```
 
