@@ -1,0 +1,212 @@
+---
+title: "Performance scatterplots"
+output: html_notebook
+---
+
+# Setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r libraries, echo=FALSE}
+library(here) 
+library(phyloseq) 
+library(tidyverse) 
+```
+
+# Read in data
+
+## Metabarcoding performance metrics
+
+```{r}
+# trnL only
+# 1-2 days' prior menu, >3 counts per taxon
+pred.mb <- 
+     here('data', 'processed', 'performance-metrics',
+          'Metabarcoding v. menu predictions by food, 1-2d prior, >3 counts per taxon filter.rds') %>%
+     readRDS()
+```
+
+## Metaproteomic performance metrics
+
+```{r}
+pred.mp <- 
+     here('data', 'processed', 'performance-metrics',
+          'Metaproteomic v. menu predictions by food, 1-2d prior, >4 counts per taxon filter.rds') %>%
+     readRDS()
+```
+
+# Pre-process
+
+```{r}
+# Annotate each dataset prior to joining
+pred.mb$detection <- 'DNA'
+pred.mp$detection <- 'Protein'
+
+# Just concatenate end to end for now
+pred <- 
+     bind_rows(pred.mb, pred.mp) %>% 
+     select(-facet)
+
+pred
+```
+## Summarize sensitivity, specificity
+
+```{r}
+# Need to shift data to wide form
+pred <- pivot_wider(pred, names_from = prediction, values_from = count)
+pred
+```
+```{r}
+# Calculate sensitivity, specificity
+pred.summary <- 
+     pred %>% 
+     rename(TP = `True positive`, TN = `True negative`,
+            FP = `False positive`, FN = `False negative`) %>% 
+     mutate(sensitivity = TP/(TP + FN), 
+            specificity = TP/(TP + FP))
+
+pred.summary
+```
+```{r}
+# Now split apart by data type, so I can join back together
+pred.summary.mb <- 
+     filter(pred.summary, detection == 'DNA') %>% 
+     rename(sensitivity_DNA = sensitivity,
+            specificity_DNA = specificity) %>% 
+     select(-(detection:FN))
+
+pred.summary.mp <- 
+     filter(pred.summary, detection == 'Protein') %>% 
+     rename(sensitivity_protein = sensitivity,
+            specificity_protein = specificity) %>% 
+     select(-(detection:FN))
+
+# Full join on taxon name
+pred.summary <- full_join(pred.summary.mb, pred.summary.mp, by = 'taxon')
+pred.summary
+```
+```{r}
+# TODO
+# Would be cool to add info about taxonomy, so I could color points that way
+```
+
+# Visualize 
+
+## Metaproteomics alone
+
+```{r}
+ggplot(pred.summary.mp, aes(x = 1 - specificity_protein,
+                            y = sensitivity_protein)) +
+     geom_point(size = 2, alpha = 0.6) +
+     coord_equal() +
+     labs(x = '1 - Specificity', y = 'Sensitivity') +
+     theme_bw()
+
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 'performance metrics', 
+            paste0(plotID, '_Metaproteomic ROC analogue.png')),
+       height = 5, width = 5)
+```
+
+```{r}
+ggplot(pred.summary.mb, aes(x = 1 - specificity_DNA,
+                            y = sensitivity_DNA)) +
+     geom_point(size = 2, alpha = 0.6) +
+     coord_equal() +
+     labs(x = '1 - Specificity', y = 'Sensitivity') +
+     theme_bw()
+
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 'performance metrics', 
+            paste0(plotID, '_Metabarcoding ROC analogue.png')),
+       height = 5, width = 5)
+```
+
+
+## Metabarcoding alone
+
+## Combined
+
+```{r}
+ggplot(pred.summary, aes(x = sensitivity_DNA, y = sensitivity_protein,
+                         label = taxon)) +
+     annotate("rect", xmin = 0, xmax = 0.5, ymin = 0, ymax = 0.5, 
+              fill= '#FDAE61', alpha = 0.5)  + 
+     annotate("rect", xmin = 0.5, xmax = 1, ymin = 0, ymax = 0.5, 
+              fill= '#A6D96A', alpha = 0.5)  + 
+     annotate("rect", xmin = 0, xmax = 0.5, ymin = 0.5, ymax = 1, 
+              fill= '#A6D96A', alpha = 0.5)  + 
+     annotate("rect", xmin = 0.5, xmax = 1, ymin = 0.5, ymax = 1, 
+              fill= '#1A9641', alpha = 0.5)  +
+     geom_point(size = 2) +
+     geom_text(hjust = 0, nudge_x = 0.025, nudge_y = 0.01,
+               angle = 20, check_overlap = TRUE) +
+     coord_equal() +
+     scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1.0),
+                        limits = c(0, 1.15)) +
+     scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1.0),
+                        limits = c(0, 1.15)) +
+     labs(x = 'Metabarcoding sensitivity', y = 'Metaproteomic sensitivity') +
+     theme_bw()
+
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 'performance metrics', 
+            paste0(plotID, '_Sensitivity scatterplot, protein v. DNA compared to menu.png')),
+       height = 5, width = 5)
+```
+
+```{r}
+ggplot(pred.summary, aes(x = specificity_DNA, y = specificity_protein,
+                         label = taxon)) +
+     annotate("rect", xmin = 0, xmax = 0.5, ymin = 0, ymax = 0.5, 
+              fill= '#FDAE61', alpha = 0.5)  + 
+     annotate("rect", xmin = 0.5, xmax = 1, ymin = 0, ymax = 0.5, 
+              fill= '#A6D96A', alpha = 0.5)  + 
+     annotate("rect", xmin = 0, xmax = 0.5, ymin = 0.5, ymax = 1, 
+              fill= '#A6D96A', alpha = 0.5)  + 
+     annotate("rect", xmin = 0.5, xmax = 1, ymin = 0.5, ymax = 1, 
+              fill= '#1A9641', alpha = 0.5)  +
+     geom_point(size = 2) +
+     coord_equal() +
+     geom_text(hjust = 0, nudge_x = 0.025, nudge_y = 0.01,
+               angle = 20, check_overlap = TRUE) +
+     coord_equal() +
+     scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1.0),
+                        limits = c(0, 1.15)) +
+     scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1.0),
+                        limits = c(0, 1.15)) +
+     labs(x = 'Metabarcoding specificity', y = 'Metaproteomic specificity') +
+     theme_bw()
+
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 'performance metrics', 
+            paste0(plotID, '_Specificity scatterplot, protein v. DNA compared to menu.png')),
+       height = 5, width = 5)
+```
+
+## Plot statistics
+
+Pearson correlations between per-taxon metrics
+```{r}
+# Sensitivity
+cor.test(pred.summary$sensitivity_DNA,
+         pred.summary$sensitivity_protein,
+         alternative = 'two.sided',
+         method = 'spearman')
+```
+
+```{r}
+# Specificity
+cor.test(pred.summary$specificity_DNA,
+         pred.summary$specificity_protein,
+         alternative = 'greater', 
+         method = 'spearman')
+```
+

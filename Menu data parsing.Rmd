@@ -1,0 +1,30 @@
+---
+title: "Parse menu data"
+output: html_notebook
+---
+
+This notebook processes and prepares the DFC menu data phyloseq object for use in downstream analyses.
+
+# Setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r libraries, echo=FALSE}
+library(here) 
+library(phyloseq) 
+library(tidyverse) 
+```
+
+# Read in data
+
+## DFC menu data phyloseq
+
+```{r}
+ps.menu <- readRDS(here('data', 'processed', 'phyloseq',
+                        '20210220_ps_menu.rds'))
+ps.menu
+```
+
