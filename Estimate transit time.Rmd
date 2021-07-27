@@ -58,14 +58,6 @@ sample_names(ps.trnL) <- paste(sample_data(ps.trnL)$subject,
 
 #### 12SV5
 
-```{r}
-# This experiment contained PCRs carried out with and without blocking primers.  Consider blocked samples only:
-ps.12SV5 <- 
-     readRDS(here('data', 'processed', 'phyloseq',
-                         '20201014_ps_12SV5.rds')) %>% 
-     # TODO
-ps.12SV5
-```
 
 #### Merge
 
@@ -158,25 +150,27 @@ rm(foods.desc)
 ```{r}
 # Only foods with >5 counts, per input from Ali
 uniques.protein %>% 
-     filter(Abundance > 5) %>% 
+     filter(Abundance > 4) %>% 
      ggplot(aes(x = food, y = Abundance)) +
      geom_bar(stat = 'identity') +
-     facet_wrap(~subj, scales = 'free') +
-     labs(y = 'Total PSMs') + 
+     facet_wrap(~subj, scales = 'free', ncol = 1) +
+     labs(y = 'Total PSMs\n\n\n') +
      theme_bw() +
-     theme(axis.text.x = element_text(angle = 45,
+     theme(axis.text.x = element_text(angle = 20,
                                       hjust = 1),
-           axis.title.x = element_blank())
+           axis.title.x = element_blank(),
+           plot.margin = unit(c(1, 1, 1.5, 1.5), "cm"))
 ```
 
 ```{r}
-# plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-# 2021-03-12.132
+# 2021-03-12.132: First pass (>5 PSMs/taxon filter)
+# 2021-04-09.100: Database v2, >4 PSMs/taxon filter
 
-# ggsave(here('results', 'transit time', 
-#             paste0(plotID, '_Unique foods per-participant, with PSMs.png')),
-#        height = 7, width = 8)
+ggsave(here('results', 'transit time',
+            paste0(plotID, '_Unique foods per-participant, with PSMs.png')),
+       height = 8, width = 4.5)
 ```
 
 ### Metabarcoding
