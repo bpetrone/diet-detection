@@ -21,6 +21,20 @@ library(RColorBrewer)
 library(tidyverse) 
 ```
 
+## Shared samples
+
+```{r}
+# Read in and name comparably to phyloseqs (SUBJ_DATE)
+samples <- 
+     here('data', 'metadata', '20200723_MTA DFC samples shared.csv') %>% 
+     read_csv() %>% 
+     mutate(sample.date = as.Date(sample.date, format = '%m/%d/%y'),
+            name = paste(subj, sample.date, sep = '_')) %>%
+     pull(name)
+               
+samples %>% sort()
+```
+
 ## Metaproteomic phyloseq
 
 ```{r}
@@ -88,24 +102,23 @@ counts.protein <-
 ```
 
 ```{r}
+# Note some NA values here: what are they?
+melt.protein %>% 
+     filter(Abundance > 4) %>% 
+     filter(is.na(kingdom)) %>% 
+     pull(OTU) %>% 
+     unique()
+```
+All the seaweeds?  Follow up on this.
+
+```{r}
 # How many food taxa detected daily (metabarcoding)?
-melt.trnL <- psmelt(ps.trnL)
-counts.trnL <- 
-     melt.trnL %>% 
+melt.mb <- psmelt(ps.mb)
+counts.mb <- 
+     melt.mb %>% 
      filter(Abundance > 0) %>% 
      group_by(subj, date, kingdom) %>% 
      count(name = 'dna_taxa')
-
-melt.12SV5 <- psmelt(ps.12SV5)
-counts.12SV5 <- 
-     melt.12SV5 %>% 
-     filter(Abundance > 0) %>% 
-     group_by(subj, date, kingdom) %>% 
-     count(name = 'dna_taxa')
-
-# Join together
-counts.mb <- full_join(counts.trnL, counts.12SV5)
-rm(counts.trnL, counts.12SV5)
 ```
 
 ```{r}
@@ -176,8 +189,15 @@ ggplot(counts.shared.long, aes(x = kingdom, y = value, fill = dataset)) +
      theme(axis.title.x = element_blank())
 
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# ggsave(here('results', paste0(plotID, '_Number of food taxa by source, shared samples only.pdf')),
-# height = 4, width = 4)
+ggsave(
+     here(
+          'results', 
+          paste0(plotID, 
+                 '_Number of food taxa by source, shared samples only.pdf'
+                 )
+          ),
+     height = 4, 
+     width = 4)
 ```
 
 ```{r echo = FALSE}
