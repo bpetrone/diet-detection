@@ -5,8 +5,6 @@ output:
     df_print: paged
 ---
 
-Pass stuff ranked by sens, specificity
-
 Here we are evaluating the preliminary data shared by the Kleiner lab at NCSU to determine if their metaproteomic database should be adjusted (e.g. filtering out homologs to human proteins, other ideas?) before continuing with analysis of the DFC samples.
 
 # R setup
@@ -28,42 +26,84 @@ library(tidyverse)
 
 ## Current reference database
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Read in the first sheet of the file using read_excel function
 db <- read_excel(here('data', 'processed', 'DietaryDB_ForDavidLab.xlsx'), 
                  sheet = 1, 
                  n_max = 547) # Exclude annotations at end of file
 head(db)
 ```
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Manual updates
 # Specify scientific name for tilapia
-db$scientific_name[db$scientific_name == 'Tilapia'] <- 'Oreochromis niloticus'
+db$scientific_name[db$scientific_name == 'Tilapia'] <- 
+     'Oreochromis niloticus'
 # Correct misspelling for mallard duck
-db$scientific_name[db$scientific_name == 'Anas platyrhynchose'] <- 'Anas platyrhynchos'
+db$scientific_name[db$scientific_name == 'Anas platyrhynchose'] <- 
+     'Anas platyrhynchos'
 # Switch var. to subsp. for durum
-db$scientific_name[db$scientific_name == 'Triticum turgidum var. durum'] <- 'Triticum turgidum subsp. durum'
+db$scientific_name[db$scientific_name == 'Triticum turgidum var. durum'] <-
+     'Triticum turgidum subsp. durum'
+db$scientific_name[db$scientific_name == 'Triticum dicoccon'] <- 
+     'Triticum dicoccum'
 # Correct spelling of water buffalo
-db$scientific_name[db$scientific_name == 'Bubalis bubalis'] <- 'Bubalus bubalis'
+db$scientific_name[db$scientific_name == 'Bubalis bubalis'] <- 
+     'Bubalus bubalis'
 # Think something weird about formatting of "x" in Musa x paradisiaca, not being recognized
-db$scientific_name[db$common_name == 'plantain'] <- 'Musa x paradisiaca'
+db$scientific_name[db$common_name == 'plantain'] <- 
+     'Musa x paradisiaca'
+# Same for Mentha x piperita
+db$scientific_name[db$common_name == 'peppermint'] <- 
+     'Mentha x piperita'
+# Add hybrid designation for grapefruit
+db$scientific_name[db$scientific_name == 'Citrus paradisi'] <- 
+     'Citrus x paradisi'
 # Remove zante currant, which is redundant with V. vinifera
 db <- filter(db, common_name != 'zante currant')
 # Switch amaranth to its homotypic synonym used by NCBI taxonomy
-db$scientific_name[db$scientific_name == 'Amaranthus cruentus'] <- 'Amaranthus hybridus subsp. cruentus'
+db$scientific_name[db$scientific_name == 'Amaranthus cruentus'] <- 
+     'Amaranthus hybridus subsp. cruentus'
+db$scientific_name[db$scientific_name == 'Mercenaria mercenaria, others'] <-
+     'Mercenaria mercenaria'
+db$scientific_name[db$scientific_name == 'Polystichum munitum and others'] <-
+     'Polystichum munitum'
+# Query resulted in hits for var. capitata only
+db$scientific_name[db$scientific_name == 'Brassica oleracea var. capitata f. alba'] <- 
+     'Brassica oleracea var. capitata'
+# Switch fennel to its synonym used by NCBI taxonomy
+db$scientific_name[db$scientific_name == 'Foeniculum vulgare'] <- 
+     'Anethum foeniculum'
+# Correct name for dragonfruit
+db$scientific_name[db$scientific_name == 'Hylocereus undatus'] <- 
+     'Selenicereus undatus'
+# Update name for nori
+db$scientific_name[db$scientific_name == 'Pyropia yezoensis'] <- 
+     'Neopyropia yezoensis'
+# Subspecies designation for maple (syrup)
+db$scientific_name[db$scientific_name == 'Acer nigrum'] <- 
+     'Acer saccharum subsp. nigrum'
 ``` 
+
+```{r}
+# Some entries have trailing whitespace: correct
+db$scientific_name[grep('\\s$', db$scientific_name)]
+db$scientific_name <- gsub('\\s$', '', db$scientific_name)
+```
+
 ## Participant metaproteomic data
 
 ### Combine files
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # List files
 fs <-
      here('data', 'raw',
-          'NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
+          # '2_NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
+          '3_DB2.1_5FDR_1UniquePeptide') %>%
      list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
+# Note that if sheet not specified, defaults to first sheet
 dfs <- 
      lapply(fs, read_excel) %>% 
      # Rename "Found in sample" column so it's the same for each sample
@@ -83,7 +123,7 @@ rm(fs, dfs)
 ```
 
 ### Clean
-```{r eval = FALSE, echo = FALSE}
+```{r }
 proteins.df <- 
      proteins.df %>% 
      # Clean up ID column
@@ -93,16 +133,20 @@ proteins.df <-
      mutate(date = as.Date(date, format = '%d%b%y'))
 ```
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 head(proteins.df)
 ```
-```{r eval = FALSE, echo = FALSE}
+```{r }
 dim(proteins.df)
 ```
 
+* 1_Proteins_IndividualResultFiles_RealisticFoodsWithMicrobiota: ??
+* 2_NewDataForDavidLab_DB2.1Search_Workflow2.0: 7,632
+* 3_DB2.1_5FDR_1UniquePeptide: 88,409
+
 ### Filter 
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Filter to only food-derived proteins (this removes majority)
 proteins.df <- 
      proteins.df %>% 
@@ -112,7 +156,7 @@ proteins.df <-
 dim(proteins.df)
 ```
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Remove proteins labeled as not found in sample
 # Very low abundance (though non-zero counts), only one from wheat
 proteins.df <- 
@@ -126,13 +170,13 @@ dim(proteins.df)
 
 Using a combination of OS (embedded in Description column) and prefix assigned in database.
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 head(proteins.df$Description)
 cat('\n')
 head(proteins.df$Accession)
 ```
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Separate prefix into its own column
 
 # Helper function for use inside mutate
@@ -145,25 +189,26 @@ helper <- function(str, ex){
 proteins.df <- mutate(proteins.df, prefix = helper(Accession, '(\\w+)_.*'))
 ```
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # How many missing entries?
 sum(is.na(proteins.df$prefix))
 ```
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Extract OS from Description column
 proteins.df <- mutate(proteins.df, OS = helper(Description, 'OS=(.*)\\sOX='))
 ```
 
-```{r eval = FALSE, echo = FALSE}
-filter(proteins.df, is.na(prefix)) %>% pull(OS) %>% unique()
+```{r }
+filter(proteins.df, is.na(prefix)) %>% pull(OS) %>% unique() %>% sort()
 ```
 
 In some cases, the OS is more specific than it should be to match back to database. There is one prefix typo: Piper nigrum should be Pni, not Pne
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Manual correction to match database 
 
 proteins.df$OS[proteins.df$OS == 'Vigna radiata var. radiata'] <- 'Vigna radiata'
+proteins.df$OS[proteins.df$OS == 'Mentha piperita'] <- 'Mentha x piperita'
 proteins.df$prefix[proteins.df$OS == 'Piper nigrum'] <- 'Pni'
 ```
 
@@ -175,7 +220,7 @@ Scer: Saccharomyces cerevisiae (yeast) and Secale cereale (rye)
 Sso: Salsola soda (saltwort) and Smallanthus sonchifolius (yacon)
 Vvi: Vaccinium vitis-idaea (lingonberry) and Vitis vinifera (grape)
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Label with prefix unless unavailable; otherwise label by OS
 
 # Join by prefix
@@ -200,7 +245,7 @@ proteins.df %>%
 dim(join.prefix)
 ```
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Now, find those entries not joined by prefix, and join by OS instead
 join.os <- 
      proteins.df %>% 
@@ -216,7 +261,9 @@ cat('Combined dimensions of OS and prefix entries:', dim(join.os)[1] + dim(join.
 cat('Dimensions of input:', dim(proteins.df)[1])
 ```
 
-```{r eval = FALSE, echo = FALSE}
+Note that these dimensions may work even with some common name and category entries being empty if the food wasn't in the reference (think this is happening most commonly for fish queried at the family level, and returned at the species level).  
+
+```{r }
 # Bind together OS- and prefix-based joins to return to the full dataset
 
 # Drop prefix columns 
@@ -236,7 +283,7 @@ any(is.na(proteins.df$scientific_name)) # Any missing entries?
 
 #### Sample data
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 samdf <-
      proteins.df %>%
      mutate(sample = paste(subj, date, sep = '_')) %>%
@@ -247,7 +294,7 @@ samdf <-
 
 #### OTU table
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 psm.counts.wide <-
      proteins.df %>%
      mutate(sample = paste(subj, date, sep = '_')) %>% # Create unique label
@@ -263,7 +310,7 @@ psm.counts.wide <-
 #### Taxonomy table
 
 Regardless of whether I go on to use taxids as names, I do need to query to build the taxonomy table for the phyloseq object.
-```{r eval = FALSE, echo = FALSE}
+```{r }
 binomial.only <-
      proteins.df %>%
      select(scientific_name) %>%
@@ -276,32 +323,33 @@ taxids <- taxa::lookup_tax_data(binomial.only,
 ```
 
 What wasn't found?
-```{r eval = FALSE, echo = FALSE}
+```{r }
 result <- taxids$data$query_data
 result$scientific_name[result$taxon_id == 'unknown']
 ```
 
 Get taxonomy
-```{r eval = FALSE, echo = FALSE}
+```{r }
 taxtab.protein <-
      taxa::taxonomy_table(taxids,
                           use_ranks = c('superkingdom', 'kingdom', 'phylum', 
                                         'class', 'superorder', 
                                         'order', 'superfamily', 
-                                        'family', 'genus', 'species', 
+                                        'family', 'subfamily', 
+                                        'genus', 'species', 
                                         'subspecies', 'varietas'),
                           add_id_col = TRUE)
 ```
 
 Note that not all taxids are terminally listed here:
-```{r eval = FALSE, echo = FALSE}
+```{r }
 dim(taxtab.protein)[1]
 length(unique(taxids$data$query_data$taxon_id))
 ```
 
 This is because some are internal nodes. Manually add their taxonomy too:
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 add <- setdiff(unique(taxids$data$query_data$taxon_id), taxtab.protein$taxon_id)
 
 # Manually inspect
@@ -311,15 +359,16 @@ taxids$data$query_data %>%
 # Write full table, subset these columns out
 # write_csv(taxtab.protein,
 #           here('data', 'processed',
-#                '20210408_Internal taxonomy table nodes.csv'))
+#                '20210727_Internal taxonomy table nodes.csv'))
 
 add.rows <-
      here('data', 'processed', 
-          '20210408_Internal taxonomy table nodes.csv') %>%
+          # '20210408_Internal taxonomy table nodes.csv') %>% # Analysis v2
+          '20210727_Internal taxonomy table nodes.csv') %>% # Analysis v3
      read_csv(col_types = cols(.default = 'c'))
 ```
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Bind together
 taxtab.protein <-
         taxtab.protein %>%
@@ -329,7 +378,7 @@ taxtab.protein <-
 
 Add lowest level name as row name
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # This gets the right-most, non-NA values
 lowest.index <- max.col(!is.na(taxtab.protein), 'last')
 
@@ -344,13 +393,13 @@ taxtab.protein <-
         column_to_rownames(var = 'lowest.level')
 ```
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Check everything matches
 setdiff(names(psm.counts.wide), row.names(taxtab.protein))
 setdiff(row.names(taxtab.protein), names(psm.counts.wide))
 ```
 
-```{r eval = FALSE, echo = FALSE}
+```{r }
 # Make phyloseq object
 ps.protein <- phyloseq(otu_table(psm.counts.wide, taxa_are_rows = FALSE),
                        sample_data(samdf),
@@ -358,7 +407,8 @@ ps.protein <- phyloseq(otu_table(psm.counts.wide, taxa_are_rows = FALSE),
 
 ps.protein
 
-# saveRDS(ps.protein, here('data', 'processed', 'phyloseq', '20210408_ps_mp.rds'))
+# saveRDS(ps.protein, 
+#         here('data', 'processed', 'phyloseq', '20210727_ps_mp.rds'))
 ```
 
 ## Metaproteomic phyloseq
