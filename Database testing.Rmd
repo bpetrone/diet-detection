@@ -25,7 +25,7 @@ library(tidyverse)
 
 ```{r}
 ps.protein <- readRDS(here('data', 'processed', 'phyloseq',
-                           '20210408_ps_mp.rds'))
+                           '20210727_ps_mp.rds'))
 ps.protein
 ```
 
@@ -37,95 +37,29 @@ ps.menu <- readRDS(here('data', 'processed', 'phyloseq',
 ps.menu
 ```
 
-## Metabarcoding phyloseqs
-
-### trnL
+## Metabarcoding phyloseq
 
 ```{r}
-# Made in combined MiniSeq notebook in DFC project folder
-ps.trnL <- 
+# Combined 12SV5 and trnL, made in combined MiniSeq notebook in DFC project folder
+ps.mb <- 
      readRDS(here('data', 'processed', 'phyloseq',
-                  '20210409_ps_trnL.rds')) 
-ps.trnL
+                  '20210727_ps_mb.rds')) 
+ps.mb
 ```
 
 ```{r}
 # Subset to only those taxa identified to some position in the plant phylogeny
 unlabeled <- 
-     data.frame(ps.trnL@tax_table) %>% 
+     data.frame(ps.mb@tax_table) %>% 
      filter(is.na(superkingdom)) %>% 
      row.names()
 
-asvtab.trnL <- ps.trnL@otu_table
+asvtab.mb <- ps.mb@otu_table
 
-cat('Percent of reads not assigned to a plant taxon:', 
-    sum(asvtab.trnL[, unlabeled])/sum(asvtab.trnL) * 100)
+cat('Percent of reads not assigned to a taxon:', 
+    sum(asvtab.mb[, unlabeled])/sum(asvtab.mb) * 100)
 
-ps.trnL <- subset_taxa(ps.trnL, !is.na(superkingdom))
-```
-
-```{r}
-# Rename samples by subject_date for compatibility
-sample_names(ps.trnL) <- paste(sample_data(ps.trnL)$subj,
-                               sample_data(ps.trnL)$date, sep = '_')
-```
-
-### 12SV5
-
-```{r}
-ps.12SV5 <- readRDS(here('data', 'processed', 'phyloseq',
-                         '20210409_ps_12SV5.rds'))
-
-ps.12SV5
-```
-
-```{r}
-# Remove unblocked samples and controls
-# (Note that DFC42 is the extraction blank)
-ps.12SV5 <- 
-     ps.12SV5 %>% 
-     subset_samples(blocking == 'b' & !is.na(subj))
-
-ps.12SV5
-```
-
-```{r}
-# Remove human reads
-taxtab.12SV5 <- data.frame(ps.12SV5@tax_table)
-asv.human <- 
-     taxtab.12SV5 %>%
-     filter(genus == 'Homo') %>% 
-     row.names()
-
-ps.12SV5 <- prune_taxa(!(taxa_names(ps.12SV5) %in% asv.human),
-                       ps.12SV5)
-```
-
-```{r}
-# Subset to only those taxa identified to some position in the animal phylogeny
-unlabeled <- 
-     data.frame(ps.12SV5@tax_table) %>% 
-     filter(is.na(superkingdom)) %>% 
-     row.names()
-
-asvtab.12SV5 <- ps.12SV5@otu_table
-
-cat('Percent of reads not assigned to an animal taxon:', 
-    sum(asvtab.12SV5[, unlabeled])/sum(asvtab.12SV5) * 100)
-
-ps.12SV5 <- subset_taxa(ps.12SV5, !is.na(superkingdom))
-```
-
-```{r}
-# Rename samples by subject_date for compatibility
-sample_names(ps.12SV5) <- paste(sample_data(ps.12SV5)$subj,
-                                sample_data(ps.12SV5)$date, sep = '_')
-```
-
-## Join
-
-```{r}
-# Having trouble merging because of character/date formats, need to sort this out but hold off for now
+ps.mb <- subset_taxa(ps.mb, !is.na(superkingdom))
 ```
 
 # Exploratory comparison
