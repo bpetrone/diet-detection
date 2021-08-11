@@ -4,9 +4,9 @@ output: html_notebook
 ---
 
 This notebook makes a phyloseq object from the output of the metaproteomic analysis shared by Ali.  This currently exists in 3 versions:
-     - 1
-     - 2
-     - 3
+     - 1: 
+     - 2: 
+     - 3: 
 
 # R setup
 
@@ -145,6 +145,20 @@ dim(proteins.df)
 * 3_DB2.1_5FDR_1UniquePeptide: 88,409
 
 ### Filter 
+
+Note that human proteins are already filtered out, but a protein may pass the filter if it has an identification made to multiple species (e.g. human *and* pig).  On inspection, these seem to be things we'd want to remove, like histones and ubiquitin.
+
+```{r}
+proteins.df %>% 
+     filter(!grepl('Human_*', Accession))
+```
+
+Check also for presence of microbiota proteins:
+
+```{r}
+proteins.df %>% 
+     filter(!grepl('Microbiota_*', Accession)) 
+```
 
 ```{r }
 # Filter to only food-derived proteins (this removes majority)
