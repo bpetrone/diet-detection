@@ -57,7 +57,18 @@ ps.menu
 # Combined 12SV5 and trnL, made in combined MiniSeq notebook in DFC project folder
 ps.mb <- 
      readRDS(here('data', 'processed', 'phyloseq',
-                  '20210727_ps_mb.rds')) 
+                  '20210727_ps_mb.rds'))
+     
+ps.mb
+```
+
+```{r}
+# Filter to only the samples under consideration here
+ps.mb <- 
+     ps.mb %>% 
+     prune_samples(sample_names(.) %in% samples, .) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+
 ps.mb
 ```
 
@@ -77,6 +88,73 @@ ps.mb <- subset_taxa(ps.mb, !is.na(superkingdom))
 ```
 
 # Exploratory comparison
+
+## Detected samples
+
+The full set of samples shared was
+```{r}
+length(samples)
+```
+
+Detected by metaproteomics:
+```{r}
+nsamples(ps.protein)
+```
+
+Detected by metabarcoding:
+```{r}
+sum(samples %in% sample_names(ps.mb))
+```
+However, this includes both plants and animals.  Separating out, see that some are missing:
+```{r}
+detected.mb <- 
+     ps.mb %>% 
+     psmelt %>% 
+     filter(kingdom %in% c('Viridiplantae', 'Metazoa')) %>% 
+     group_by(subj, date, kingdom) %>% 
+     summarize(detected = sum(Abundance) > 0) %>% 
+     mutate(name = paste(subj, date, sep = '_')) %>% 
+     ungroup() %>% 
+     select(name, kingdom, detected) %>% 
+     filter(name %in% samples)
+
+detected.mb
+```
+```{r}
+detected.mb %>% 
+     group_by(kingdom, detected) %>% 
+     count()
+```
+
+## Detected taxa
+
+```{r}
+# Update metabarcoding taxon names
+taxtab.mb <- data.frame(ps.mb@tax_table)
+
+# Merge Rosaceae so as not to duplicate taxa names
+rosaceae <- 
+     taxtab.mb %>% 
+     filter(is.na(genus) & family == 'Rosaceae') %>% 
+     row.names()
+
+ps.mb <- merge_taxa(ps.mb, rosaceae)
+taxtab.mb <- data.frame(ps.mb@tax_table) # New taxonomy table
+
+taxa_names(ps.mb) <- MButils::lowest_level(taxtab.mb)$name
+```
+
+```{r}
+asvtab.protein <- otu_table(ps.protein)@.Data
+asvtab.mb <- otu_table(ps.mb)@.Data
+asvtab.menu <- otu_table(ps.menu)@.Data
+```
+
+What species are shared between metaproteomic, metabarcoding, and menu datasets (regardless of date?)
+```{r}
+
+```
+
 
 ## Per-sample details
 
@@ -248,15 +326,6 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 ### Overall dataset
 
-```{r}
-taxtab.protein <- tax_table(ps.protein)@.Data
-taxtab.menu <- tax_table(ps.menu)@.Data
-```
-
-What species are shared between metaproteomic and menu datasets (regardless of menu date?)
-```{r}
-intersect(row.names(taxtab.protein), row.names(taxtab.menu))
-```
 
 What species are in metaproteomic dataset that are never recorded in menu data (on any day?)
 
@@ -451,7 +520,7 @@ pred.summary <-
 
 # Assign label for faceting plot
 # Done by manually inspecting pred.summary
-breaks <- c(rep(1, 30), rep(2, 33), rep(3, 37), rep(4, 33))
+breaks <- c(rep(1, 44), rep(2, 44), rep(3, 45), rep(4, 45))
 pred.summary$facet <- breaks
 
 pred.long <- 
@@ -472,7 +541,7 @@ pred.long <-
 # Save for comparison to metabarcoding data
 saveRDS(pred.long,
         here('data', 'processed', 'performance-metrics', 
-             'Metaproteomic v. menu predictions by food, 1-2d prior, >4 counts per taxon filter.rds'))
+             '20210729_Metaproteomic v. menu predictions by food, 1-2d prior, >4 counts per taxon filter.rds'))
 ```
 
 
@@ -499,22 +568,16 @@ ggsave(here('results', paste0(plotID, '_By-food predictions compared to menu, >4
 # 2021-03-10.682: Re-colored
 # 2021-04-09.985: Database v2, no PSM filter
 # 2021-04-09.831: Database v2, >4 PSMs/taxon/sample filter
+# 2021-07-28.966: Analysis v3, >4 PSMs/taxon/sample filter
 ```
 
-## Metaproteomics x metabarcoding 
+## Metabarcoding x menu
 
 ### Paired samples, per-food
 
 ```{r}
 # Extract OTU tables
-asvtab.protein <- otu_table(ps.protein)@.Data
-asvtab.trnL <- otu_table(ps.trnL)@.Data 
-asvtab.12SV5 <- otu_table(ps.12SV5)@.Data 
-
-# Combine metabarcoding (have to do here because I'm having trouble with merge_phyloseq, above)
-shared.mb <- intersect(row.names(asvtab.trnL), row.names(asvtab.12SV5))
-asvtab.mb <- cbind(asvtab.trnL[shared.mb,],
-                   asvtab.12SV5[shared.mb,])
+asvtab.mb <- otu_table(ps.mb)@.Data 
 
 # Synchronize names (not all genera in common between the two)
 dim(asvtab.protein)
