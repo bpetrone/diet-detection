@@ -98,8 +98,8 @@ db$scientific_name <- gsub('\\s$', '', db$scientific_name)
 # List files
 fs <-
      here('data', 'raw',
-          # '2_NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
-          '3_DB2.1_5FDR_1UniquePeptide') %>%
+          '2_NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
+          # '3_DB2.1_5FDR_1UniquePeptide') %>%
      list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
@@ -150,14 +150,14 @@ Note that human proteins are already filtered out, but a protein may pass the fi
 
 ```{r}
 proteins.df %>% 
-     filter(!grepl('Human_*', Accession))
+     filter(grepl('Human_*', Accession))
 ```
 
 Check also for presence of microbiota proteins:
 
 ```{r}
 proteins.df %>% 
-     filter(!grepl('Microbiota_*', Accession)) 
+     filter(grepl('Microbiota_*', Accession)) 
 ```
 
 ```{r }
@@ -293,9 +293,55 @@ dim(proteins.df) # How many entries?
 any(is.na(proteins.df$scientific_name)) # Any missing entries?
 ```
 
-### Format as phyloseq object
+### Master proteins
 
-#### Sample data
+Manuel: check for master proteins with no protein unique peptides
+Not sure I understand the rationale behind this: is it a sanity check (i.e. it should not happen)? 
+Unique peptides: unique to *protein group*
+Protein unique peptides: unique to *protein*
+
+```{r}
+table(proteins.df$Master)
+```
+
+```{r}
+table(proteins.df$Master) %>% 
+     data.frame() %>% 
+     mutate(analysis = 'V2') %>% 
+     ggplot(aes(x = analysis, y = Freq, fill = Var1)) +
+     geom_bar(position = 'stack', stat = 'identity') +
+     scale_fill_manual(values =c('darkgreen', 'palegreen3', 'gray60')) +
+     labs(y = 'Count') +
+     theme_bw() +
+     theme(axis.title.x = element_blank(),
+           legend.title = element_blank())
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+# ggsave(here('results', 'QC',
+#             paste0(plotID, '_Master protein breakdown, V2 analysis.pdf')),
+#        height = 4, width = 4)
+```
+
+
+```{r}
+proteins.df %>% 
+     filter(Master == 'Master Protein' & `# Protein Unique Peptides` == 0) %>% 
+     group_by(scientific_name) %>% 
+     count() %>% 
+     arrange(desc(n))
+```
+Looks like a substantial portion:
+
+```{r}
+4238/11880
+```
+
+Try this again when I can more readily group by species?
+
+# Format as phyloseq object
+
+## Sample data
 
 ```{r }
 samdf <-
@@ -306,7 +352,7 @@ samdf <-
      column_to_rownames(var = 'sample')
 ```
 
-#### OTU table
+## OTU table
 
 ```{r }
 psm.counts.wide <-
@@ -321,7 +367,7 @@ psm.counts.wide <-
      column_to_rownames(var = 'sample')
 ```
 
-#### Taxonomy table
+## Taxonomy table
 
 Regardless of whether I go on to use taxids as names, I do need to query to build the taxonomy table for the phyloseq object.
 ```{r }
