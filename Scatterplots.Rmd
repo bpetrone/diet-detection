@@ -24,8 +24,10 @@ library(tidyverse)
 # trnL only
 # 1-2 days' prior menu, >3 counts per taxon
 pred.mb <- 
-     here('data', 'processed', 'performance-metrics',
-          'Metabarcoding v. menu predictions by food, 1-2d prior, >3 counts per taxon filter.rds') %>%
+     here('data', 
+          'processed',
+          'performance-metrics',
+          '20210728_Metabarcoding v. menu predictions by food, 1-2d prior, >3 counts per taxon filter.rds') %>%
      readRDS()
 ```
 
@@ -34,7 +36,7 @@ pred.mb <-
 ```{r}
 pred.mp <- 
      here('data', 'processed', 'performance-metrics',
-          'Metaproteomic v. menu predictions by food, 1-2d prior, >4 counts per taxon filter.rds') %>%
+          '20210817_Metaproteomic v. menu predictions by food family, 1-2d prior, >4 counts per taxon filter, >1 oz intake filter, v2 analysis.rds') %>%
      readRDS()
 ```
 
@@ -45,9 +47,13 @@ pred.mp <-
 pred.mb$detection <- 'DNA'
 pred.mp$detection <- 'Protein'
 
+# Get shared variables
+vs <- intersect(names(pred.mb), names(pred.mp))
+
 # Just concatenate end to end for now
 pred <- 
-     bind_rows(pred.mb, pred.mp) %>% 
+     bind_rows(select(pred.mb, one_of(vs)),
+               select(pred.mp, one_of(vs))) %>% 
      select(-facet)
 
 pred
@@ -89,8 +95,13 @@ pred.summary <- full_join(pred.summary.mb, pred.summary.mp, by = 'taxon')
 pred.summary
 ```
 ```{r}
-# TODO
-# Would be cool to add info about taxonomy, so I could color points that way
+# Pull info about taxonomy and certainty from metaproteomic data
+metadata <- 
+     pred.mp %>% 
+     select(taxon, certain, kingdom)
+
+
+metadata
 ```
 
 # Visualize 
