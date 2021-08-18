@@ -21,6 +21,8 @@ library(RColorBrewer)
 library(tidyverse) 
 ```
 
+# Read in data
+
 ## Shared samples
 
 ```{r}
@@ -39,7 +41,8 @@ samples %>% sort()
 
 ```{r}
 ps.protein <- readRDS(here('data', 'processed', 'phyloseq',
-                           '20210727_ps_mp.rds'))
+                           '20210408_ps_mp.rds')) # V2 analysis
+                           # '20210727_ps_mp.rds')) # V3 analysis
 ps.protein
 ```
 
@@ -88,6 +91,90 @@ ps.mb <- subset_taxa(ps.mb, !is.na(superkingdom))
 ```
 
 # Exploratory comparison
+
+## Abundances
+
+### PSMs
+
+```{r}
+psms <- 
+     ps.protein@otu_table@.Data %>% 
+     as.vector() %>% 
+     data.frame(psms = .) %>% 
+     filter(psms > 0)
+
+head(psms)
+```
+```{r}
+ggplot(psms, aes(x = psms)) +
+     geom_histogram(binwidth = 5,
+                    boundary = 0) +
+     labs(x = 'PSMs', y = 'Count') +
+     theme_bw()
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+# ggsave(here('results', 'QC',
+#             paste0(plotID, '_PSM count histogram, v2 analysis.pdf')),
+#        height = 1)
+```
+
+
+### Sequence counts
+
+```{r}
+counts <- 
+     ps.mb@otu_table@.Data %>% 
+     as.vector() %>% 
+     data.frame(counts = .) %>% 
+     filter(counts > 0)
+
+head(counts)
+```
+
+```{r}
+ggplot(counts, aes(x = counts)) +
+     geom_histogram(binwidth = 5,
+                    boundary = 0) +
+     labs(x = 'Sequence counts', y = 'Count') +
+     theme_bw()
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+# ggsave(here('results', 'QC',
+#             paste0(plotID, '_Sequence count histogram, v3 analysis.pdf')),
+#        height = 1)
+```
+
+
+### Menu
+
+```{r}
+grams <- 
+     ps.menu@otu_table@.Data %>% 
+     as.vector() %>% 
+     data.frame(grams = .) %>% 
+     filter(grams > 0)
+
+head(grams)
+```
+
+```{r}
+ggplot(grams, aes(x = grams)) +
+     geom_histogram(binwidth = 5,
+                    boundary = 0) +
+     labs(x = 'Food mass (g)', y = 'Count') +
+     theme_bw()
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+# ggsave(here('results', 'QC',
+#             paste0(plotID, '_Food mass histogram, v3 analysis.pdf')),
+#        height = 1)
+```
 
 ## Detected samples
 
@@ -307,35 +394,33 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 ## Metaproteomics x menu
 
-### Apply PSM filter to phyloseq object
-
-```{r}
-## Need to be careful-- this would only apply to the following code chunk, later on can impose a threshold without altering the phyloseq object
-# otutab <- otu_table(ps.protein)@.Data
-# otutab[otutab <= 4] = 0
-# 
-# # Replace in phyloseq object
-# ps.protein <- phyloseq(otu_table(otutab, taxa_are_rows = FALSE),
-#                        sample_data(ps.protein),
-#                        tax_table(ps.protein))
-# 
-# # Now remove any taxa with zero counts
-# ps.protein <- prune_taxa(taxa_sums(ps.protein) > 0,
-#                          ps.protein)
-```
-
 ### Overall dataset
-
 
 What species are in metaproteomic dataset that are never recorded in menu data (on any day?)
 
-This comparison is a bit tricky because some food taxa names aren't fully specified in our transcription of the menu.  Examples:
-* 
+```{r}
+asvtab.protein <- ps.protein@otu_table@.Data
+taxtab.menu <- ps.menu@tax_table@.Data
+```
 
 ```{r}
-fp <- setdiff(row.names(taxtab.protein), row.names(taxtab.menu))
-fp
+# Get only asvtab entries that pass the 5 PSM filter
+dim(asvtab.protein)
+taxa.protein <- 
+     colnames(asvtab.protein)[apply(asvtab.protein, 
+                                    2, 
+                                    function(x){any(x >= 5)})]
 ```
+
+
+```{r}
+fp <- setdiff(taxa.protein, row.names(taxtab.menu))
+head(fp)
+length(fp)
+```
+
+This comparison is a bit tricky because some food taxa names aren't fully specified in our transcription of the menu.  Examples:
+* 
 
 What kingdom do these originate from?  Do we have more false-positive animals than plants, for example?
 
@@ -348,7 +433,86 @@ fp.taxonomy %>%
      count() %>% 
      arrange(desc(n))
 ```
+
 Interesting-- at least in this high-level view, it's mostly plants. 
+
+```{r}
+# What plants? Use this to ID fruits, below:
+fp.taxonomy %>% 
+     data.frame() %>% 
+     filter(kingdom == 'Viridiplantae')
+```
+#### Flag foods for separate facet
+```{r}
+# Note that this was done for V3, which I assume is more permissive, so should work for V2? But also want to double-check.
+fruits <- 
+     # Joint in both
+     c(
+          'Ananas comosus', # Pineapple
+          'Citrus reticulata', # Mandarin 
+          'Citrus sinensis', # Orange
+          'Citrus x paradisi', # Grapefruit
+          'Fragaria x ananassa', # Strawberry
+          'Malus domestica', # Apple
+          'Mangifera indica', # Mango
+          'Prunus avium', # Cherry
+          'Prunus persica', # Peach
+          'Punica granatum', # Pomegranate
+          'Vitis vinifera', # Grape
+          # From metaproteomics
+          'Actinidia deliciosa', # Kiwi
+          'Carica papaya', # Papaya
+          'Citrullus lanatus', # Watermelon
+          'Citrus maxima', # Pomelo
+          'Musa acuminata', # Banana
+          'Musa x paradisiaca', # Banana
+          'Passiflora edulis', # Passionfruit
+          'Psidium guajava', # Guava
+          'Pyrus communis', # Pear
+          'Selenicereus undatus', # Dragon fruit
+          'Vitis rotundifolia', # Muscadine grape
+          'Morus nigra', # Black mulberry
+          # From menu
+          'Ficus carica', # Fig
+          'Prunus armeniaca', # Apricot
+          'Vaccinium tenellum' # Blueberry
+     )
+            
+beverages <- 
+     c(
+          'Camellia sinensis', # Tea
+          'Coffea arabica', # Coffee
+          'Coffea canephora', # Coffee
+          'Humulus lupulus' # Hops (beer)
+     )
+
+other <- c('Cannabis sativa')
+```
+
+Note: had a few genus-level entries here that I removed, because there was a finer species-level entry that captured them, and it would have been hard to synchronize shift to family or genus level otherwise.  These were Coffea, Citrus, Musa, Prunus, Pyrus, and Fragaria.
+
+```{r}
+facet <- 
+     c(fruits, beverages, other) %>% 
+     data.frame(species = .)
+
+# Get [family, genus] category of these foods from combined taxonomy (metaproteomics and menu)
+# Join to taxonomy to get kingdom-level info
+# Make overall taxonomy matrix (combined menu and metaproteomics)
+taxtab <- 
+     bind_rows(
+          data.frame(ps.menu@tax_table),
+          data.frame(ps.protein@tax_table)
+          ) 
+
+# Join level desired based on glom, above
+taxtab <- 
+     taxtab %>% 
+     select(family, genus, species) %>% 
+     distinct()
+
+facet <- left_join(facet, taxtab)
+```
 
 Try visualizing with metacoder?
 
@@ -410,14 +574,14 @@ There are `r ntaxa(ps.menu.12)` recorded in the menu in the 2 days prior to each
 
 Overlap between the two? Good-- this is pretty similar in overall number to the full dataset (not filtering by menu day-- that gave 69 intersecting taxon names). 
 
-A bit tricky because not all options are compatibly named.  Try grouping to genus level to smooth over at least some of this.
+#### Glom
 
 ```{r}
-ps.menu.12 <- tax_glom(ps.menu.12, 'genus')
-taxa_names(ps.menu.12) <- tax_table(ps.menu.12)[, 'genus']
+ps.menu.12 <- tax_glom(ps.menu.12, 'family')
+taxa_names(ps.menu.12) <- tax_table(ps.menu.12)[, 'family']
 
-ps.protein <- tax_glom(ps.protein, 'genus')
-taxa_names(ps.protein) <- tax_table(ps.protein)[, 'genus']
+ps.protein <- tax_glom(ps.protein, 'family')
+taxa_names(ps.protein) <- tax_table(ps.protein)[, 'family']
 ```
 
 ### Paired samples, per-food
@@ -516,19 +680,75 @@ pred.summary <-
      mutate(recall = tp/(tp + fn),
             precision = tp/(tp + fp),
             f_measure = (2 * recall * precision)/(recall + precision)) %>% 
-     arrange(desc(f_measure), fn, fp)
+     mutate(certain = ifelse(taxon %in% facet$family,
+                             yes = 0,
+                             no = 1)) %>% 
+     arrange(desc(certain), desc(f_measure), fn, fp)
 
+pred.summary
+```
+```{r}
 # Assign label for faceting plot
 # Done by manually inspecting pred.summary
-breaks <- c(rep(1, 44), rep(2, 44), rep(3, 45), rep(4, 45))
-pred.summary$facet <- breaks
+entries <- table(pred.summary$certain)
+entries
 
+names(entries) <- NULL
+n.certain <- entries[2]
+n.uncertain <- entries[1]
+rm(entries)
+
+rows.certain <- ceiling(n.certain/25)
+rows.uncertain <- ceiling(n.uncertain/25)
+
+if (rows.uncertain > 1) {
+     pred.summary$facet <- c(cut(1:n.certain, 
+                                 breaks = rows.certain, 
+                                 labels = seq(rows.certain)),
+                             cut(1:n.uncertain, 
+                                 breaks = rows.uncertain))
+} else {
+     pred.summary$facet <- c(cut(1:n.certain, 
+                                 breaks = rows.certain,
+                                 labels = seq(rows.certain)),
+                             rep(1, n.uncertain))
+}
+```
+
+```{r}
+# Incorporate into object
 pred.long <- 
      pred.summary %>% 
-     select(taxon, facet) %>% 
+     select(certain, taxon, facet) %>% 
      right_join(pred.long) %>% 
      select(facet, taxon, everything())
+```
 
+```{r}
+# Join to taxonomy to get kingdom-level info
+# Make overall taxonomy matrix (combined menu and metaproteomics)
+taxtab <- 
+     bind_rows(
+          data.frame(ps.menu.12@tax_table),
+          data.frame(ps.protein@tax_table)
+          ) 
+
+# Join level desired based on glom, above
+taxtab <- 
+     taxtab %>% 
+     select(kingdom, family) %>% 
+     distinct()
+
+pred.long <- left_join(pred.long, 
+                       taxtab,
+                       by = c('taxon' = 'family'))
+
+# Recode NA kingdom as "Other"
+pred.long$kingdom[is.na(pred.long$kingdom)] <- 'Other'
+```
+
+```{r}
+# Now that joins complete, add factor levels
 pred.long <- 
      pred.long %>% 
      mutate(taxon = factor(taxon, levels = pred.summary$taxon),
@@ -541,19 +761,39 @@ pred.long <-
 # Save for comparison to metabarcoding data
 saveRDS(pred.long,
         here('data', 'processed', 'performance-metrics', 
-             '20210729_Metaproteomic v. menu predictions by food, 1-2d prior, >4 counts per taxon filter.rds'))
+             '20210817_Metaproteomic v. menu predictions by food family, 1-2d prior, >4 counts per taxon filter, v2 analysis.rds'))
 ```
 
+#### Plot
 
 ```{r}
-ggplot(pred.long, aes(x = taxon, y = count, fill = prediction)) +
+pred.long %>%
+     filter(certain == 1) %>% 
+     ggplot(aes(x = taxon, y = count, fill = prediction)) +
      geom_bar(position = 'stack', stat = 'identity') +
      scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
                                   '#D7191C', '#FDAE61')) + # FP, FN
+     expand_limits(x = -2, y = -15) +
+     # Create a strip of white background under the fake axis
+     geom_rect(ymin = -15, ymax = 0, 
+               xmin = 0, xmax = n_distinct(pred.long$taxon), 
+               fill = "white") + 
+     # Fake axis layer, aligned below y = 0
+     geom_text(aes(color = kingdom, label = taxon), 
+               y = 0, 
+               vjust = 1.1, hjust = 1,
+               angle = 45) +
+     scale_color_manual(values = c('gray80',
+                                   'black',
+                                   'gray10',
+                                   'gray50')) +
+     guides(color = FALSE) +
      facet_wrap(~facet, nrow = 4, scale = 'free_x') +
-     theme_bw() +
-     theme(axis.text.x = element_text(angle = 45, hjust = 1),
+     theme_classic() +
+     theme(axis.text.x = element_blank(),
            axis.text.y = element_blank(),
+           axis.ticks = element_blank(),
+           axis.line = element_blank(),
            axis.title = element_blank(),
            legend.position = 'top',
            legend.title = element_blank(), 
@@ -562,14 +802,65 @@ ggplot(pred.long, aes(x = taxon, y = count, fill = prediction)) +
 
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results', paste0(plotID, '_By-food predictions compared to menu, >4 PSMs per taxon filter.pdf')),
-       height = 8, width = 8)
+ggsave(here('results', 
+            'per-food performance',
+            paste0(plotID, 
+                   '_By-food family predictions compared to menu, >4 PSMs per taxon filter, >1 oz intake filter, v2 analysis, certain.pdf')),
+       height = 10, width = 8)
 # 2021-02-22.677: First pass
 # 2021-03-10.682: Re-colored
 # 2021-04-09.985: Database v2, no PSM filter
 # 2021-04-09.831: Database v2, >4 PSMs/taxon/sample filter
 # 2021-07-28.966: Analysis v3, >4 PSMs/taxon/sample filter
+# 2021-08-16.349: Analysis v3, >4 PSMs/taxon/sample filter, family glom
 ```
+
+```{r}
+pred.long %>% 
+     filter(certain == 0) %>% 
+     ggplot(aes(x = taxon, y = count, fill = prediction)) +
+     geom_bar(position = 'stack', stat = 'identity') +
+     scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
+                                  '#D7191C', '#FDAE61')) + # FP, FN
+     expand_limits(x = -2, y = -15) +
+     # Create a strip of white background under the fake axis
+     geom_rect(ymin = -15, ymax = 0, 
+               xmin = 0, xmax = n_distinct(pred.long$taxon), 
+               fill = "white") + 
+     # Fake axis layer, aligned below y = 0
+     geom_text(aes(color = kingdom, label = taxon), 
+               y = 0, 
+               vjust = 1.1, hjust = 1,
+               angle = 45) +
+     scale_color_manual(values = c('gray80',
+                                   'black',
+                                   'gray10',
+                                   'gray50')) +
+     guides(color = FALSE) +
+     facet_wrap(~facet, nrow = 4, scale = 'free_x') +
+     theme_classic() +
+     theme(axis.text.x = element_blank(),
+           axis.text.y = element_blank(),
+           axis.ticks = element_blank(),
+           axis.line = element_blank(),
+           axis.title = element_blank(),
+           legend.position = 'top',
+           legend.title = element_blank(), 
+           plot.margin = margin(0, 0.5, 0, 0.5, 'in'),
+           strip.text.x = element_blank()) 
+
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'per-food performance',
+            paste0(plotID, 
+                   '_By-food family predictions compared to menu, >4 PSMs per taxon filter, >1 oz intake filter, v2 analysis, uncertain.pdf')),
+       height = 2.5, width = 8)
+```
+
 
 ## Metabarcoding x menu
 
