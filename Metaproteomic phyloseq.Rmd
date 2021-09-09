@@ -33,6 +33,42 @@ db <- read_excel(here('data', 'processed', 'DietaryDB_ForDavidLab.xlsx'),
                  n_max = 547) # Exclude annotations at end of file
 head(db)
 ```
+## Participant metaproteomic data
+
+### Combine files
+
+```{r }
+# List files
+fs <-
+     here('data', 'raw',
+          '2_NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
+          # '3_DB2.1_5FDR_1UniquePeptide') %>%
+     list.files(pattern = ".xlsx", full.names = T)
+
+# Read and synchronize names
+# Note that if sheet not specified, defaults to first sheet
+dfs <- 
+     lapply(fs, read_excel) %>% 
+     # Rename "Found in sample" column so it's the same for each sample
+     lapply(., 
+            function(x){
+                 # Update name
+                 names(x)[grep('Found in Sample: *', names(x))] <- 'Found in Sample'
+                 # Return original object
+                 x
+                 }
+            )
+
+# Bind together
+names(dfs) <- basename(fs)
+proteins.df <- bind_rows(dfs, .id = 'id')
+rm(fs, dfs)
+```
+
+# Pre-process
+
+## Reference
+
 ```{r }
 # Manual updates
 # Specify scientific name for tilapia
@@ -91,38 +127,6 @@ db$scientific_name <- gsub('\\s$', '', db$scientific_name)
 ```
 
 ## Participant metaproteomic data
-
-### Combine files
-
-```{r }
-# List files
-fs <-
-     here('data', 'raw',
-          '2_NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
-          # '3_DB2.1_5FDR_1UniquePeptide') %>%
-     list.files(pattern = ".xlsx", full.names = T)
-
-# Read and synchronize names
-# Note that if sheet not specified, defaults to first sheet
-dfs <- 
-     lapply(fs, read_excel) %>% 
-     # Rename "Found in sample" column so it's the same for each sample
-     lapply(., 
-            function(x){
-                 # Update name
-                 names(x)[grep('Found in Sample: *', names(x))] <- 'Found in Sample'
-                 # Return original object
-                 x
-                 }
-            )
-
-# Bind together
-names(dfs) <- basename(fs)
-proteins.df <- bind_rows(dfs, .id = 'id')
-rm(fs, dfs)
-```
-
-### Clean
 ```{r }
 proteins.df <- 
      proteins.df %>% 
