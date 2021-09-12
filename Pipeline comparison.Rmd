@@ -1,0 +1,309 @@
+---
+title: "Metaproteomic pipeline comparison"
+output: html_notebook
+---
+
+Abbreviations: 
+
+- PUP: Protein unique peptide
+- UP: Unique peptide (*i.e.* unique to the peptide group)
+
+# R setup 
+
+```{r setup, include = FALSE, echo = FALSE}
+require(knitr)
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r}
+library(eulerr) # for Euler diagrams
+library(here)
+library(phyloseq)
+library(tidyverse)
+```
+
+# Read in files
+
+## Participant metaproteomic data
+
+### 1 PUP
+
+```{r }
+# List files
+fs <-
+     here('data', 'raw',
+          '2_NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
+     list.files(pattern = ".xlsx", full.names = T)
+
+# Read and synchronize names
+# Note that if sheet not specified, defaults to first sheet
+dfs <- 
+     lapply(fs, read_excel) %>% 
+     # Rename "Found in sample" column so it's the same for each sample
+     lapply(., 
+            function(x){
+                 # Update name
+                 names(x)[grep('Found in Sample: *', names(x))] <- 'Found in Sample'
+                 # Return original object
+                 x
+                 }
+            )
+
+# Bind together
+names(dfs) <- basename(fs)
+pup.df <- bind_rows(dfs, .id = 'id')
+rm(fs, dfs)
+```
+
+### 1 UP
+
+```{r }
+# List files
+fs <-
+     here('data', 'raw',
+          '3_DB2.1_5FDR_1UniquePeptide') %>%
+     list.files(pattern = ".xlsx", full.names = T)
+
+# Read and synchronize names
+# Note that if sheet not specified, defaults to first sheet
+dfs <- 
+     lapply(fs, read_excel) %>% 
+     # Rename "Found in sample" column so it's the same for each sample
+     lapply(., 
+            function(x){
+                 # Update name
+                 names(x)[grep('Found in Sample: *', names(x))] <- 'Found in Sample'
+                 # Return original object
+                 x
+                 }
+            )
+
+# Bind together
+names(dfs) <- basename(fs)
+up.df <- bind_rows(dfs, .id = 'id')
+rm(fs, dfs)
+```
+
+## phyloseq object
+
+### 1 PUP
+
+```{r}
+ps.pup <- 
+     here('data', 'processed', 'phyloseq', '20210408_ps_mp.rds') %>% 
+     readRDS()
+
+ps.pup
+```
+
+### 1 UP
+
+```{r}
+ps.up <- 
+     here('data', 'processed', 'phyloseq', '20210912_ps_mp.rds') %>% 
+     readRDS()
+
+ps.up
+```
+
+# Pre-process
+
+## Participant metaproteomic data
+
+### Filter
+
+```{r}
+# Parse file ID into subject and date
+pup.df <- 
+     pup.df %>% 
+     # Clean up ID column
+     separate(col = 'id', into = c('id', 'subj', 'date'),
+                        sep = '_', remove = TRUE, extra = 'drop') %>% 
+     # Convert date to Date type
+     mutate(date = as.Date(date, format = '%d%b%y'))
+
+up.df <- 
+     up.df %>% 
+     # Clean up ID column
+     separate(col = 'id', into = c('id', 'subj', 'date'),
+                        sep = '_', remove = TRUE, extra = 'drop') %>% 
+     # Convert date to Date type
+     mutate(date = as.Date(date, format = '%d%b%y'))
+```
+
+```{r}
+# Filter to only food-derived proteins
+pup.df <- 
+     pup.df %>% 
+     filter(!grepl('Human_*', Accession)) %>% # Remove human proteins
+     filter(!grepl('Microbiota_*', Accession)) # Remove microbiota proteins
+
+up.df <- 
+     up.df %>% 
+     filter(!grepl('Human_*', Accession)) %>% # Remove human proteins
+     filter(!grepl('Microbiota_*', Accession)) # Remove microbiota proteins
+```
+
+```{r}
+# Filter to only those proteins found in sample
+pup.df <- 
+     filter(pup.df, 
+            `Found in Sample` %in% c('High', 'Medium', NA))
+
+up.df <- 
+     filter(up.df, 
+            `Found in Sample` %in% c('High', 'Medium', NA))
+```
+
+```{r}
+# For unique peptide analysis only: Filter to master proteins
+up.df <- 
+     filter(up.df, 
+            Master == 'Master Protein')
+```
+
+### Combine
+```{r}
+# For joint plotting
+up.df$analysis <- '1UP'
+pup.df$analysis <- '1PUP'
+
+proteins.df <-
+     bind_rows(up.df,
+               pup.df)
+```
+
+# Analyze
+
+## Compare raw datasets
+
+```{r}
+dim(pup.df)
+dim(up.df)
+```
+
+```{r}
+# Visualize PSM counts
+ggplot(proteins.df, aes(x = analysis,
+                        y = `# PSMs`, 
+                        fill = `# Protein Unique Peptides` > 0)) +
+     geom_bar(stat = 'identity', position = 'stack') +
+     scale_fill_manual(values = c('steelblue4', 'slategray3'),
+                       labels = c('No PUPs', 'At least 1 PUP')) +
+     labs(fill = 'Protein Unique\nPeptides (PUPs)', x = 'Analysis version') +
+     ylim(0, 38000) +
+     theme_classic() +
+     theme()
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+ggsave(here('results', 
+            'manuscript',
+            '1',
+            paste0(plotID, '_# PSMs by analysis version.png')),
+       height = 3, width = 5)
+```
+
+```{r}
+# What percentage of total are from master proteins without PUPs?
+up.df %>% 
+     filter(`# Protein Unique Peptides` == 0) %>% 
+     pull(`# PSMs`) %>% 
+     sum()
+```
+```{r}
+12693/sum(up.df$`# PSMs`)
+```
+
+```{r}
+# Visualize protein counts
+proteins.df %>% 
+     mutate(pup1 = `# Protein Unique Peptides` > 0) %>% 
+     group_by(analysis, pup1) %>% 
+     count() %>% 
+     ggplot(aes(x = analysis, 
+                y = n, 
+                fill = pup1)) +
+     geom_bar(stat = 'identity', position = 'stack') +
+     scale_fill_manual(values = c('steelblue4', 'slategray3'),
+                       labels = c('No PUPs', 'At least 1 PUP')) +
+     labs(fill = 'Protein Unique\nPeptides (PUPs)', 
+          x = 'Analysis version',
+          y = 'Proteins') +
+     ylim(0, 38000) + # For compatible scale with above
+     theme_classic() +
+     theme()
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+ggsave(here('results', 
+            'manuscript',
+            '1',
+            paste0(plotID, '_# proteins by analysis version.png')),
+       height = 3, width = 5)
+```
+
+```{r}
+# What percentage of total are from master proteins without PUPs?
+up.df %>% 
+     filter(`# Protein Unique Peptides` == 0) %>% 
+     dim()
+```
+```{r}
+4238/dim(up.df)[1]
+```
+
+## Compare taxa
+
+What do we detect with "relaxed" analysis that we don't see if we require at least one protein unique peptide?
+
+```{r}
+setdiff(taxa_names(ps.up), taxa_names(ps.pup))
+```
+
+And reverse?
+
+```{r}
+setdiff(taxa_names(ps.pup), taxa_names(ps.up))
+```
+
+### Euler plot
+
+```{r}
+# Get union of taxa detected in the two analyses
+all <- 
+     union(taxa_names(ps.pup),
+           taxa_names(ps.up))
+
+length(all)
+```
+
+```{r}
+# Make dataframe for plot input
+plot.df <- 
+     data.frame(taxon = all) %>% 
+     mutate(up = taxon %in% taxa_names(ps.up),
+            pup = taxon %in% taxa_names(ps.pup))
+
+# Quick checks
+sum(plot.df$up) # Should be 158
+sum(plot.df$pup) # Should be 139
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+pdf(here('results', 
+         'manuscript',
+         '1',
+         paste0(plotID, '_Taxa Euler diagram (metaproteomic analysis), with counts.pdf')),
+    height = 3, width = 3)
+
+euler(plot.df[,c('up', 'pup')]) %>% 
+     plot(fills = c('steelblue4', 'slategray3'),
+          labels = FALSE,
+          shape = "ellipse", 
+          quantities = TRUE)
+          # quantities = FALSE)
+```
+
