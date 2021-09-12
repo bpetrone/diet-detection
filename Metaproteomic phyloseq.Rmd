@@ -41,8 +41,8 @@ head(db)
 # List files
 fs <-
      here('data', 'raw',
-          '2_NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
-          # '3_DB2.1_5FDR_1UniquePeptide') %>%
+          # '2_NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
+          '3_DB2.1_5FDR_1UniquePeptide') %>%
      list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
@@ -156,7 +156,6 @@ Note that human proteins are already filtered out, but a protein may pass the fi
 proteins.df %>% 
      filter(grepl('Human_*', Accession))
 ```
-
 Check also for presence of microbiota proteins:
 
 ```{r}
@@ -183,6 +182,66 @@ proteins.df <-
 
 dim(proteins.df)
 ```
+
+#### Master proteins
+
+Manuel: check for master proteins with no protein unique peptides
+Unique peptides: unique to *protein group*
+Protein unique peptides: unique to *protein*
+
+```{r}
+table(proteins.df$Master)
+```
+
+```{r}
+table(proteins.df$Master) %>% 
+     data.frame() %>% 
+     mutate(analysis = 'V2') %>% 
+     ggplot(aes(x = analysis, y = Freq, fill = Var1)) +
+     geom_bar(position = 'stack', stat = 'identity') +
+     scale_fill_manual(values =c('darkgreen', 'palegreen3', 'gray60')) +
+     labs(y = 'Count') +
+     theme_bw() +
+     theme(axis.title.x = element_blank(),
+           legend.title = element_blank())
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+# ggsave(here('results', 'QC',
+#             paste0(plotID, '_Master protein breakdown, V2 analysis.pdf')),
+#        height = 4, width = 4)
+```
+
+```{r}
+proteins.df %>% 
+     filter(Master == 'Master Protein' & `# Protein Unique Peptides` == 0) %>% 
+     dim()
+```
+
+A substantial portion:
+
+```{r}
+4238/11880
+```
+
+Revisit this once I've assigned scientific name, to see what species they map to. But for now, filter to only those proteins that are master proteins of their respective group:
+
+```{r}
+proteins.df <- 
+     filter(proteins.df, 
+            Master == 'Master Protein')
+```
+
+### Check for multiple labels
+
+```{r}
+proteins.df %>% 
+     filter(grepl('\n', Accession)) %>% 
+     select(Accession, Description, `# PSMs`)
+```
+Note that these aren't correctly handled by my code below, which just pulls the first accession number.
+
+I think the best thing to do here would be to group them and re-label with the last common ancestor.  However, the total number of PSMs here is 524, which is ~1.3% of the overall dataset, so-- skipping this for now.  Can return to and refine. 
 
 ### Relabel with food species
 
@@ -297,52 +356,6 @@ dim(proteins.df) # How many entries?
 any(is.na(proteins.df$scientific_name)) # Any missing entries?
 ```
 
-### Master proteins
-
-Manuel: check for master proteins with no protein unique peptides
-Not sure I understand the rationale behind this: is it a sanity check (i.e. it should not happen)? 
-Unique peptides: unique to *protein group*
-Protein unique peptides: unique to *protein*
-
-```{r}
-table(proteins.df$Master)
-```
-
-```{r}
-table(proteins.df$Master) %>% 
-     data.frame() %>% 
-     mutate(analysis = 'V2') %>% 
-     ggplot(aes(x = analysis, y = Freq, fill = Var1)) +
-     geom_bar(position = 'stack', stat = 'identity') +
-     scale_fill_manual(values =c('darkgreen', 'palegreen3', 'gray60')) +
-     labs(y = 'Count') +
-     theme_bw() +
-     theme(axis.title.x = element_blank(),
-           legend.title = element_blank())
-```
-```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# ggsave(here('results', 'QC',
-#             paste0(plotID, '_Master protein breakdown, V2 analysis.pdf')),
-#        height = 4, width = 4)
-```
-
-
-```{r}
-proteins.df %>% 
-     filter(Master == 'Master Protein' & `# Protein Unique Peptides` == 0) %>% 
-     group_by(scientific_name) %>% 
-     count() %>% 
-     arrange(desc(n))
-```
-Looks like a substantial portion:
-
-```{r}
-4238/11880
-```
-
-Try this again when I can more readily group by species?
-
 # Format as phyloseq object
 
 ## Sample data
@@ -390,6 +403,7 @@ What wasn't found?
 ```{r }
 result <- taxids$data$query_data
 result$scientific_name[result$taxon_id == 'unknown']
+rm(result)
 ```
 
 Get taxonomy
@@ -428,7 +442,8 @@ taxids$data$query_data %>%
 add.rows <-
      here('data', 'processed', 
           # '20210408_Internal taxonomy table nodes.csv') %>% # Analysis v2
-          '20210727_Internal taxonomy table nodes.csv') %>% # Analysis v3
+          # '20210727_Internal taxonomy table nodes.csv') %>% # Analysis v3-- all (erroneously)
+          '20210912_Internal taxonomy table nodes.csv') %>% # Analysis v3-- master proteins only
      read_csv(col_types = cols(.default = 'c'))
 ```
 
@@ -471,6 +486,6 @@ ps.protein <- phyloseq(otu_table(psm.counts.wide, taxa_are_rows = FALSE),
 
 ps.protein
 
-# saveRDS(ps.protein, 
-#         here('data', 'processed', 'phyloseq', '20210727_ps_mp.rds'))
+# saveRDS(ps.protein,
+#         here('data', 'processed', 'phyloseq', '20210912_ps_mp.rds'))
 ```
