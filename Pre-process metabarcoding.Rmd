@@ -1,0 +1,125 @@
+---
+title: "Pre-process metabarcoding"
+output: html_notebook
+---
+
+This notebook processes and prepares the DFC metabarcoding data phyloseq object for use in downstream analyses.
+
+Ideally in future this would also merge in and incorporate the 908 sample data too.
+
+# R setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r libraries, echo=FALSE}
+library(here) 
+library(MButils) # For lowest level naming
+library(phyloseq) 
+library(tidyverse) 
+```
+
+# Read in data
+
+## DFC metabarcoding data phyloseq
+
+```{r}
+# Combined 12SV5 and trnL, made in combined MiniSeq notebook in DFC project folder
+ps.mb <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20210727_ps_mb.rds') %>% 
+     readRDS()
+     
+ps.mb
+```
+
+# Pre-process
+
+## Filter to identified foods
+
+```{r}
+# Subset to only those taxa identified to some position in the plant phylogeny
+unlabeled <- 
+     data.frame(ps.mb@tax_table) %>% 
+     filter(is.na(superkingdom)) %>% 
+     row.names()
+
+asvtab.mb <- ps.mb@otu_table
+
+cat('Percent of reads not assigned to a taxon:', 
+    sum(asvtab.mb[, unlabeled])/sum(asvtab.mb) * 100)
+```
+
+```{r}
+ps.mb <- subset_taxa(ps.mb, !is.na(superkingdom))
+ps.mb
+```
+
+## Update taxa names
+
+Need to update taxon names from sequence variant to taxon:
+
+```{r}
+head(taxa_names(ps.mb))
+```
+
+```{r}
+taxtab.mb <- data.frame(ps.mb@tax_table)
+```
+
+```{r}
+# Get lowest level names
+taxtab.mb <- MButils::lowest_level(taxtab.mb)
+```
+
+```{r}
+# Check for duplicates
+taxtab.mb$name[duplicated(taxtab.mb$name)]
+```
+
+```{r}
+taxtab.mb %>% 
+     filter(name == 'Rosaceae') %>% 
+     row.names()
+```
+
+Note that these two Rosaceae ASVs represent completely distinct food categories:
+1. Fragaria, Rosa, Rubus
+2. Malus, Pyrus
+so it doesn't seem right to merge them.
+
+```{r}
+# Manually rename
+taxtab.mb['ATCCCGTTTTATGAAAACAAACAAGGGTTTCAGAAAGCGAGAATAAATAAAG', 
+          'name'] <- 
+     'Rosaceae (Fragaria, Rosa, Rubus)'     
+
+taxtab.mb['ATCCTGTTTTATGAAAATAAACAAGGGTTTCATAAACCGAAAATAAAAAAG', 
+          'name'] <- 
+     'Rosaceae (Malus, Pyrus)'   
+```
+
+```{r}
+# Replace in phyloseq
+all(taxa_names(ps.mb) == row.names(taxtab.mb))
+taxa_names(ps.mb) <- taxtab.mb$name
+```
+
+# Save
+
+```{r}
+saveRDS(
+     ps.mb,
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'cleaned',
+          'WORKING_ps_mb.rds')
+)
+```
+
+

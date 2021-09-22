@@ -1,0 +1,61 @@
+---
+title: "Pre-process menu phyloseq"
+output: html_notebook
+---
+
+This notebook processes and prepares the DFC menu data phyloseq object for use in downstream analyses.
+
+# R setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r libraries, echo=FALSE}
+library(here) 
+library(phyloseq) 
+library(tidyverse) 
+```
+
+# Read in data
+
+## DFC menu data phyloseq
+
+```{r}
+ps.menu <- readRDS(here('data', 'processed', 'phyloseq',
+                        '20210220_ps_menu.rds'))
+ps.menu
+```
+
+# Pre-process
+
+```{r}
+# Peek at sample variables
+sample_variables(ps.menu)
+```
+
+```{r}
+head(sample_data(ps.menu)$ID)
+```
+
+```{r}
+# Add weekday to sample data
+sample_data(ps.menu)$day <- 
+     sample_data(ps.menu)$date %>% 
+     weekdays()
+```
+
+# Save
+
+```{r}
+saveRDS(
+     ps.menu, 
+     here('data',
+          'processed',
+          'phyloseq',
+          'cleaned',
+          'WORKING_ps_menu.rds')
+)
+```
+
