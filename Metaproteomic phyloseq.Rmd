@@ -489,3 +489,49 @@ ps.protein
 # saveRDS(ps.protein,
 #         here('data', 'processed', 'phyloseq', '20210912_ps_mp.rds'))
 ```
+
+# Combine with 908
+
+```{r}
+ps.dfc <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20210912_ps_mp.rds') %>% 
+     readRDS()
+     
+ps.908 <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20211102_ps_mp.rds') %>% 
+     readRDS()
+
+ps.dfc
+ps.908
+```
+
+```{r}
+# How many taxa do I expect?
+union(taxa_names(ps.dfc), 
+      taxa_names(ps.908)) %>% 
+     unique() %>% 
+     length()
+```
+
+```{r}
+ps.joint <- 
+     merge_phyloseq(ps.dfc,
+                    ps.908)
+
+ps.joint
+```
+
+```{r}
+saveRDS(ps.joint,
+        here('data', 
+             'processed',
+             'phyloseq',
+             '20211102_ps_mp_joint.rds'))
+```
+
