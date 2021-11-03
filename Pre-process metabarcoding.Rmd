@@ -23,66 +23,135 @@ library(tidyverse)
 
 # Read in data
 
+## 908 metabarcoding phyloseq
+
+```{r}
+ps.908 <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20211102_ps_mb.rds') %>% 
+     readRDS()
+
+ps.908
+```
+
 ## DFC metabarcoding data phyloseq
 
 ```{r}
 # Combined 12SV5 and trnL, made in combined MiniSeq notebook in DFC project folder
-ps.mb <- 
+ps.dfc <- 
      here('data',
           'processed',
           'phyloseq',
           '20210727_ps_mb.rds') %>% 
      readRDS()
      
-ps.mb
+ps.dfc
 ```
 
 # Pre-process
 
-## Filter to identified foods
+## Input objects
+
+### 908
+
+#### Remove samples with variable pre-treatment
+
+There are two options here:
+- Keeping pre-treatment in common across metabarcoding samples (10% stool slurry, taking filtrate after stomaching)
+- Keeping samples that have common pre-treatment with metaproteomic samples (10% slurry, handheld homogenization, then BioRuptor treatment before extraction)
+
+I think first option here is best, because it creates consistency across metaproteomic samples.  And then could include the different methods as a supplemental figure if questions about sample processing arise.
 
 ```{r}
-# Subset to only those taxa identified to some position in the plant phylogeny
-unlabeled <- 
-     data.frame(ps.mb@tax_table) %>% 
-     filter(is.na(superkingdom)) %>% 
-     row.names()
+ps.908 <- 
+     subset_samples(ps.908,
+                    preprocess == '10% w/v slurry, post-filter') %>% 
+     subset_samples(is.na(replicate) | replicate == 1) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
 
-asvtab.mb <- ps.mb@otu_table
-
-cat('Percent of reads not assigned to a taxon:', 
-    sum(asvtab.mb[, unlabeled])/sum(asvtab.mb) * 100)
+ps.908
 ```
 
 ```{r}
-ps.mb <- subset_taxa(ps.mb, !is.na(superkingdom))
-ps.mb
+# Update sample names
+sample_data(ps.908)$date <- as.Date(sample_data(ps.908)$date,
+                                    format = '%m/%d/%y')
+
+sample_names(ps.908) <- 
+     paste(sample_data(ps.908)$subj,
+           sample_data(ps.908)$date,
+           sep = '_')
+```
+
+### DFC
+
+Nothing to do here.
+
+## Combine 908 and DFC
+
+Both have ASV sequences preserved as taxa names:
+
+```{r}
+head(taxa_names(ps.908))
+head(taxa_names(ps.dfc))
+```
+
+
+```{r}
+ps.joint <- 
+     merge_phyloseq(ps.908,
+                    ps.dfc)
+
+ps.joint
+
+rm(ps.dfc,
+   ps.908)
+```
+
+## Filter to identified foods
+
+Ahh-- likely want to go back and analyze with assignTaxonomy for 12SV5 component.
+
+```{r}
+# Subset to only those taxa identified to some position in the food phylogeny
+unlabeled <- 
+     data.frame(ps.joint@tax_table) %>% 
+     filter(is.na(superkingdom)) %>% 
+     row.names()
+
+asvtab.joint <- ps.joint@otu_table
+
+cat('Percent of reads not assigned to a taxon:', 
+    sum(asvtab.joint[, unlabeled])/sum(asvtab.joint) * 100)
+```
+
+```{r}
+ps.joint <- subset_taxa(ps.joint, !is.na(superkingdom))
+ps.joint
 ```
 
 ## Update taxa names
 
-Need to update taxon names from sequence variant to taxon:
+Need to update taxon names from sequence variant to taxon.
 
 ```{r}
-head(taxa_names(ps.mb))
-```
-
-```{r}
-taxtab.mb <- data.frame(ps.mb@tax_table)
+taxtab.joint <- data.frame(ps.joint@tax_table)
 ```
 
 ```{r}
 # Get lowest level names
-taxtab.mb <- MButils::lowest_level(taxtab.mb)
+taxtab.joint <- MButils::lowest_level(taxtab.joint)
 ```
 
 ```{r}
 # Check for duplicates
-taxtab.mb$name[duplicated(taxtab.mb$name)]
+taxtab.joint$name[duplicated(taxtab.joint$name)]
 ```
 
 ```{r}
-taxtab.mb %>% 
+taxtab.joint %>% 
      filter(name == 'Rosaceae') %>% 
      row.names()
 ```
@@ -94,26 +163,26 @@ so it doesn't seem right to merge them.
 
 ```{r}
 # Manually rename
-taxtab.mb['ATCCCGTTTTATGAAAACAAACAAGGGTTTCAGAAAGCGAGAATAAATAAAG', 
+taxtab.joint['ATCCCGTTTTATGAAAACAAACAAGGGTTTCAGAAAGCGAGAATAAATAAAG', 
           'name'] <- 
      'Rosaceae (Fragaria, Rosa, Rubus)'     
 
-taxtab.mb['ATCCTGTTTTATGAAAATAAACAAGGGTTTCATAAACCGAAAATAAAAAAG', 
+taxtab.joint['ATCCTGTTTTATGAAAATAAACAAGGGTTTCATAAACCGAAAATAAAAAAG', 
           'name'] <- 
      'Rosaceae (Malus, Pyrus)'   
 ```
 
 ```{r}
 # Replace in phyloseq
-all(taxa_names(ps.mb) == row.names(taxtab.mb))
-taxa_names(ps.mb) <- taxtab.mb$name
+all(taxa_names(ps.joint) == row.names(taxtab.joint))
+taxa_names(ps.joint) <- taxtab.joint$name
 ```
 
 # Save
 
 ```{r}
 saveRDS(
-     ps.mb,
+     ps.joint,
      here('data', 
           'processed', 
           'phyloseq',
