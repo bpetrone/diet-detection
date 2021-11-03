@@ -1,0 +1,150 @@
+---
+title: "Specific food plots"
+output: html_notebook
+---
+
+# R setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r libraries, echo=FALSE}
+library(here) 
+library(MButils)
+library(phyloseq) 
+library(RColorBrewer)
+library(tidyverse) 
+```
+
+# Read in data
+
+## Shared samples
+
+```{r}
+# Read in and name comparably to phyloseqs (SUBJ_DATE)
+samples <- 
+     here('data', 'metadata', '20200723_MTA DFC samples shared.csv') %>% 
+     read_csv() %>% 
+     mutate(sample.date = as.Date(sample.date, format = '%m/%d/%y'),
+            name = paste(subj, sample.date, sep = '_')) %>%
+     pull(name)
+               
+samples %>% sort()
+```
+
+## Metaproteomic phyloseq
+
+```{r}
+ps.protein <- readRDS(here('data', 'processed', 'phyloseq',
+                           '20210727_ps_mp.rds'))
+ps.protein
+```
+
+## DFC menu data phyloseq
+
+```{r}
+ps.menu <- readRDS(here('data', 'processed', 'phyloseq',
+                        '20210220_ps_menu.rds'))
+ps.menu
+```
+
+## Metabarcoding phyloseq
+
+```{r}
+# Combined 12SV5 and trnL, made in combined MiniSeq notebook in DFC project folder
+ps.mb <- 
+     readRDS(here('data', 'processed', 'phyloseq',
+                  '20210727_ps_mb.rds'))
+     
+ps.mb
+```
+
+```{r}
+# Filter to only the samples under consideration here
+ps.mb <- 
+     ps.mb %>% 
+     prune_samples(sample_names(.) %in% samples, .) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+
+ps.mb
+```
+
+```{r}
+# Subset to only those taxa identified to some position in the plant phylogeny
+unlabeled <- 
+     data.frame(ps.mb@tax_table) %>% 
+     filter(is.na(superkingdom)) %>% 
+     row.names()
+
+asvtab.mb <- ps.mb@otu_table
+
+cat('Percent of reads not assigned to a taxon:', 
+    sum(asvtab.mb[, unlabeled])/sum(asvtab.mb) * 100)
+
+ps.mb <- subset_taxa(ps.mb, !is.na(superkingdom))
+```
+
+```{r}
+# Update metabarcoding taxon names
+taxtab.mb <- data.frame(ps.mb@tax_table)
+
+# Merge Rosaceae so as not to duplicate taxa names
+rosaceae <- 
+     taxtab.mb %>% 
+     filter(is.na(genus) & family == 'Rosaceae') %>% 
+     row.names()
+
+ps.mb <- merge_taxa(ps.mb, rosaceae)
+taxtab.mb <- data.frame(ps.mb@tax_table) # New taxonomy table
+
+taxa_names(ps.mb) <- MButils::lowest_level(taxtab.mb)$name
+```
+
+# Reformat for plotting
+
+```{r}
+melt.menu <- 
+     psmelt(ps.menu) %>% 
+     rename(subj = ID)
+melt.mb <- psmelt(ps.mb)
+melt.mp <- psmelt(ps.protein)
+```
+
+```{r}
+taxon.mb <- 'Acer'
+taxon.mp <- 'Acer saccharum'
+taxon.menu <- 'Acer'
+```
+
+```{r}
+vs <- c('subj', 'date', 'OTU', 'Abundance') # Shared variables to pull from each phyloseq
+
+filter_melt <- function(melt, taxon, type){
+     # melt: melt object
+     # taxon: one of taxon.mp, taxon.mb, or taxon.menu, above
+     # type: the data type of the object (menu, metabarcoding, metaproteomics)
+     melt %>% 
+          select(one_of(vs)) %>% 
+          filter(OTU == taxon & Abundance > 0) %>% 
+          mutate(method = type) 
+          
+}
+```
+
+```{r}
+filter_melt(melt.menu, 'Serranidae', 'Menu')
+```
+```{r}
+filter_melt(melt.mp, 'Acer saccharum', 'Metaproteomics')
+```
+
+
+```{r}
+df %>% 
+     filter(taxon_mb == taxon.mb)
+ggplot(aex(x = date, y = Abundance)) +
+     facet_wrap(~method)
+```
+
