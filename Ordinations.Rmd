@@ -166,7 +166,21 @@ ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
      scale_color_manual(values = subj.colors) +
      coord_equal() +
      theme_bw() +
-     theme(legend.title = element_blank())
+     theme(legend.title = element_blank()) +
+     theme(axis.text = element_text(size = 12,
+                                    face = 'bold',
+                                    color = 'gray80'), 
+           axis.title = element_text(size = 14,
+                                    face = 'bold',
+                                    color = 'gray80'), 
+           axis.ticks = element_line(size = 2, 
+                                     color = 'gray80'),
+           legend.text = element_text(size = 10,
+                                      face = 'bold',
+                                      color = 'gray40'),
+           panel.border = element_rect(size = 3,
+                                       color = 'gray80'),
+           panel.grid.major = element_blank())
 ```
 
 ```{r}
