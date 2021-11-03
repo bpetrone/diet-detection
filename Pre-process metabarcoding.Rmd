@@ -87,7 +87,11 @@ sample_names(ps.908) <-
 
 ### DFC
 
-Nothing to do here.
+```{r}
+# Change subject from factor to character so it merges correctly at next stage
+sample_data(ps.dfc)$subj <- as.character(sample_data(ps.dfc)$subj)
+```
+
 
 ## Combine 908 and DFC
 
