@@ -22,21 +22,37 @@ library(tidyverse)
 
 ```{r}
 # trnL only
-# 1-2 days' prior menu, >3 counts per taxon
+# 1-2 days' prior menu, >4 counts per taxon
 pred.mb <- 
      here('data', 
           'processed',
           'performance-metrics',
-          '20210728_Metabarcoding v. menu predictions by food, 1-2d prior, >3 counts per taxon filter.rds') %>%
+          # '20210913_Metabarcoding v. menu predictions by family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
+          '20210913_Metabarcoding v. menu predictions by genus, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
      readRDS()
 ```
 
 ## Metaproteomic performance metrics
 
 ```{r}
-pred.mp <- 
-     here('data', 'processed', 'performance-metrics',
-          '20210817_Metaproteomic v. menu predictions by food family, 1-2d prior, >4 counts per taxon filter, >1 oz intake filter, v2 analysis.rds') %>%
+# Protein unique peptides
+pred.mp.pup <- 
+     here('data', 
+          'processed', 
+          'performance-metrics',
+          # '20210913_Metaproteomic v. menu predictions by food family, 1-2d prior, >4 counts per taxon filter, no intake filter, v2 analysis.rds') %>%
+          '20210913_Metaproteomic v. menu predictions by food genus, 1-2d prior, >4 counts per taxon filter, no intake filter, v2 analysis.rds') %>% 
+     readRDS()
+```
+
+```{r}
+# Unique peptides
+pred.mp.up <- 
+     here('data', 
+          'processed',
+          'performance-metrics',
+          # '20210912_Metaproteomic v. menu predictions by food family, 1-2d prior, >4 counts per taxon filter, v3 analysis.rds') %>%
+          '20210912_Metaproteomic v. menu predictions by food genus, 1-2d prior, >4 counts per taxon filter, no intake filter, v3 analysis.rds') %>% 
      readRDS()
 ```
 
@@ -45,16 +61,19 @@ pred.mp <-
 ```{r}
 # Annotate each dataset prior to joining
 pred.mb$detection <- 'DNA'
-pred.mp$detection <- 'Protein'
+pred.mp.pup$detection <- 'Protein (1PUP)'
+pred.mp.up$detection <- 'Protein (1UP)'
 
 # Get shared variables
-vs <- intersect(names(pred.mb), names(pred.mp))
+vs <- 
+     intersect(names(pred.mb), names(pred.mp.up)) %>% 
+     intersect(names(pred.mp.pup))
 
 # Just concatenate end to end for now
 pred <- 
      bind_rows(select(pred.mb, one_of(vs)),
-               select(pred.mp, one_of(vs))) %>% 
-     select(-facet)
+               select(pred.mp.pup, one_of(vs)),
+               select(pred.mp.up, one_of(vs))) 
 
 pred
 ```
@@ -84,33 +103,32 @@ pred.summary.mb <-
             specificity_DNA = specificity) %>% 
      select(-(detection:FN))
 
-pred.summary.mp <- 
-     filter(pred.summary, detection == 'Protein') %>% 
-     rename(sensitivity_protein = sensitivity,
-            specificity_protein = specificity) %>% 
+pred.summary.pup <- 
+     filter(pred.summary, detection == 'Protein (1PUP)') %>% 
+     rename(sensitivity_pup = sensitivity,
+            specificity_pup = specificity) %>% 
+     select(-(detection:FN))
+
+pred.summary.up <- 
+     filter(pred.summary, detection == 'Protein (1UP)') %>% 
+     rename(sensitivity_up = sensitivity,
+            specificity_up = specificity) %>% 
      select(-(detection:FN))
 
 # Full join on taxon name
-pred.summary <- full_join(pred.summary.mb, pred.summary.mp, by = 'taxon')
+pred.summary <- 
+     full_join(pred.summary.mb, pred.summary.pup) %>% 
+     full_join(pred.summary.up)
+
 pred.summary
 ```
-```{r}
-# Pull info about taxonomy and certainty from metaproteomic data
-metadata <- 
-     pred.mp %>% 
-     select(taxon, certain, kingdom)
-
-
-metadata
-```
-
 # Visualize 
 
 ## Metaproteomics alone
 
 ```{r}
-ggplot(pred.summary.mp, aes(x = 1 - specificity_protein,
-                            y = sensitivity_protein)) +
+ggplot(pred.summary.pup, aes(x = 1 - specificity_pup,
+                            y = sensitivity_pup)) +
      geom_point(size = 2, alpha = 0.6) +
      coord_equal() +
      labs(x = '1 - Specificity', y = 'Sensitivity') +
@@ -137,14 +155,10 @@ ggsave(here('results', 'performance metrics',
             paste0(plotID, '_Metabarcoding ROC analogue.png')),
        height = 5, width = 5)
 ```
-
-
-## Metabarcoding alone
-
 ## Combined
 
 ```{r}
-ggplot(pred.summary, aes(x = sensitivity_DNA, y = sensitivity_protein,
+ggplot(pred.summary, aes(x = sensitivity_DNA, y = sensitivity_pup,
                          label = taxon)) +
      annotate("rect", xmin = 0, xmax = 0.5, ymin = 0, ymax = 0.5, 
               fill= '#FDAE61', alpha = 0.5)  + 
@@ -162,18 +176,18 @@ ggplot(pred.summary, aes(x = sensitivity_DNA, y = sensitivity_protein,
                         limits = c(0, 1.15)) +
      scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1.0),
                         limits = c(0, 1.15)) +
-     labs(x = 'Metabarcoding sensitivity', y = 'Metaproteomic sensitivity') +
+     labs(x = 'Metabarcoding sensitivity', y = 'Metaproteomic sensitivity (PUP)') +
      theme_bw()
 
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 ggsave(here('results', 'performance metrics', 
-            paste0(plotID, '_Sensitivity scatterplot, protein v. DNA compared to menu.png')),
+            paste0(plotID, '_Sensitivity scatterplot, protein v. DNA compared to menu (genus level).png')),
        height = 5, width = 5)
 ```
 
 ```{r}
-ggplot(pred.summary, aes(x = specificity_DNA, y = specificity_protein,
+ggplot(pred.summary, aes(x = specificity_DNA, y = specificity_pup,
                          label = taxon)) +
      annotate("rect", xmin = 0, xmax = 0.5, ymin = 0, ymax = 0.5, 
               fill= '#FDAE61', alpha = 0.5)  + 
@@ -192,7 +206,7 @@ ggplot(pred.summary, aes(x = specificity_DNA, y = specificity_protein,
                         limits = c(0, 1.15)) +
      scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1.0),
                         limits = c(0, 1.15)) +
-     labs(x = 'Metabarcoding specificity', y = 'Metaproteomic specificity') +
+     labs(x = 'Metabarcoding specificity', y = 'Metaproteomic specificity (PUP)') +
      theme_bw()
 
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
