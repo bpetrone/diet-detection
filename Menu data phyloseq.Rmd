@@ -61,11 +61,17 @@ sample_variables(ps.hd)
 ```
 
 ```{r}
-# Align names
+# Align names (ID is subj in proteomic and metabarcoding data)
 sample_data(ps.hd) <- 
      ps.hd@sam_data %>% 
      data.frame() %>% 
-     rename(date = day)
+     rename(subj = ID,
+            date = day)
+
+sample_data(ps.dfc) <- 
+     ps.dfc@sam_data %>% 
+     data.frame() %>% 
+     rename(subj = ID)
 ```
 
 ```{r}
@@ -83,16 +89,23 @@ ps <- merge_phyloseq(ps.dfc,
 ps
 ```
 
+```{r}
+# Update factor order of variables
+sample_data(ps)$subj <- 
+     factor(sample_data(ps)$subj, 
+            levels = c('908', 'AK65', 'JN55', 'ML48', 'PC74'))
+```
+
 # Save
 
 ```{r}
-saveRDS(
-     ps, 
-     here('data',
-          'processed',
-          'phyloseq',
-          'cleaned',
-          'WORKING_ps_menu.rds')
-)
+# saveRDS(
+#      ps,
+#      here('data',
+#           'processed',
+#           'phyloseq',
+#           'cleaned',
+#           'WORKING_ps_menu.rds')
+# )
 ```
 
