@@ -1,9 +1,9 @@
 ---
-title: "Pre-process menu phyloseq"
+title: "Menu data phyloseq"
 output: html_notebook
 ---
 
-This notebook processes and prepares the DFC menu data phyloseq object for use in downstream analyses.
+This notebook processes and prepares the DFC and Healthy Donor menu data phyloseq objects for use in downstream analyses.
 
 # R setup
 
@@ -20,37 +20,74 @@ library(tidyverse)
 
 # Read in data
 
+## Healthy donor diet phyloseq
+
+```{r}
+ps.hd <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20211115_ps_menu.rds') %>% 
+     readRDS()
+
+ps.hd
+```
+
 ## DFC menu data phyloseq
 
 ```{r}
-ps.menu <- readRDS(here('data', 'processed', 'phyloseq',
-                        '20210220_ps_menu.rds'))
-ps.menu
+ps.dfc <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          '20210220_ps_menu.rds') %>% 
+     readRDS()
+
+ps.dfc
 ```
 
 # Pre-process
 
 ```{r}
+# Check sample names are compatible: all should be SUBJ_DATE
+head(sample_names(ps.dfc))
+head(sample_names(ps.hd))
+```
+
+```{r}
 # Peek at sample variables
-sample_variables(ps.menu)
+sample_variables(ps.dfc)
+sample_variables(ps.hd)
 ```
 
 ```{r}
-head(sample_data(ps.menu)$ID)
+# Align names
+sample_data(ps.hd) <- 
+     ps.hd@sam_data %>% 
+     data.frame() %>% 
+     rename(date = day)
 ```
 
 ```{r}
-# Add weekday to sample data
-sample_data(ps.menu)$day <- 
-     sample_data(ps.menu)$date %>% 
-     weekdays()
+# Add study name
+sample_data(ps.dfc)$study <- 'Weight Loss'
+sample_data(ps.hd)$study <- 'Healthy Donor'
+```
+
+# Join
+
+```{r}
+ps <- merge_phyloseq(ps.dfc,
+                     ps.hd)
+
+ps
 ```
 
 # Save
 
 ```{r}
 saveRDS(
-     ps.menu, 
+     ps, 
      here('data',
           'processed',
           'phyloseq',
