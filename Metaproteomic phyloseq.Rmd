@@ -4,9 +4,9 @@ output: html_notebook
 ---
 
 This notebook makes a phyloseq object from the output of the metaproteomic analysis shared by Ali.  This currently exists in 3 versions:
-     - 1: 
-     - 2: 
-     - 3: 
+     - 1: First version of database
+     - 2: Second version of database, 1 PUP filter, all proteins
+     - 3: Second version of database, 1 UP filter, dietary proteins
 
 # R setup
 
@@ -28,21 +28,25 @@ library(tidyverse)
 
 ```{r }
 # Read in the first sheet of the file using read_excel function
-db <- read_excel(here('data', 'processed', 'DietaryDB_ForDavidLab.xlsx'), 
+db <- read_excel(here('data', 
+                      'processed',
+                      'DietaryDB_ForDavidLab.xlsx'), 
                  sheet = 1, 
                  n_max = 547) # Exclude annotations at end of file
 head(db)
 ```
 ## Participant metaproteomic data
 
-### Combine files
+### Weight Loss
+
+This is pre-filtered by Ali to only proteins with >=1 unique peptide.
 
 ```{r }
 # List files
 fs <-
-     here('data', 'raw',
-          # '2_NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
-          '3_DB2.1_5FDR_1UniquePeptide') %>%
+     here('data', 
+          'raw',
+          '3_DB2.1_5FDR_1UniquePeptide_Weight Loss') %>%
      list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
@@ -61,7 +65,45 @@ dfs <-
 
 # Bind together
 names(dfs) <- basename(fs)
-proteins.df <- bind_rows(dfs, .id = 'id')
+weightloss <- bind_rows(dfs, .id = 'id')
+rm(fs, dfs)
+```
+
+### Healthy Donor
+
+This is *not* pre-filtered by Ali to only proteins with >=1 unique peptide.  Will need to do this filtering here.
+
+```{r }
+# List files
+fs <-
+     here('data', 
+          'raw',
+          '2_All5FDRProteins_Excel_Files_DB2.1Search_Healthy donor') %>%
+     list.files(pattern = ".xlsx", full.names = T)
+
+# Read and synchronize names
+# Note that if sheet not specified, defaults to first sheet
+dfs <- 
+     lapply(fs, read_excel) %>% 
+     # Rename "Found in sample" column so it's the same for each sample
+     lapply(., 
+            function(x){
+                 # Update name
+                 names(x)[grep('Found in Sample: *', names(x))] <- 'Found in Sample'
+                 # Return original object
+                 x
+                 }
+            )
+
+# Rename by SUBJ_DATE
+names(dfs) <- 
+     basename(fs) %>% 
+     gsub(pattern = '^HH\\d_SubjectID', replacement = '') %>% 
+     gsub(pattern = '_(Monday|Tuesday|Wednesday|Thursday|Friday).*$', 
+          replacement = '')
+
+# Bind together
+healthydonor <- bind_rows(dfs, .id = 'id')
 rm(fs, dfs)
 ```
 
@@ -127,9 +169,15 @@ db$scientific_name <- gsub('\\s$', '', db$scientific_name)
 ```
 
 ## Participant metaproteomic data
+
+```{r}
+# Sample names
+unique(weightloss$id)
+```
+
 ```{r }
-proteins.df <- 
-     proteins.df %>% 
+weightloss <- 
+     weightloss %>% 
      # Clean up ID column
      separate(col = 'id', into = c('id', 'subj', 'date'),
                         sep = '_', remove = TRUE, extra = 'drop') %>% 
@@ -137,16 +185,35 @@ proteins.df <-
      mutate(date = as.Date(date, format = '%d%b%y'))
 ```
 
-```{r }
-head(proteins.df)
-```
-```{r }
-dim(proteins.df)
+```{r}
+unique(healthydonor$id)
 ```
 
-* 1_Proteins_IndividualResultFiles_RealisticFoodsWithMicrobiota: ??
-* 2_NewDataForDavidLab_DB2.1Search_Workflow2.0: 7,632
-* 3_DB2.1_5FDR_1UniquePeptide: 88,409
+```{r}
+healthydonor <- 
+     healthydonor %>% 
+     # Clean up ID column
+     mutate(subj = gsub(id,
+                        pattern = '_.*$',
+                        replacement = '')
+            ) %>% 
+     # Convert date to Date type
+     mutate(date = 
+                 case_when(
+                      subj == 'HH1' ~ as.Date('25Jun18', 
+                                              format = '%d%b%y'),
+                      subj == 'HH2' ~ as.Date('26Jun18', 
+                                              format = '%d%b%y'),
+                      subj == 'HH3' ~ as.Date('27Jun18', 
+                                              format = '%d%b%y'),
+                      subj == 'HH4' ~ as.Date('28Jun18', 
+                                              format = '%d%b%y'),
+                      subj == 'HH5' ~ as.Date('29Jun18', 
+                                              format = '%d%b%y'))
+     ) %>% 
+     # Can now overwrite subject
+     mutate(subj = '908') 
+```
 
 ### Filter 
 
