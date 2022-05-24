@@ -138,9 +138,6 @@ db$scientific_name[db$scientific_name == 'Citrus paradisi'] <-
      'Citrus x paradisi'
 # Remove zante currant, which is redundant with V. vinifera
 db <- filter(db, common_name != 'zante currant')
-# Switch amaranth to its homotypic synonym used by NCBI taxonomy
-db$scientific_name[db$scientific_name == 'Amaranthus cruentus'] <- 
-     'Amaranthus hybridus subsp. cruentus'
 db$scientific_name[db$scientific_name == 'Mercenaria mercenaria, others'] <-
      'Mercenaria mercenaria'
 db$scientific_name[db$scientific_name == 'Polystichum munitum and others'] <-
@@ -168,7 +165,9 @@ db$scientific_name[grep('\\s$', db$scientific_name)]
 db$scientific_name <- gsub('\\s$', '', db$scientific_name)
 ```
 
-## Participant metaproteomic data
+## Metaproteomics
+
+### Rename
 
 ```{r}
 # Sample names
@@ -215,39 +214,71 @@ healthydonor <-
      mutate(subj = '908') 
 ```
 
-### Filter 
-
-Note that human proteins are already filtered out, but a protein may pass the filter if it has an identification made to multiple species (e.g. human *and* pig).  On inspection, these seem to be things we'd want to remove, like histones and ubiquitin.
+### Join datasets
 
 ```{r}
-proteins.df %>% 
-     filter(grepl('Human_*', Accession))
+weightloss$study <- 'Weight Loss'
+healthydonor$study <- 'Healthy Donor'
+
+proteins.df <- bind_rows(weightloss,
+                         healthydonor)
 ```
-Check also for presence of microbiota proteins:
+
+### Filter to 1UP 
+
+This is only relevant to 908, which isn't pre-filtered to this threshold. 
 
 ```{r}
-proteins.df %>% 
-     filter(grepl('Microbiota_*', Accession)) 
+str(proteins.df)
 ```
 
-```{r }
-# Filter to only food-derived proteins (this removes majority)
-proteins.df <- 
-     proteins.df %>% 
-     filter(!grepl('Human_*', Accession)) %>% # Remove human proteins
-     filter(!grepl('Microbiota_*', Accession)) # Remove microbiota proteins
-
+```{r}
 dim(proteins.df)
 ```
 
-```{r }
-# Remove proteins labeled as not found in sample
-# Very low abundance (though non-zero counts), only one from wheat
+```{r}
+# Only proteins with >=1 unique peptide
+proteins.df <- 
+     filter(proteins.df,
+            `# Unique Peptides` > 0)
+
+dim(proteins.df) # Removes ~30K proteins
+```
+
+### Remove non-dietary proteins
+
+Some of these slipped past original filter in the Weight Loss dataset if they had an identification made to multiple species (e.g. human *and* pig).  On inspection, these seem to be things we'd want to remove, like histones and ubiquitin.  They are not yet filtered from the 908 data.
+
+```{r}
+proteins.df %>% 
+     filter(grepl(Accession,
+                  pattern = 'Human_|Microbiota_')) %>% 
+     pull(subj) %>% 
+     unique()
+```
+
+```{r}
+proteins.df %>% 
+     filter(grepl(Accession,
+                  pattern = 'Human_|Microbiota_') & subj == 'PC74') %>% 
+     pull(Description) %>% 
+     head(2)
+```
+
+```{r}
+# Filter to only dietary proteins
+# Do this by accession: Dietary proteins have 3+-digit code, others are "Human_" or "Microbiota_"
 proteins.df <- 
      filter(proteins.df, 
-            `Found in Sample` %in% c('High', 'Medium', NA))
+            !grepl(Accession,
+                   pattern = 'Human_|Microbiota_')) 
 
 dim(proteins.df)
+```
+
+```{r }
+# Quick QC:
+table(proteins.df$`Found in Sample`)
 ```
 
 #### Master proteins
@@ -263,7 +294,7 @@ table(proteins.df$Master)
 ```{r}
 table(proteins.df$Master) %>% 
      data.frame() %>% 
-     mutate(analysis = 'V2') %>% 
+     mutate(analysis = 'UP') %>%
      ggplot(aes(x = analysis, y = Freq, fill = Var1)) +
      geom_bar(position = 'stack', stat = 'identity') +
      scale_fill_manual(values =c('darkgreen', 'palegreen3', 'gray60')) +
@@ -274,9 +305,10 @@ table(proteins.df$Master) %>%
 ```
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# ggsave(here('results', 'QC',
-#             paste0(plotID, '_Master protein breakdown, V2 analysis.pdf')),
-#        height = 4, width = 4)
+ggsave(here('results', 
+            'QC',
+            paste0(plotID, '_Master protein breakdown, V3 analysis.pdf')),
+       height = 4, width = 4)
 ```
 
 ```{r}
@@ -288,7 +320,7 @@ proteins.df %>%
 A substantial portion:
 
 ```{r}
-4238/11880
+5368/15143
 ```
 
 Revisit this once I've assigned scientific name, to see what species they map to. But for now, filter to only those proteins that are master proteins of their respective group:
@@ -297,6 +329,8 @@ Revisit this once I've assigned scientific name, to see what species they map to
 proteins.df <- 
      filter(proteins.df, 
             Master == 'Master Protein')
+
+dim(proteins.df)
 ```
 
 ### Check for multiple labels
@@ -308,7 +342,18 @@ proteins.df %>%
 ```
 Note that these aren't correctly handled by my code below, which just pulls the first accession number.
 
-I think the best thing to do here would be to group them and re-label with the last common ancestor.  However, the total number of PSMs here is 524, which is ~1.3% of the overall dataset, so-- skipping this for now.  Can return to and refine. 
+I think the best thing to do here would be to group them and re-label with the last common ancestor.  However, the total number of PSMs here is 524, which is ~0.8% of the overall dataset, so-- skipping this for now.  Can return to and refine. 
+
+```{r}
+proteins.df %>% 
+     filter(grepl('\n', Accession)) %>% 
+     pull(`# PSMs`) %>% 
+     sum()
+```
+
+```{r}
+812/sum(proteins.df$`# PSMs`)
+```
 
 ### Relabel with food species
 
@@ -340,11 +385,17 @@ sum(is.na(proteins.df$prefix))
 
 ```{r }
 # Extract OS from Description column
-proteins.df <- mutate(proteins.df, OS = helper(Description, 'OS=(.*)\\sOX='))
+proteins.df <- 
+     mutate(proteins.df, 
+            OS = helper(Description, 'OS=(.*)\\sOX='))
 ```
 
 ```{r }
-filter(proteins.df, is.na(prefix)) %>% pull(OS) %>% unique() %>% sort()
+filter(proteins.df,
+       is.na(prefix)) %>% 
+     pull(OS) %>% 
+     unique() %>% 
+     sort()
 ```
 
 In some cases, the OS is more specific than it should be to match back to database. There is one prefix typo: Piper nigrum should be Pni, not Pne
@@ -356,13 +407,13 @@ proteins.df$OS[proteins.df$OS == 'Mentha piperita'] <- 'Mentha x piperita'
 proteins.df$prefix[proteins.df$OS == 'Piper nigrum'] <- 'Pni'
 ```
 
-On first pass through, dimensions after join didn't check out-- turns out there are some prefixes with duplicated entries. Only Pgr and Shi come up here
+On first pass through, dimensions after join didn't check out-- turns out there are some prefixes with duplicated entries. They are:
 
-Pgr: Assigned to both Prunus grayana (japanese bird cherry) and Punica granatum (pomegranate)
-Shi: Assigned to both Salvia hispanica (chia) and Scorzonera hispanica (salsify)
-Scer: Saccharomyces cerevisiae (yeast) and Secale cereale (rye)
-Sso: Salsola soda (saltwort) and Smallanthus sonchifolius (yacon)
-Vvi: Vaccinium vitis-idaea (lingonberry) and Vitis vinifera (grape)
+- *Pgr*: Assigned to both Prunus grayana (japanese bird cherry) and Punica granatum (pomegranate)
+- *Shi*: Assigned to both Salvia hispanica (chia) and Scorzonera hispanica (salsify)
+- *Scer*: Saccharomyces cerevisiae (yeast) and Secale cereale (rye)
+- *Sso*: Salsola soda (saltwort) and Smallanthus sonchifolius (yacon)
+- *Vvi*: Vaccinium vitis-idaea (lingonberry) and Vitis vinifera (grape)
 
 ```{r }
 # Label with prefix unless unavailable; otherwise label by OS
@@ -374,7 +425,9 @@ join.prefix <-
      filter(!is.na(prefix)) %>% 
      # Remove any duplicated prefixes based on initial results
      filter(!(prefix %in% c('Pgr', 'Shi', 'Scer', 'Sso', 'Vvi'))) %>%
-     left_join(select(db, scientific_name:category, `PreFix Used`), 
+     left_join(select(db, 
+                      scientific_name:category, 
+                      `PreFix Used`), 
                by = c('prefix' = 'PreFix Used'))
 
 # How many should there be?
@@ -394,8 +447,11 @@ dim(join.prefix)
 join.os <- 
      proteins.df %>% 
      # Get missed rows in last join
-     filter(is.na(prefix) | prefix %in% c('Pgr', 'Shi', 'Scer', 
-                                          'Sso', 'Vvi')) %>% 
+     filter(is.na(prefix) | prefix %in% c('Pgr',
+                                          'Shi',
+                                          'Scer', 
+                                          'Sso', 
+                                          'Vvi')) %>% 
      left_join(select(db, scientific_name:category),
                by = c('OS' = 'scientific_name')) %>% 
      rename(scientific_name = OS)
@@ -418,9 +474,19 @@ join.os <- select(join.os, -prefix)
 all(names(join.prefix) == names(join.os))
 
 # Join
-proteins.df <- bind_rows(join.os, join.prefix)
+proteins.df <- bind_rows(join.os, 
+                         join.prefix)
 dim(proteins.df) # How many entries?
 any(is.na(proteins.df$scientific_name)) # Any missing entries?
+```
+
+```{r}
+# Save processed data (use for biomarkers, before summarizing PSMs within each organism)
+
+# saveRDS(proteins.df,
+#         here('data',
+#              'processed',
+#              '5FDR_1UP_both datasets.rds'))
 ```
 
 # Format as phyloseq object
@@ -441,7 +507,9 @@ samdf <-
 ```{r }
 psm.counts.wide <-
      proteins.df %>%
-     mutate(sample = paste(subj, date, sep = '_')) %>% # Create unique label
+     mutate(sample = paste(subj, 
+                           date, 
+                           sep = '_')) %>% # Create unique label
      # Need to group & summarize, because may be multiple peptides/food
      group_by(sample, scientific_name) %>%
      summarize(abundance = sum(`# PSMs`)) %>%
@@ -460,10 +528,10 @@ binomial.only <-
      select(scientific_name) %>%
      distinct()
 
-taxids <- taxa::lookup_tax_data(binomial.only,
-                                type = 'taxon_name',
-                                column = 'scientific_name',
-                                database = 'ncbi')
+taxids <- metacoder::lookup_tax_data(binomial.only,
+                                     type = 'taxon_name',
+                                     column = 'scientific_name',
+                                     database = 'ncbi')
 ```
 
 What wasn't found?
@@ -476,13 +544,21 @@ rm(result)
 Get taxonomy
 ```{r }
 taxtab.protein <-
-     taxa::taxonomy_table(taxids,
-                          use_ranks = c('superkingdom', 'kingdom', 'phylum', 
-                                        'class', 'superorder', 
-                                        'order', 'superfamily', 
-                                        'family', 'subfamily', 
-                                        'genus', 'species', 
-                                        'subspecies', 'varietas'),
+     metacoder::taxonomy_table(taxids,
+                          use_ranks = c('superkingdom', 
+                                        'kingdom',
+                                        'phylum', 
+                                        'class',
+                                        'superorder', 
+                                        'order', 
+                                        'superfamily', 
+                                        'family',
+                                        'subfamily', 
+                                        'genus',
+                                        'species', 
+                                        'subspecies', 
+                                        'varietas',
+                                        'forma'),
                           add_id_col = TRUE)
 ```
 
@@ -495,7 +571,9 @@ length(unique(taxids$data$query_data$taxon_id))
 This is because some are internal nodes. Manually add their taxonomy too:
 
 ```{r }
-add <- setdiff(unique(taxids$data$query_data$taxon_id), taxtab.protein$taxon_id)
+add <- 
+     setdiff(unique(taxids$data$query_data$taxon_id), 
+             taxtab.protein$taxon_id)
 
 # Manually inspect
 taxids$data$query_data %>%
@@ -508,8 +586,6 @@ taxids$data$query_data %>%
 
 add.rows <-
      here('data', 'processed', 
-          # '20210408_Internal taxonomy table nodes.csv') %>% # Analysis v2
-          # '20210727_Internal taxonomy table nodes.csv') %>% # Analysis v3-- all (erroneously)
           '20210912_Internal taxonomy table nodes.csv') %>% # Analysis v3-- master proteins only
      read_csv(col_types = cols(.default = 'c'))
 ```
@@ -517,26 +593,19 @@ add.rows <-
 ```{r }
 # Bind together
 taxtab.protein <-
-        taxtab.protein %>%
-        bind_rows(add.rows) %>%
-        as.data.frame() # This is required in order for lowest level step to work-- so weird-- the code below doesn't seem to work on a tibble
+     taxtab.protein %>%
+     bind_rows(add.rows) %>% 
+     as.data.frame()
 ```
 
 Add lowest level name as row name
 
 ```{r }
-# This gets the right-most, non-NA values
-lowest.index <- max.col(!is.na(taxtab.protein), 'last')
-
-# Make row-column pairs to pull and add to taxonomy
-taxtab.protein$lowest.level <- taxtab.protein[cbind(seq_along(lowest.index),
-                                            lowest.index)]
-
-# Now drop taxid, and convert terminal name to row name
 taxtab.protein <-
-        taxtab.protein %>%
-        select(-taxon_id) %>%
-        column_to_rownames(var = 'lowest.level')
+     taxtab.protein %>%
+     MButils::lowest_level() %>% 
+     select(-taxon_id) %>%
+     column_to_rownames(var = 'name')
 ```
 
 ```{r }
@@ -554,51 +623,9 @@ ps.protein <- phyloseq(otu_table(psm.counts.wide, taxa_are_rows = FALSE),
 ps.protein
 
 # saveRDS(ps.protein,
-#         here('data', 'processed', 'phyloseq', '20210912_ps_mp.rds'))
-```
-
-# Combine with 908
-
-```{r}
-ps.dfc <- 
-     here('data',
-          'processed',
-          'phyloseq',
-          '20210912_ps_mp.rds') %>% 
-     readRDS()
-     
-ps.908 <- 
-     here('data',
-          'processed',
-          'phyloseq',
-          '20211102_ps_mp.rds') %>% 
-     readRDS()
-
-ps.dfc
-ps.908
-```
-
-```{r}
-# How many taxa do I expect?
-union(taxa_names(ps.dfc), 
-      taxa_names(ps.908)) %>% 
-     unique() %>% 
-     length()
-```
-
-```{r}
-ps.joint <- 
-     merge_phyloseq(ps.dfc,
-                    ps.908)
-
-ps.joint
-```
-
-```{r}
-saveRDS(ps.joint,
-        here('data', 
-             'processed',
-             'phyloseq',
-             '20211102_ps_mp_joint.rds'))
+#         here('data', 
+#              'processed', 
+#              'phyloseq',
+#              '20220524_ps_mp.rds'))
 ```
 
