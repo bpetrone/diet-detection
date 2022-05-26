@@ -1,0 +1,177 @@
+---
+title: "Data description"
+output: html_notebook
+---
+
+# Setup
+
+```{r setup}
+require(knitr)
+knitr::opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r}
+library(here)
+library(phyloseq)
+library(tidyverse)
+library(scales) # For comma in plot labels
+```
+
+```{r}
+# Plotting themes
+theme_set(theme_bw() +
+               theme(
+                    axis.text = element_text(size = 12),
+                    axis.title.x = ggtext::element_markdown(size = 14,
+                                                            face = 'bold'),
+                    axis.title.y = ggtext::element_markdown(size = 14,
+                                                            face = 'bold'),
+                    legend.title = element_text(size = 12,
+                                                face = 'bold'),
+                    strip.text = element_text(size = 12,
+                                              face = 'bold')
+               )
+)
+```
+
+```{r}
+study.color <- c('#4e79a7', # Weight Loss
+                 '#f28e2b') # Healthy Donor
+```
+
+# Read in data
+
+## Metabarcoding
+### trnL
+```{r}
+ps.trnL <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'ps_mb_trnL.rds') %>% 
+     readRDS()
+
+ps.trnL
+```
+
+### 12SV5
+```{r}
+ps.12SV5 <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'ps_mb_12SV5.rds') %>% 
+     readRDS()
+
+ps.12SV5
+```
+
+## Metaproteomics
+```{r}
+ps.mp <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'ps_mp.rds') %>% 
+     readRDS()
+
+ps.mp
+```
+
+# Pre-process
+
+## Metabarcoding
+
+### Unidentified reads
+
+```{r}
+# What proportion of overall dataset?
+MButils::percent_unassigned(ps.trnL)
+```
+
+```{r}
+# What proportion of each sample?
+MButils::percent_unassigned(ps.12SV5)
+```
+
+### Plant-animal
+
+```{r}
+rank_names(ps.mb)
+```
+
+```{r}
+ps.mb@tax_table@.Data %>% 
+     data.frame %>% 
+     pull(phylum) %>% 
+     unique()
+```
+
+# Describe
+
+```{r}
+melt.mp <- psmelt(ps.mp)
+```
+
+## Success-failure
+
+
+```{r}
+# Metabarcoding: trnL
+```
+
+```{r}
+# Metabarcoding: 12SV5
+```
+
+```{r}
+# Metaproteomic
+melt.mp %>% 
+     group_by(Sample) %>% 
+     summarize(psms_tot = sum(Abundance)) %>% 
+     group_by(psms_tot > 0) %>% 
+     count()
+```
+## Metaproteomics
+
+### # spectra
+
+```{r}
+melt.mp %>% 
+     group_by(Sample, study) %>% 
+     summarize(psms_tot = sum(Abundance)) %>% 
+     filter(psms_tot > 0) %>% 
+     ggplot(aes(x = psms_tot, fill = study)) +
+     geom_histogram(stat = 'bin',
+                    binwidth = 1000,
+                    boundary = 0) +
+     scale_y_continuous(breaks = seq(2, 8, by = 2)) +
+     scale_x_continuous(labels = comma) +
+     scale_fill_manual(values = study.color) +
+     labs(x = 'PSMs', y = 'Samples (*n*)') +
+     theme(legend.position = 'none')
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results',
+            'manuscript',
+            'supplemental',
+            'description',
+            paste0(plotID, '_PSM histogram.pdf')),
+       height = 4, width = 3)
+```
+
+```{r}
+melt.mp %>% 
+     group_by(Sample) %>% 
+     summarize(psms_tot = sum(Abundance)) %>% 
+     filter(psms_tot > 0) %>% 
+     summarize(median(psms_tot),
+               range(psms_tot))
+```
+
