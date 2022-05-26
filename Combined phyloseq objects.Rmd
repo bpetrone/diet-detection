@@ -1,0 +1,539 @@
+---
+title: "Combined phyloseq objects"
+output: html_notebook
+---
+
+# Setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r}
+library(here)
+library(phyloseq)
+library(tidyverse)
+```
+
+# Raw data
+
+## Menu
+
+```{r}
+menu.dfc <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          '20210220_ps_menu.rds') %>% 
+     readRDS()
+
+menu.dfc
+```
+
+```{r}
+menu.908 <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          '20211115_ps_menu.rds') %>% 
+     readRDS()
+
+menu.908
+```
+
+## Metabarcoding
+
+Note that this is the full dataset, whereas metaproteomics is only a subset of these samples.
+
+```{r}
+# DFC:
+# 12SV5
+mb.dfc.animal <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20220520_ps_12SV5_DFC.rds') %>% 
+     readRDS()
+
+# trnL
+mb.dfc.plant <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20220520_ps_trnL_DFC.rds') %>% 
+     readRDS()
+     
+mb.dfc.plant
+mb.dfc.animal
+```
+
+```{r}
+# Healthy donor
+# 12SV5
+mb.908.animal <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20220520_ps_12SV5_908.rds') %>% 
+     readRDS()
+
+# trnL
+mb.908.plant <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20220520_ps_trnL_908.rds') %>% 
+     readRDS()
+
+mb.908.animal
+mb.908.plant
+```
+
+## Metaproteomics
+
+```{r}
+# 1UP analysis, master proteins only, both datasets
+mp <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20220524_ps_mp.rds') %>% 
+     readRDS()
+
+mp
+```
+
+## Metadata
+
+```{r}
+# Sample collection times across the dataset
+times <- 
+     here('data',
+          'metadata',
+          'Sample collection times.csv') %>% 
+     read_csv(col_types = cols(date = col_date("%m/%d/%y")))
+
+head(times)
+```
+
+# Pre-process
+
+## Menu
+
+Note difference in entries in OTU table:
+     - DFC: grams of intake
+     - Healthy Donor: # of instances of intake
+     
+```{r}
+head(sample_names(menu.dfc))
+head(sample_names(menu.908))
+```
+
+```{r}
+sample_variables(menu.dfc)
+sample_variables(menu.908)
+```
+
+```{r}
+# Correct difference in naming
+sample_data(menu.dfc) <- 
+     menu.dfc@sam_data %>% 
+     data.frame() %>% 
+     rename(subj = ID)
+
+sample_data(menu.908) <- 
+     menu.908@sam_data %>% 
+     data.frame() %>% 
+     rename(subj = ID,
+            date = day)
+```
+
+```{r}
+# Add study variable
+sample_data(menu.dfc)$study <- 'Weight Loss'
+sample_data(menu.908)$study <- 'Healthy Donor'
+```
+
+## Metaproteomics
+
+### Add in missing sample
+
+ML48 (10/17/19) omitted due to low spectra counts and poor extraction.
+
+```{r}
+psmtab <- mp@otu_table@.Data
+samdf <- data.frame(mp@sam_data)
+```
+
+```{r}
+# Add a row of 0s to the data
+row <- matrix(0, nrow = 1, ncol = ncol(psmtab))
+colnames(row) <- colnames(psmtab)
+rownames(row) <- 'ML48_2019-10-17'
+
+psmtab <- rbind(psmtab, row)
+```
+
+```{r}
+# Add corresponding metadata
+row <- 
+     data.frame(subj = 'ML48',
+                date = as.Date('2019-10-17',
+                               format = '%Y-%m-%d')) %>% 
+     mutate(row = paste(subj, date, sep = '_')) %>% 
+     column_to_rownames(var = 'row')
+
+samdf <- bind_rows(samdf, row)
+```
+
+```{r}
+# Replace in phyloseq object
+mp <- 
+     phyloseq(sample_data(samdf),
+              otu_table(psmtab, taxa_are_rows = FALSE),
+              tax_table(mp@tax_table@.Data))
+```
+
+### Tidy
+
+```{r}
+head(sample_names(mp))
+```
+
+```{r}
+sample_variables(mp)
+```
+
+```{r}
+# Add study in line with other datasets
+sample_data(mp)$study <- 
+     ifelse(sample_data(mp)$subj == '908',
+            yes = 'Healthy Donor',
+            no = 'Weight Loss')
+```
+
+```{r}
+# Add sample time
+sample_data(mp) <- 
+     mp@sam_data %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'row') %>% 
+     left_join(times) %>% 
+     column_to_rownames(var = 'row')
+```
+
+## Metabarcoding
+
+Check overlap between variables between studies and markers
+```{r}
+setdiff(sample_variables(mb.dfc.animal),
+        sample_variables(mb.908.animal)) %>% 
+     sort()
+```
+
+```{r}
+setdiff(sample_variables(mb.908.animal),
+        sample_variables(mb.dfc.animal)) %>% 
+     sort()
+```
+
+```{r}
+## DFC 12SV5
+# All are Power Soil tube extracted but are listed as "tube"; synchronize
+sample_data(mb.dfc.animal) <- 
+     mb.dfc.animal@sam_data %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'row') %>% 
+     select(-c(extraction_type,
+               well)) %>% 
+     mutate(extraction_kit = 'PowerSoil tube',
+            subj = as.character(subj)) %>% 
+     left_join(times) %>% 
+     column_to_rownames(var = 'row')
+
+
+```
+
+```{r}
+# 908 12SV5
+# Can remove the following variables
+# Replicate (only one preserved), evaporation (not applicable to any of the samples kept)
+sample_data(mb.908.animal) <- 
+     mb.908.animal@sam_data %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'row') %>% 
+     mutate(subj = as.character(subj)) %>% 
+     select(-c(starts_with('replicate_'),
+               evaporation,
+               preprocess,
+               reads)) %>%
+     rename(reads_12SV5 = reads_animal) %>% 
+     left_join(times) %>% 
+     column_to_rownames(var = 'row')
+```
+
+```{r}
+setdiff(sample_variables(mb.dfc.plant),
+        sample_variables(mb.908.plant)) %>% 
+     sort()
+```
+
+```{r}
+setdiff(sample_variables(mb.908.plant),
+        sample_variables(mb.dfc.plant)) %>% 
+     sort()
+```
+
+```{r}
+sample_data(mb.dfc.plant) <- 
+     mb.dfc.plant@sam_data %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'row') %>% 
+     select(-c(starts_with('extraction'),
+               slurry, 
+               aliquot,
+               sample,
+               well,
+               is_neg,
+               starts_with('CH_'))) %>% 
+     mutate(extraction_kit = 'PowerSoil tube',
+            subj = as.character(subj)) %>% 
+     rename(original_order = orig_order,
+            random_order = rand_order) %>% 
+     left_join(times) %>% 
+     column_to_rownames(var = 'row')
+```
+
+```{r}
+## 908
+# Can remove the following variables
+# Replicate (only one preserved), evaporation (not applicable to any of the samples kept)
+sample_data(mb.908.plant) <- 
+     mb.908.plant@sam_data %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'row') %>% 
+     mutate(subj = as.character(subj)) %>% 
+     select(-c(starts_with('replicate_'),
+               preprocess)) %>%
+     rename(reads_trnL = reads_plant) %>% 
+     left_join(times) %>% 
+     column_to_rownames(var = 'row')
+```
+
+### Subset samples
+
+We sequenced all DFC samples, but only applied metaproteomics to a subset from consecutive days.
+```{r}
+length(intersect(sample_names(mp), 
+                 c(sample_names(mb.dfc.plant), sample_names(mb.908.plant))))
+
+nsamples(mb.dfc.plant) + nsamples(mb.908.plant)
+```
+
+```{r}
+# Prune only needs to be done for DFC (using all 5 908 samples)
+mb.dfc.plant <- 
+     prune_samples(sample_names(mp),
+                   mb.dfc.plant) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+
+mb.dfc.animal <- 
+     prune_samples(sample_names(mp),
+                   mb.dfc.animal) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+
+mb.dfc.plant
+mb.dfc.animal
+```
+
+# Combine
+
+## Menu
+
+```{r}
+nsamples(menu.908)
+nsamples(menu.dfc)
+```
+
+```{r}
+menu <- 
+     merge_phyloseq(menu.908,
+                    menu.dfc)
+
+menu
+```
+
+## Metabarcoding
+
+```{r}
+mb.plant <- 
+     merge_phyloseq(mb.908.plant,
+                    mb.dfc.plant)
+
+mb.plant
+```
+
+```{r}
+mb.animal <- 
+     merge_phyloseq(mb.908.animal,
+                    mb.dfc.animal)
+
+mb.animal
+```
+
+### Glom taxa
+
+#### 12SV5
+
+```{r}
+# Get lowest level name
+taxtab.animal <- 
+     mb.animal@tax_table@.Data %>% 
+     data.frame() %>% 
+     MButils::lowest_level()
+```
+
+```{r}
+dups <- taxtab.animal$name[duplicated(taxtab.animal$name)]
+```
+
+```{r}
+sort(dups)
+```
+
+This is a bit fraught at higher levels, because depending on exact ASVs these families may actually map to different species. Luckily though that doesn't happen here, so can merge all.
+
+```{r}
+# Replace taxonomy table in phyloseq object
+# Column indexing puts name on leftmost side
+tax_table(mb.animal) <- as.matrix(taxtab.animal)
+
+# Now, these and all others can be merged by name
+mb.animal <- tax_glom(mb.animal, 
+                      taxrank = 'name',
+                      NArm = FALSE)
+
+mb.animal
+```
+
+#### trnL
+
+```{r}
+# Get lowest level name
+taxtab.plant <- 
+     mb.plant@tax_table@.Data %>% 
+     data.frame() %>% 
+     MButils::lowest_level()
+```
+
+```{r}
+dups <- taxtab.plant$name[duplicated(taxtab.plant$name)]
+```
+
+```{r}
+sort(dups)
+```
+
+This is a bit fraught at higher levels, because depending on exact ASVs these families may actually map to different species. 
+
+Procedure for these is to run the below:
+```{r eval = FALSE}
+# taxtab.plant %>%
+#      filter(name == 'NAME') %>%
+#      row.names()
+
+# Test if they're subsequences
+# grepl(asv1, asv2, fixed = TRUE)
+```
+
+```{r}
+# Update names at higher levels to reflect distinction
+
+# Brassica oleracea:
+taxtab.plant['ATCCTGGGTTACGCGAACAAAACAGAGTTTAGAAAGCGG',
+       'name'] <-
+     'Brassica oleracea (cabbage, broccoli, brussels sprouts, kohlrabi)'
+
+taxtab.plant['ATCCTGGGTTACGCGAACAAACCAAAGTTTAGAAAGCGG',
+       'name'] <-
+     'Brassica oleracea (gai lan)'
+
+taxtab.plant['ATCCTAGGTTACGCGAACAAACCAAAGTTTAGAAAGCGG',
+       'name'] <-
+     'Brassica oleracea (broccoli)'
+
+# # Lamiaceae
+taxtab.plant['ATCCTGTTTTCTCAAAACAAAAGTTCAAAAAACGAAAAAAAAAAAAAG',
+       'name'] <-
+     'Lamiaceae (basil, holy basil, lemon basil, catnip)'
+
+taxtab.plant['ATCCTGTTTTCTCAAAACAAAGGTTCAAAAAACGAAAAAAAAAG',
+       'name'] <-
+     'Lamiaceae (rosemary, lemon balm)'
+
+# Rosaceae
+taxtab.plant['ATCCCGTTTTATGAAAACAAACAAGGGTTTCAGAAAGCGAGAATAAATAAAG',
+       'name'] <-
+     'Rosaceae (arctic raspberry, strawberry)'
+
+taxtab.plant['ATCCTGTTTTATGAAAATAAACAAGGGTTTCATAAACCGAAAATAAAAAAG',
+       'name'] <-
+     'Rosaceae (apple, pear)'
+```
+
+```{r}
+# Replace taxonomy table in phyloseq object
+# Column indexing puts name on leftmost side
+tax_table(mb.plant) <- as.matrix(taxtab.plant)
+
+# # Now, these and all others can be merged by name
+mb.plant <- tax_glom(mb.plant, 
+                     taxrank = 'name',
+                     NArm = FALSE)
+
+mb.plant
+```
+
+## Metaproteomic
+
+Already done in "Metaproteomic phyloseq" notebook.
+
+# Save
+
+```{r}
+# Menu
+saveRDS(menu,
+        here('data',
+             'processed',
+             'phyloseq',
+             'combined',
+             'ps_menu.rds') 
+)
+
+# Metabarcoding
+saveRDS(mb.plant,
+        here('data',
+             'processed',
+             'phyloseq',
+             'combined',
+             'ps_mb_trnL.rds') 
+)
+
+saveRDS(mb.animal,
+        here('data',
+             'processed',
+             'phyloseq',
+             'combined',
+             'ps_mb_12SV5.rds') 
+)
+
+# Metaproteomic
+saveRDS(mp,
+        here('data',
+             'processed',
+             'phyloseq',
+             'combined',
+             'ps_mp.rds') 
+)
+```
