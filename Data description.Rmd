@@ -11,6 +11,7 @@ knitr::opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```
 
 ```{r}
+library(Biostrings)
 library(here)
 library(phyloseq)
 library(tidyverse)
@@ -22,14 +23,10 @@ library(scales) # For comma in plot labels
 theme_set(theme_bw() +
                theme(
                     axis.text = element_text(size = 12),
-                    axis.title.x = ggtext::element_markdown(size = 14,
-                                                            face = 'bold'),
-                    axis.title.y = ggtext::element_markdown(size = 14,
-                                                            face = 'bold'),
-                    legend.title = element_text(size = 12,
-                                                face = 'bold'),
-                    strip.text = element_text(size = 12,
-                                              face = 'bold')
+                    axis.title.x = ggtext::element_markdown(size = 14),
+                    axis.title.y = ggtext::element_markdown(size = 14),
+                    legend.title = element_text(size = 12),
+                    strip.text = element_text(size = 12)
                )
 )
 ```
@@ -69,7 +66,9 @@ ps.12SV5
 ```
 
 ## Metaproteomics
+
 ```{r}
+# Phyloseq
 ps.mp <- 
      here('data',
           'processed',
@@ -81,7 +80,115 @@ ps.mp <-
 ps.mp
 ```
 
+```{r}
+# Protein detail
+proteins.df <- 
+     here('data',
+          'processed',
+          '5FDR_1UP_both datasets.rds') %>% 
+     readRDS()
+```
+
+## References
+
+### Metaproteomic database
+
+```{r }
+# Read in the first sheet of the file using read_excel function
+db <- readxl::read_excel(here('data', 
+                              'processed',
+                              'DietaryDB_ForDavidLab.xlsx'), 
+                         sheet = 1, 
+                         n_max = 547) # Exclude annotations at end of file
+head(db)
+```
+
+### trnL
+
+```{r}
+ref.trnL <- 
+     here('..',
+          'food-dbs',
+          'data',
+          'processed',
+          'dada2-compatible',
+          'trnL',
+          'trnLGH.fasta') %>% 
+     readDNAStringSet()
+
+ref.trnL
+```
+
+
+### 12SV5
+
+```{r}
+ref.12SV5 <- 
+     here('..',
+          'food-dbs',
+          'data',
+          'processed',
+          'dada2-compatible',
+          '12SV5',
+          '12SV5_taxonomy.fasta') %>% 
+     readDNAStringSet()
+
+ref.12SV5
+```
+
 # Pre-process
+
+## Metaproteomic reference
+
+## Reference
+
+```{r }
+# Manual updates
+# Specify scientific name for tilapia
+db$scientific_name[db$scientific_name == 'Tilapia'] <- 
+     'Oreochromis niloticus'
+# Correct misspelling for mallard duck
+db$scientific_name[db$scientific_name == 'Anas platyrhynchose'] <- 
+     'Anas platyrhynchos'
+# Switch var. to subsp. for durum
+db$scientific_name[db$scientific_name == 'Triticum turgidum var. durum'] <-
+     'Triticum turgidum subsp. durum'
+db$scientific_name[db$scientific_name == 'Triticum dicoccon'] <- 
+     'Triticum dicoccum'
+# Correct spelling of water buffalo
+db$scientific_name[db$scientific_name == 'Bubalis bubalis'] <- 
+     'Bubalus bubalis'
+# Think something weird about formatting of "x" in Musa x paradisiaca, not being recognized
+db$scientific_name[db$common_name == 'plantain'] <- 
+     'Musa x paradisiaca'
+# Same for Mentha x piperita
+db$scientific_name[db$common_name == 'peppermint'] <- 
+     'Mentha x piperita'
+# Add hybrid designation for grapefruit
+db$scientific_name[db$scientific_name == 'Citrus paradisi'] <- 
+     'Citrus x paradisi'
+# Remove zante currant, which is redundant with V. vinifera
+db <- filter(db, common_name != 'zante currant')
+db$scientific_name[db$scientific_name == 'Mercenaria mercenaria, others'] <-
+     'Mercenaria mercenaria'
+db$scientific_name[db$scientific_name == 'Polystichum munitum and others'] <-
+     'Polystichum munitum'
+# Query resulted in hits for var. capitata only
+db$scientific_name[db$scientific_name == 'Brassica oleracea var. capitata f. alba'] <- 
+     'Brassica oleracea var. capitata'
+# Switch fennel to its synonym used by NCBI taxonomy
+db$scientific_name[db$scientific_name == 'Foeniculum vulgare'] <- 
+     'Anethum foeniculum'
+# Correct name for dragonfruit
+db$scientific_name[db$scientific_name == 'Hylocereus undatus'] <- 
+     'Selenicereus undatus'
+# Update name for nori
+db$scientific_name[db$scientific_name == 'Pyropia yezoensis'] <- 
+     'Neopyropia yezoensis'
+# Subspecies designation for maple (syrup)
+db$scientific_name[db$scientific_name == 'Acer nigrum'] <- 
+     'Acer saccharum subsp. nigrum'
+``` 
 
 ## Metabarcoding
 
@@ -93,40 +200,81 @@ MButils::percent_unassigned(ps.trnL)
 ```
 
 ```{r}
+# Per sample?
+trnL.no.id <- 
+     MButils::percent_unassigned(ps.trnL, by_sample = TRUE) %>% 
+     data.frame(pct_no_id = .) %>% 
+     rownames_to_column(var = 'sample') %>% 
+     separate(sample,
+              into = c('subj', 'date'),
+              sep = '_') %>% 
+     mutate(study = ifelse(subj == '908',
+                           yes = 'Healthy Donor',
+                           no = 'Weight Loss'))
+
+trnL.no.id
+```
+```{r}
+median(trnL.no.id$pct_no_id, na.rm = TRUE)
+```
+
+```{r}
+range(trnL.no.id$pct_no_id, na.rm = TRUE)
+```
+
+Small enough to safely drop: remove these from object.
+
+```{r}
+ps.trnL <- subset_taxa(ps.trnL, !is.na(phylum))
+ps.trnL
+
+rm(trnL.no.id)
+```
+
+### 12SV5
+
+```{r}
 # What proportion of each sample?
 MButils::percent_unassigned(ps.12SV5)
 ```
 
-### Plant-animal
+Here, may want to instead ask what we can't assign to the family level.
 
 ```{r}
-rank_names(ps.mb)
+ps.12SV5@tax_table@.Data %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'asv') %>% 
+     select(family:species)
 ```
-
-```{r}
-ps.mb@tax_table@.Data %>% 
-     data.frame %>% 
-     pull(phylum) %>% 
-     unique()
-```
+Nothing: everything has a genus or species assignment. 
 
 # Describe
 
 ```{r}
 melt.mp <- psmelt(ps.mp)
+melt.trnL <- psmelt(ps.trnL)
+melt.12SV5 <- psmelt(ps.12SV5)
 ```
 
 ## Success-failure
 
-
 ```{r}
 # Metabarcoding: trnL
+melt.trnL %>% 
+     group_by(Sample) %>% 
+     summarize(reads_tot = sum(Abundance)) %>% 
+     group_by(reads_tot > 0) %>% 
+     count()
 ```
 
 ```{r}
 # Metabarcoding: 12SV5
+melt.12SV5 %>% 
+     group_by(Sample) %>% 
+     summarize(reads_tot = sum(Abundance)) %>% 
+     group_by(reads_tot > 0) %>% 
+     count()
 ```
-
 ```{r}
 # Metaproteomic
 melt.mp %>% 
@@ -135,9 +283,9 @@ melt.mp %>%
      group_by(psms_tot > 0) %>% 
      count()
 ```
-## Metaproteomics
+## Counts per sample
 
-### # spectra
+### Metaproteomic spectra
 
 ```{r}
 melt.mp %>% 
@@ -148,11 +296,13 @@ melt.mp %>%
      geom_histogram(stat = 'bin',
                     binwidth = 1000,
                     boundary = 0) +
-     scale_y_continuous(breaks = seq(2, 8, by = 2)) +
+     scale_y_continuous(breaks = seq(2, 10, by = 2),
+                        limits = c(0, 10)) +
      scale_x_continuous(labels = comma) +
      scale_fill_manual(values = study.color) +
      labs(x = 'PSMs', y = 'Samples (*n*)') +
-     theme(legend.position = 'none')
+     theme(legend.position = 'none',
+           panel.grid.minor = element_blank())
 ```
 
 ```{r}
@@ -163,7 +313,7 @@ ggsave(here('results',
             'supplemental',
             'description',
             paste0(plotID, '_PSM histogram.pdf')),
-       height = 4, width = 3)
+       height = 3, width = 3)
 ```
 
 ```{r}
@@ -173,5 +323,250 @@ melt.mp %>%
      filter(psms_tot > 0) %>% 
      summarize(median(psms_tot),
                range(psms_tot))
+```
+
+### Metabarcoding reads
+
+#### trnL
+
+```{r}
+melt.trnL %>% 
+     group_by(Sample, study) %>% 
+     summarize(reads_tot = sum(Abundance)) %>% 
+     filter(reads_tot > 0) %>% 
+     ggplot(aes(x = reads_tot, fill = study)) +
+     geom_histogram(stat = 'bin',
+                    binwidth = 5000,
+                    boundary = 0) +
+     scale_y_continuous(breaks = seq(2, 10, by = 2),
+                        limits = c(0, 10)) +
+     scale_x_continuous(labels = comma,
+                        breaks = seq(0, 90000, 30000)) +
+     scale_fill_manual(values = study.color) +
+     labs(x = '*trnL* reads', y = 'Samples (*n*)') +
+     theme(legend.position = 'none',
+           panel.grid.minor = element_blank())
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results',
+            'manuscript',
+            'supplemental',
+            'description',
+            paste0(plotID, '_trnL read histogram.pdf')),
+       height = 3, width = 3)
+```
+
+```{r}
+melt.trnL %>% 
+     group_by(Sample) %>% 
+     summarize(reads_tot = sum(Abundance)) %>% 
+     filter(reads_tot > 0) %>% 
+     summarize(median(reads_tot),
+               range(reads_tot))
+```
+#### 12SV5
+
+```{r}
+melt.12SV5 %>% 
+     group_by(Sample, study) %>% 
+     summarize(reads_tot = sum(Abundance)) %>% 
+     filter(reads_tot > 0) %>% 
+     ggplot(aes(x = reads_tot, fill = study)) +
+     geom_histogram(stat = 'bin',
+                    binwidth = 5000,
+                    boundary = 0) +
+     scale_y_continuous(breaks = seq(2, 10, by = 2),
+                        limits = c(0, 10)) +
+     scale_x_continuous(labels = comma,
+                        limits = c(0, 100000),
+                        breaks = seq(0, 90000, 30000)) +
+     scale_fill_manual(values = study.color) +
+     labs(x = '12SV5 reads', y = 'Samples (*n*)') +
+     theme(legend.position = 'none',
+           panel.grid.minor = element_blank())
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results',
+            'manuscript',
+            'supplemental',
+            'description',
+            paste0(plotID, '_12SV5 read histogram.pdf')),
+       height = 3, width = 3)
+```
+
+```{r}
+melt.12SV5 %>% 
+     group_by(Sample) %>% 
+     summarize(reads_tot = sum(Abundance)) %>% 
+     filter(reads_tot > 0) %>% 
+     summarize(median(reads_tot),
+               range(reads_tot))
+```
+
+## # reference foods
+
+### Metaproteomics
+
+TODO: Should likely go back and more accurately map these names to species based on entries in the "Notes" column
+
+```{r}
+db %>% 
+     group_by(category) %>% 
+     summarize(n_distinct(scientific_name))
+```
+plant* is Rhodophyta (plant)
+NA is hake (animal)
+
+### Metabarcoding
+
+#### 12SV5 
+
+Can just leverage taxonomy here to split apart and reduce
+```{r}
+# Number of sequences:
+length(ref.12SV5)
+```
+
+```{r}
+ref.12SV5 <- 
+     ref.12SV5 %>% 
+     names() %>% 
+     data.frame(name = .) %>% 
+     # Trim terminal semicolon
+     mutate(name = gsub(pattern = ';$', 
+                        replacement = '',
+                        name)) %>% 
+     separate(name,
+              into = c('kingdom',
+                       'phylum',
+                       'class',
+                       'order',
+                       'family',
+                       'genus',
+                       'species',
+                       'subspecies'),
+              sep = ';',
+              remove = FALSE) %>% 
+     MButils::lowest_level()
+
+ref.12SV5.db
+```
+```{r}
+# Number of animals
+# Note one of these is human: exclude
+n_distinct(ref.12SV5.db$name) - 1
+```
+
+#### trnL
+
+```{r}
+# Number of sequences:
+length(ref.trnL)
+```
+
+```{r}
+# Number of plants
+ref.trnL <- 
+     ref.trnL %>% 
+     names() %>% 
+     data.frame(name = .) %>% 
+     separate(name,
+              into = c('accession', 
+                       'name'),
+              sep = ' ',
+              extra = 'merge')
+```
+
+```{r}
+n_distinct(ref.trnL$name)
+```
+
+## Detected foods
+
+### Metaproteomics
+
+```{r}
+ntaxa(ps.mp)
+```
+
+What about number of unique dietary peptides?  Use intermediate processing stage of data for this (saved in "Metaproteomic phyloseq" notebook):
+
+```{r}
+str(proteins.df)
+```
+
+```{r}
+dim(proteins.df)
+```
+
+```{r}
+n_distinct(proteins.df$Accession)
+n_distinct(proteins.df$Description)
+```
+
+```{r}
+# Most prevalent foods
+melt.mp %>% 
+     group_by(Sample, OTU) %>% 
+     summarize(prevalence_within = sum(Abundance > 5)) %>% 
+     # Now group by just food, get across-sample prevalence
+     group_by(OTU) %>% 
+     summarize(prevalence_across = sum(prevalence_within)) %>% 
+     arrange(desc(prevalence_across))
+```
+
+```{r}
+# Most abundant foods
+melt.mp %>% 
+     filter(Abundance > 5) %>% 
+     group_by(OTU) %>% 
+     summarize(abundance = sum(Abundance)) %>% 
+     arrange(desc(abundance))
+```
+### Metabarcoding
+
+```{r}
+# trnL
+ps.trnL
+```
+
+```{r}
+# Most prevalent foods
+melt.trnL %>% 
+     group_by(Sample, name) %>% 
+     summarize(prevalence_within = sum(Abundance > 0)) %>% 
+     # Now group by just food, get across-sample prevalence
+     group_by(name) %>% 
+     summarize(prevalence_across = sum(prevalence_within)) %>% 
+     arrange(desc(prevalence_across))
+```
+
+```{r}
+# Most abundant foods
+melt.trnL %>% 
+     group_by(name) %>% 
+     summarize(abundance = sum(Abundance)) %>% 
+     arrange(desc(abundance))
+```
+```{r}
+# 12SV5
+ps.12SV5
+```
+
+```{r}
+# Most prevalent foods
+melt.12SV5 %>% 
+     group_by(Sample, name) %>% 
+     summarize(prevalence_within = sum(Abundance > 0)) %>% 
+     # Now group by just food, get across-sample prevalence
+     group_by(name) %>% 
+     summarize(prevalence_across = sum(prevalence_within)) %>% 
+     arrange(desc(prevalence_across))
 ```
 
