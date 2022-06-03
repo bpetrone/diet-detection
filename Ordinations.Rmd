@@ -157,60 +157,72 @@ A few fungi, seaweeds (Rhodophyta), spirulina.  Might be fun to do an independen
 
 ## Metabarcoding phyloseq
 
-```{r}
-# Impose >= 5 count/taxon filter
-asvtab.mb <- otu_table(ps.mb)@.Data
-sum(asvtab.mb)
+Impose >= 5 count/taxon filter. 
 
-asvtab.mb[asvtab.mb < 5] <- 0
-sum(asvtab.mb)
+```{r}
+# trnL
+asvtab.mb.plant <- otu_table(ps.mb.plant)@.Data
+sum(asvtab.mb.plant)
+
+asvtab.mb.plant[asvtab.mb.plant < 5] <- 0
+sum(asvtab.mb.plant)
 
 # Replace in phyloseq object
-otu_table(ps.mb) <- otu_table(asvtab.mb,
-                                   taxa_are_rows = FALSE)
+otu_table(ps.mb.plant) <- otu_table(asvtab.mb.plant,
+                                    taxa_are_rows = FALSE)
+```
+
+```{r}
+# 12SV5
+asvtab.mb.animal <- otu_table(ps.mb.animal)@.Data
+sum(asvtab.mb.animal)
+
+asvtab.mb.animal[asvtab.mb.animal < 5] <- 0
+sum(asvtab.mb.animal)
+
+# Replace in phyloseq object
+otu_table(ps.mb.animal) <- otu_table(asvtab.mb.animal,
+                                    taxa_are_rows = FALSE)
 ```
 
 ### Add lag day
 
 ```{r echo = FALSE}
-# Pull sample data for stool samples
-samdf.mb <- 
-     sample_data(ps.mb) %>% 
+# trnL
+samdf.mb.plant <- 
+     sample_data(ps.mb.plant) %>% 
      as('data.frame') %>% 
      rownames_to_column(var = 'row')
 
 # Label each stool sample with its two preceding days
 for (delta in 1:2){
      varname <- paste0('delta', delta)
-     samdf.mb <- mutate(samdf.mb, 
+     samdf.mb.plant <- mutate(samdf.mb.plant, 
                              !!varname := paste(subj, date - delta, 
                                                 sep = '_'))
 }
 
 # Replace in phyloseq object
-sample_data(ps.mb) <- column_to_rownames(samdf.mb, var = 'row')
+sample_data(ps.mb.plant) <- column_to_rownames(samdf.mb.plant, var = 'row')
 ```
 
-### Separate by kingdom
+```{r echo = FALSE}
+# 12SV5
+samdf.mb.animal <- 
+     sample_data(ps.mb.animal) %>% 
+     as('data.frame') %>% 
+     rownames_to_column(var = 'row')
 
-```{r}
-nsamples(ps.mb)
-```
+# Label each stool sample with its two preceding days
+for (delta in 1:2){
+     varname <- paste0('delta', delta)
+     samdf.mb.animal <- mutate(samdf.mb.animal, 
+                             !!varname := paste(subj, date - delta, 
+                                                sep = '_'))
+}
 
-```{r}
-ps.mb.plant <- 
-     ps.mb %>% 
-     subset_taxa(kingdom == 'Viridiplantae') %>% 
-     prune_samples(sample_sums(.) > 0, .)
-ps.mb.plant
-```
-
-```{r}
-ps.mb.animal <- 
-     ps.mb %>% 
-     subset_taxa(kingdom == 'Metazoa') %>% 
-     prune_samples(sample_sums(.) > 0, .)
-ps.mb.animal
+# Replace in phyloseq object
+sample_data(ps.mb.animal) <- column_to_rownames(samdf.mb.animal, var = 'row')
 ```
 
 ## Menu phyloseq
