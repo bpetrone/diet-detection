@@ -18,22 +18,6 @@ library(tidyverse)
 
 # Read in data
 
-## Shared samples
-
-```{r}
-# Read in and name comparably to phyloseqs (SUBJ_DATE)
-samples <- 
-     here('data', 
-          'metadata', 
-          '20200723_MTA DFC samples shared.csv') %>% 
-     read_csv() %>% 
-     mutate(sample.date = as.Date(sample.date, format = '%m/%d/%y'),
-            name = paste(subj, sample.date, sep = '_')) %>%
-     pull(name)
-               
-samples %>% sort()
-```
-
 ## Metaproteomic phyloseq
 
 ```{r}
@@ -142,6 +126,7 @@ ps.protein.plant <-
      ps.protein %>% 
      subset_taxa(kingdom == 'Viridiplantae') %>% 
      prune_samples(sample_sums(.) > 0, .)
+
 ps.protein.plant
 ```
 
@@ -153,20 +138,24 @@ ps.protein.animal <-
 ps.protein.animal
 ```
 
-## Metabarcoding phyloseq
+```{r}
+# What foods are left over?
+ps.protein.other <- 
+     ps.protein %>% 
+     subset_taxa(!(kingdom %in% c('Viridiplantae',
+                                  'Metazoa'))) 
+
+ntaxa(ps.protein.other)
+```
 
 ```{r}
-# Filter to only the samples under consideration here
-# (Those in shared sample sheet, plus 908)
-ps.mb <- 
-     ps.mb %>% 
-     prune_samples(sample_names(.) %in% samples | grepl('908', 
-                                                        sample_names(.)),
-                   .) %>% 
-     prune_taxa(taxa_sums(.) > 0, .)
-
-ps.mb
+ps.protein.other@tax_table@.Data %>% 
+     data.frame()
 ```
+
+A few fungi, seaweeds (Rhodophyta), spirulina.  Might be fun to do an independent analysis of the prevalence of these taxa. 
+
+## Metabarcoding phyloseq
 
 ```{r}
 # Impose >= 5 count/taxon filter
