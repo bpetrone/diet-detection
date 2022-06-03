@@ -19,20 +19,42 @@ opts_knit$set(root.dir = file.path(getwd(), '..'))
 library(eulerr) # for Euler diagrams
 library(here)
 library(phyloseq)
+library(scales)
 library(tidyverse)
 ```
+
+```{r}
+# Plotting themes
+theme_set(theme_bw() +
+               theme(
+                    axis.text = element_text(size = 12),
+                    axis.title.x = element_text(size = 14,
+                                                face = 'bold'),
+                    axis.title.y = element_text(size = 14,
+                                                face = 'bold'),
+                    legend.title = element_text(size = 12,
+                                                face = 'bold'),
+                    strip.text = element_text(size = 12,
+                                              face = 'bold')
+               )
+)
+```
+
 
 # Read in files
 
 ## Participant metaproteomic data
 
-### 1 PUP
+This is *not* pre-filtered by Ali.  Read in and do that filtering here.
+
+### Healthy donor
 
 ```{r }
 # List files
 fs <-
-     here('data', 'raw',
-          '2_NewDataForDavidLab_DB2.1Search_Workflow2.0') %>%
+     here('data', 
+          'raw',
+          '2_All5FDRProteins_Excel_Files_DB2.1Search_Healthy donor') %>%
      list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
@@ -51,17 +73,18 @@ dfs <-
 
 # Bind together
 names(dfs) <- basename(fs)
-pup.df <- bind_rows(dfs, .id = 'id')
+healthydonor <- bind_rows(dfs, .id = 'id')
 rm(fs, dfs)
 ```
 
-### 1 UP
+### Weight Loss
 
 ```{r }
 # List files
 fs <-
-     here('data', 'raw',
-          '3_DB2.1_5FDR_1UniquePeptide') %>%
+     here('data', 
+          'raw',
+          '2_All5FDRProteins_Excel_Files_DB2.1Search_Including Outlier') %>%
      list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
@@ -80,7 +103,7 @@ dfs <-
 
 # Bind together
 names(dfs) <- basename(fs)
-up.df <- bind_rows(dfs, .id = 'id')
+weightloss <- bind_rows(dfs, .id = 'id')
 rm(fs, dfs)
 ```
 
@@ -88,11 +111,34 @@ rm(fs, dfs)
 
 ### 1 PUP
 
+Think I can hack this together from two older versions, but probably want to go back and check just to be sure. From README notes:
+20210408_ps_mp: v2 of analysis on DFC samples
+20211102_ps_mp: v2 of analysis on 908 samples
+
 ```{r}
-ps.pup <- 
-     here('data', 'processed', 'phyloseq', '20210408_ps_mp.rds') %>% 
+ps.pup.dfc <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          '20210408_ps_mp.rds') %>% 
      readRDS()
 
+ps.pup.dfc
+```
+
+```{r}
+ps.pup.908 <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          '20211102_ps_mp.rds') %>% 
+     readRDS()
+
+ps.pup.908
+```
+
+```{r}
+ps.pup <- merge_phyloseq(ps.pup.dfc, ps.pup.908)
 ps.pup
 ```
 
@@ -100,7 +146,11 @@ ps.pup
 
 ```{r}
 ps.up <- 
-     here('data', 'processed', 'phyloseq', '20210912_ps_mp.rds') %>% 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'ps_mp.rds') %>% 
      readRDS()
 
 ps.up
@@ -110,56 +160,141 @@ ps.up
 
 ## Participant metaproteomic data
 
+### Combine
+
+```{r}
+# Clean up subject IDs
+head(weightloss$id)
+head(healthydonor$id)
+```
+
+```{r}
+weightloss <- 
+     weightloss %>% 
+     mutate(id = gsub(id,
+                      pattern = '^\\d+_',
+                      replacement = '')) %>% 
+     separate(id,
+              into = c('subj', 'date'),
+              sep = '_', 
+              extra = 'drop') %>% 
+     mutate(date = as.Date(date, 
+                           format = '%d%b%y'))
+```
+
+
+```{r}
+healthydonor <- 
+     healthydonor %>% 
+     # Clean up ID column
+     mutate(subj = gsub(id,
+                        pattern = '_.*$',
+                        replacement = '')
+            ) %>% 
+     # Convert date to Date type
+     mutate(date = 
+                 case_when(
+                      subj == 'HH1' ~ as.Date('25Jun18', 
+                                              format = '%d%b%y'),
+                      subj == 'HH2' ~ as.Date('26Jun18', 
+                                              format = '%d%b%y'),
+                      subj == 'HH3' ~ as.Date('27Jun18', 
+                                              format = '%d%b%y'),
+                      subj == 'HH4' ~ as.Date('28Jun18', 
+                                              format = '%d%b%y'),
+                      subj == 'HH5' ~ as.Date('29Jun18', 
+                                              format = '%d%b%y'))
+     ) %>% 
+     # Can now overwrite subject
+     mutate(subj = '908') 
+```
+
+
+```{r}
+# Add study
+weightloss$study <- 'Weight Loss'
+healthydonor$study <- 'Healthy Donor'
+```
+
+```{r}
+# Combine
+proteins.df <- bind_rows(weightloss, healthydonor)
+dim(proteins.df)
+rm(weightloss, healthydonor)
+```
+
 ### Filter
 
 ```{r}
-# Parse file ID into subject and date
-pup.df <- 
-     pup.df %>% 
-     # Clean up ID column
-     separate(col = 'id', into = c('id', 'subj', 'date'),
-                        sep = '_', remove = TRUE, extra = 'drop') %>% 
-     # Convert date to Date type
-     mutate(date = as.Date(date, format = '%d%b%y'))
-
-up.df <- 
-     up.df %>% 
-     # Clean up ID column
-     separate(col = 'id', into = c('id', 'subj', 'date'),
-                        sep = '_', remove = TRUE, extra = 'drop') %>% 
-     # Convert date to Date type
-     mutate(date = as.Date(date, format = '%d%b%y'))
-```
-
-```{r}
 # Filter to only food-derived proteins
-pup.df <- 
-     pup.df %>% 
-     filter(!grepl('Human_*', Accession)) %>% # Remove human proteins
-     filter(!grepl('Microbiota_*', Accession)) # Remove microbiota proteins
+proteins.df <- 
+     filter(proteins.df, 
+            !grepl(Accession,
+                   pattern = 'Human_|Microbiota_')) 
 
-up.df <- 
-     up.df %>% 
-     filter(!grepl('Human_*', Accession)) %>% # Remove human proteins
-     filter(!grepl('Microbiota_*', Accession)) # Remove microbiota proteins
+dim(proteins.df)
+```
+
+#### 1PUP
+
+```{r}
+range(proteins.df$`# Protein Unique Peptides`, na.rm = TRUE)
 ```
 
 ```{r}
-# Filter to only those proteins found in sample
-pup.df <- 
-     filter(pup.df, 
-            `Found in Sample` %in% c('High', 'Medium', NA))
-
-up.df <- 
-     filter(up.df, 
-            `Found in Sample` %in% c('High', 'Medium', NA))
+pup.df <- filter(proteins.df, `# Protein Unique Peptides` > 0)
+range(pup.df$`# Protein Unique Peptides`, na.rm = TRUE)
 ```
+
+#### 1UP
+
+```{r}
+range(proteins.df$`# Unique Peptides`, na.rm = TRUE)
+```
+
+```{r}
+up.df <- filter(proteins.df, `# Unique Peptides` > 0)
+range(up.df$`# Unique Peptides`, na.rm = TRUE)
+```
+
+```{r }
+# Quick QC
+table(pup.df$`Found in Sample`)
+table(up.df$`Found in Sample`)
+```
+
+```{r}
+# Hmm: what are these 6?
+filter(pup.df, `Found in Sample` == 'Not Found')
+```
+Interestingly these are all 'None' in the Master column.  
+
+```{r}
+# Remove
+pup.df <- filter(pup.df, `Found in Sample` != 'Not Found')
+```
+
+### Master proteins
 
 ```{r}
 # For unique peptide analysis only: Filter to master proteins
-up.df <- 
-     filter(up.df, 
-            Master == 'Master Protein')
+table(pup.df$Master)
+```
+
+```{r}
+table(up.df$Master)
+```
+
+Okay, so in the UP analysis we want to consider master proteins only.  Not sure what to do about the stragglers in the 1PUP dataset but they are few enough that I think safe to exclude them also.  Some look suspiciously like dietary proteins:
+
+```{r}
+pup.df %>% filter(Master != 'Master Protein') %>% pull(Description)
+```
+
+```{r}
+# Filter
+pup.df <- filter(pup.df, Master == 'Master Protein')
+up.df <- filter(up.df, Master == 'Master Protein')
 ```
 
 ### Combine
@@ -173,35 +308,62 @@ proteins.df <-
                pup.df)
 ```
 
+```{r}
+# Check completeness of data
+# A few hundred missing entries for #PUPs when >1UP
+filter(proteins.df, is.na(`# Protein Unique Peptides`))
+
+# Replace these with 0
+proteins.df$`# Protein Unique Peptides`[is.na(proteins.df$`# Protein Unique Peptides`)] <-  0
+```
+
+
 # Analyze
 
 ## Compare raw datasets
 
 ```{r}
-dim(pup.df)
-dim(up.df)
+# How many additional PSMs?
+proteins.df %>% 
+     group_by(analysis) %>% 
+     summarize(psms_tot = sum(`# PSMs`))
+```
+```{r}
+95289-68766
+```
+
+```{r}
+95289/68755
 ```
 
 ```{r}
 # Visualize PSM counts
-ggplot(proteins.df, aes(x = analysis,
-                        y = `# PSMs`, 
-                        fill = `# Protein Unique Peptides` > 0)) +
-     geom_bar(stat = 'identity', position = 'stack') +
-     scale_fill_manual(values = c('steelblue4', 'slategray3'),
-                       labels = c('No PUPs', 'At least 1 PUP')) +
-     labs(fill = 'Protein Unique\nPeptides (PUPs)', x = 'Analysis version') +
-     ylim(0, 38000) +
-     theme_classic() +
-     theme()
+proteins.df %>% 
+     filter(analysis == '1UP') %>% 
+     dplyr::rename(pups = `# Protein Unique Peptides`) %>% 
+     group_by(study, pups > 0) %>% 
+     summarize(psms_tot = sum(`# PSMs`)) %>% 
+     ggplot(aes(x = study,
+                y = psms_tot,
+                fill = `pups > 0`)) +
+     geom_col(position = 'stack') +
+     scale_y_continuous(label = comma) +
+     scale_fill_manual(values = c('#deac13', '#f1ce63')) +
+     labs(y = '# PSMs') +
+     theme(panel.border = element_blank(),
+           axis.line = element_line(),
+           panel.grid = element_blank(),
+           axis.title.x = element_blank(),
+           legend.position = 'none')
 ```
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results', 
             'manuscript',
-            '1',
-            paste0(plotID, '_# PSMs by analysis version.png')),
-       height = 3, width = 5)
+            'supplemental',
+            'filtering',
+            paste0(plotID, '_# PSMs by analysis version.pdf')),
+       height = 3, width = 3)
 ```
 
 ```{r}
@@ -212,37 +374,52 @@ up.df %>%
      sum()
 ```
 ```{r}
-12693/sum(up.df$`# PSMs`)
+26118/sum(up.df$`# PSMs`)
 ```
 
 ```{r}
 # Visualize protein counts
 proteins.df %>% 
-     mutate(pup1 = `# Protein Unique Peptides` > 0) %>% 
-     group_by(analysis, pup1) %>% 
+     filter(analysis == '1UP') %>% 
+     dplyr::rename(pups = `# Protein Unique Peptides`) %>% 
+     group_by(study, pups > 0) %>% 
      count() %>% 
-     ggplot(aes(x = analysis, 
+     ggplot(aes(x = study, 
                 y = n, 
-                fill = pup1)) +
+                fill = `pups > 0`)) +
      geom_bar(stat = 'identity', position = 'stack') +
-     scale_fill_manual(values = c('steelblue4', 'slategray3'),
-                       labels = c('No PUPs', 'At least 1 PUP')) +
-     labs(fill = 'Protein Unique\nPeptides (PUPs)', 
-          x = 'Analysis version',
-          y = 'Proteins') +
-     ylim(0, 38000) + # For compatible scale with above
-     theme_classic() +
-     theme()
+     scale_fill_manual(values = c('#deac13', '#f1ce63')) +
+     scale_y_continuous(label = comma) +
+     labs(y = '# proteins') +
+     # ylim(0, 60000) +
+     theme(panel.border = element_blank(),
+           panel.grid = element_blank(),
+           axis.title.x = element_blank(),
+           axis.line = element_line(),
+           legend.position = 'none')
 ```
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results', 
             'manuscript',
-            '1',
-            paste0(plotID, '_# proteins by analysis version.png')),
-       height = 3, width = 5)
+            'supplemental',
+            'filtering',
+            paste0(plotID, '_# proteins by analysis version.pdf')),
+       height = 3, width = 3)
 ```
+
+```{r}
+# How many additional proteins?
+proteins.df %>% 
+     group_by(analysis) %>% 
+     summarize(proteins_tot = n_distinct(Accession))
+```
+
+```{r}
+8398-5782	
+```
+
 
 ```{r}
 # What percentage of total are from master proteins without PUPs?
@@ -259,7 +436,7 @@ up.df %>%
 What do we detect with "relaxed" analysis that we don't see if we require at least one protein unique peptide?
 
 ```{r}
-setdiff(taxa_names(ps.up), taxa_names(ps.pup))
+setdiff(taxa_names(ps.up), taxa_names(ps.pup)) %>% sort()
 ```
 
 And reverse?
@@ -267,6 +444,12 @@ And reverse?
 ```{r}
 setdiff(taxa_names(ps.pup), taxa_names(ps.up))
 ```
+
+```{r}
+# Amaranth is a difference in NCBI taxonomy between dates, rename
+taxa_names(ps.pup)[taxa_names(ps.pup) == 'Amaranthus hybridus subsp. cruentus'] <- 'Amaranthus cruentus'
+```
+
 
 ### Euler plot
 
@@ -287,20 +470,21 @@ plot.df <-
             pup = taxon %in% taxa_names(ps.pup))
 
 # Quick checks
-sum(plot.df$up) # Should be 158
-sum(plot.df$pup) # Should be 139
+sum(plot.df$up) 
+sum(plot.df$pup) 
 ```
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 pdf(here('results', 
          'manuscript',
-         '1',
+         'supplemental',
+         'filtering',
          paste0(plotID, '_Taxa Euler diagram (metaproteomic analysis), with counts.pdf')),
     height = 3, width = 3)
 
 euler(plot.df[,c('up', 'pup')]) %>% 
-     plot(fills = c('steelblue4', 'slategray3'),
+     plot(fills = c('#deac13', '#f1ce63'),
           labels = FALSE,
           shape = "ellipse", 
           quantities = TRUE)
