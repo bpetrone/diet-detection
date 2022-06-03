@@ -1,0 +1,366 @@
+---
+title: "Protein percentage breakdown"
+output: html_notebook
+---
+
+This notebook processe the unfiltered metaproteomic data (which includes dietary, host, and microbial peptides) to determine the percent of proteinaceous biomass from each
+
+# R setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r libraries, echo=FALSE}
+library(here) 
+library(phyloseq) 
+library(readxl) # For parsing Excel files
+library(tidyverse) 
+```
+
+```{r}
+# Plotting themes
+theme_set(theme_bw() +
+               theme(
+                    axis.text = element_text(size = 12),
+                    axis.title.x = ggtext::element_markdown(size = 14,
+                                                            face ='bold'),
+                    axis.title.y = ggtext::element_markdown(size = 14,
+                                                            face ='bold'),
+                    legend.title = element_text(size = 12,
+                                                face ='bold'),
+                    strip.text = element_text(size = 12,
+                                              face = 'bold')
+               )
+)
+```
+
+```{r}
+study.color <- c('#4e79a7', # Weight Loss
+                 '#f28e2b') # Healthy Donor
+```
+
+# Read in files
+
+## Healthy donor
+
+```{r }
+# List files
+fs <-
+     here('data', 
+          'raw',
+          '2_All5FDRProteins_Excel_Files_DB2.1Search_Healthy donor') %>%
+     list.files(pattern = ".xlsx", full.names = T)
+
+# Read and synchronize names
+# Note that if sheet not specified, defaults to first sheet
+dfs <- 
+     lapply(fs, read_excel) %>% 
+     # Rename "Found in sample" column so it's the same for each sample
+     lapply(., 
+            function(x){
+                 # Update name
+                 names(x)[grep('Found in Sample: *', 
+                               names(x))] <- 'Found in Sample'
+                 # Return original object
+                 x
+                 }
+            )
+
+# Bind together
+names(dfs) <- basename(fs)
+proteins.df <- bind_rows(dfs, .id = 'id')
+rm(fs, dfs)
+```
+
+## Weight loss
+
+```{r }
+# List files
+fs <-
+     here('data', 
+          'raw',
+          '2_All5FDRProteins_Excel_Files_DB2.1Search_Including Outlier') %>%
+     list.files(pattern = ".xlsx", full.names = T)
+
+# Read and synchronize names
+# Note that if sheet not specified, defaults to first sheet
+dfs <- 
+     lapply(fs, read_excel) %>% 
+     # Rename "Found in sample" column so it's the same for each sample
+     lapply(., 
+            function(x){
+                 # Update name
+                 names(x)[grep('Found in Sample: *', 
+                               names(x))] <- 'Found in Sample'
+                 # Return original object
+                 x
+                 }
+            )
+
+# Bind together
+names(dfs) <- basename(fs)
+proteins.df <- 
+     bind_rows(dfs, .id = 'id') %>% 
+     bind_rows(proteins.df) # Bind back to 908 dataframe created above
+
+rm(fs, dfs)
+```
+
+# Pre-process
+
+## Simplify names
+
+```{r}
+unique(proteins.df$id)
+```
+
+```{r}
+proteins.df <- 
+     proteins.df %>% 
+     mutate(
+          # Healthy donor pattern
+          id = gsub(id,
+                    pattern = '_RealisticFoodsDB.*',
+                    replacement = ''),
+          # Weight loss pattern
+          id = gsub(id,
+                    pattern = '_AB\\d+_.*',
+                    replacement = ''),
+          id = gsub(id,
+                    pattern = '^\\d+_',
+                    replacement = ''))
+```
+
+```{r}
+# Synchronize date format
+proteins.df$id[proteins.df$id == 'HH1'] <- '908_25Jun18'
+proteins.df$id[proteins.df$id == 'HH2'] <- '908_26Jun18'
+proteins.df$id[proteins.df$id == 'HH3'] <- '908_27Jun18'
+proteins.df$id[proteins.df$id == 'HH4'] <- '908_28Jun18'
+proteins.df$id[proteins.df$id == 'HH5'] <- '908_29Jun18'
+```
+
+```{r}
+# Separate and format as date, then recombine
+proteins.df <- 
+     proteins.df %>% 
+     separate(id, 
+              into = c('subj', 'date'),
+              sep = '_') %>% 
+     mutate(date = as.Date(date,
+                           format = '%d%b%y')) %>% 
+     mutate(id = paste(subj, date, sep = '_')) %>% 
+     select(id, everything())
+```
+
+```{r}
+n_distinct(proteins.df$id) 
+```
+
+```{r}
+# Add study variable for downstream faceting
+proteins.df <- 
+     mutate(proteins.df,
+            study = ifelse(subj == '908',
+                           yes = 'Healthy donor',
+                           no = 'Weight loss'))
+```
+
+## Remove outlier
+
+Outlier sample is 15_ML48_17Oct19_AB006. 
+
+```{r}
+proteins.df <- 
+     filter(proteins.df,
+            id != 'ML48_2019-10-17')     
+```
+
+```{r}
+n_distinct(proteins.df$id) 
+```
+
+```{r}
+str(proteins.df)
+```
+
+## Filter master proteins
+
+```{r}
+table(proteins.df$Master)
+```
+
+```{r}
+# PSMs before filter
+sum(proteins.df$`# PSMs`)
+```
+
+```{r}
+proteins.df <- 
+     filter(proteins.df, 
+            Master == 'Master Protein')
+```
+
+```{r}
+# PSMs after filter
+sum(proteins.df$`# PSMs`)
+```
+
+```{r}
+839318/2324012
+```
+
+TODO: Go through this logic again to make sure I am understanding.  Does this filtering change regardless of whether I'm using PUP or UP analysis?
+
+## QC parameters
+
+```{r}
+table(proteins.df$Checked)
+```
+
+```{r}
+table(proteins.df$`Protein FDR Confidence: Combined`)
+```
+
+## Format accession column
+
+Pull this information from the accession column, which gives a prefix for the taxon:
+
+```{r}
+head(proteins.df$Accession)
+```
+
+```{r}
+proteins.df <- 
+     proteins.df %>% 
+     mutate(category = gsub(Accession,
+                            pattern = '_.*$',
+                            replacement = ''))
+
+n_distinct(proteins.df$category)
+```
+
+There are general categories ("Human" and "Microbiota"), and then all foods would map to a specific food taxon name. So want to collapse these.
+
+```{r}
+proteins.df %>% 
+     pull(category) %>% 
+     unique() %>% 
+     head()
+```
+
+Hmmm, it looks like not all have the prefix. However, believe these are all foods. Check for human or microbiota in OS entries:
+
+```{r}
+os <- 
+     proteins.df %>% 
+     filter(!grepl(Accession,
+                   pattern = '_')) %>% 
+     pull(Description)
+
+head(os)
+```
+
+```{r}
+os %>% 
+     gsub(pattern = '^.+OS=',
+          replacement = '') %>% 
+     gsub(pattern = ' OX=.+',
+          replacement = '') %>% 
+     unique() %>% 
+     sort()
+```
+
+Okay, all foods.  Now can relabel with simplified categories
+```{r}
+proteins.df <- 
+     proteins.df %>% 
+     mutate(category = ifelse(!(category %in% c('Human',
+                                                'Microbiota')),
+                              yes = 'Diet',
+                              no = category))
+```
+
+```{r}
+unique(proteins.df$category)
+```
+
+# Analyze
+
+## Overall dataset
+
+```{r}
+proteins.df %>% 
+     group_by(category) %>% 
+     summarize(psms = sum(`# PSMs`)) %>% 
+     mutate(psms_pct = psms/sum(psms))
+```
+
+## Per-sample
+
+So here, per sample, want to sum PSMs for each category.  
+
+```{r}
+psms <- 
+     proteins.df %>% 
+     group_by(study, id, subj, date, category) %>% 
+     summarize(psms = sum(`# PSMs`))
+```
+
+## Visualize
+
+```{r}
+ggplot(psms, aes(x = id, y = psms, fill = category)) +
+     geom_col(position = 'stack') +
+     facet_wrap(~study + subj,
+                scales = 'free_x') +
+     theme(axis.text.x = element_blank())
+```
+## Percentages
+
+By study (long gradient for 908 vs shorter gradient for DFC samples):
+
+```{r}
+ggplot(psms, aes(x = id, y = psms, fill = category)) +
+     geom_col(position = 'fill') +
+     labs(y = 'Proteinaceous<br>biomass (%)') +
+     scale_fill_manual(values = c('#f1ce63',
+                                  '#a3acb9',
+                                  '#7b848f')) +
+     theme(axis.ticks.x = element_blank(),
+           axis.text.x = element_blank(),
+           legend.title = element_blank(), 
+           panel.border = element_blank(), 
+           panel.grid = element_blank())
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results',
+            'manuscript',
+            'supplemental',
+            'description',
+            paste0(plotID, '_Proteinaceous biomass.pdf')),
+       height = 3, width = 7)
+```
+
+
+By subject: 
+```{r}
+proteins.df %>% 
+     group_by(subj, date, category) %>% 
+     summarize(psms = sum(`# PSMs`)) %>% 
+     group_by(subj, date) %>% 
+     mutate(psms_tot = sum(psms),
+            psms_pct = psms/psms_tot) %>% 
+     ungroup() %>% 
+     select(-c(psms, psms_tot)) %>% 
+     pivot_wider(names_from = category,
+                 values_from = psms_pct) %>% 
+     group_by(subj) %>% 
+     summarize(across(.cols = Diet:Microbiota,
+                      .fns = list(mean = mean, sd = sd)))
+```
