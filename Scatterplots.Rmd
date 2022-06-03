@@ -168,7 +168,7 @@ ggplot(pred.summary, aes(x = sensitivity_DNA, y = sensitivity_pup,
               fill= '#A6D96A', alpha = 0.5)  + 
      annotate("rect", xmin = 0.5, xmax = 1, ymin = 0.5, ymax = 1, 
               fill= '#1A9641', alpha = 0.5)  +
-     geom_point(size = 2) +
+     geom_point(size = 2, alpha = 0.2) +
      geom_text(hjust = 0, nudge_x = 0.025, nudge_y = 0.01,
                angle = 20, check_overlap = TRUE) +
      coord_equal() +
@@ -197,7 +197,7 @@ ggplot(pred.summary, aes(x = specificity_DNA, y = specificity_pup,
               fill= '#A6D96A', alpha = 0.5)  + 
      annotate("rect", xmin = 0.5, xmax = 1, ymin = 0.5, ymax = 1, 
               fill= '#1A9641', alpha = 0.5)  +
-     geom_point(size = 2) +
+     geom_point(size = 2, alpha = 0.2) +
      coord_equal() +
      geom_text(hjust = 0, nudge_x = 0.025, nudge_y = 0.01,
                angle = 20, check_overlap = TRUE) +
@@ -222,7 +222,7 @@ Pearson correlations between per-taxon metrics
 ```{r}
 # Sensitivity
 cor.test(pred.summary$sensitivity_DNA,
-         pred.summary$sensitivity_protein,
+         pred.summary$sensitivity_pup,
          alternative = 'two.sided',
          method = 'spearman')
 ```
@@ -230,7 +230,7 @@ cor.test(pred.summary$sensitivity_DNA,
 ```{r}
 # Specificity
 cor.test(pred.summary$specificity_DNA,
-         pred.summary$specificity_protein,
+         pred.summary$specificity_pup,
          alternative = 'greater', 
          method = 'spearman')
 ```
