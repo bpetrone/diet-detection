@@ -16,6 +16,31 @@ library(phyloseq)
 library(tidyverse) 
 ```
 
+```{r}
+# Define color palettes
+subj.colors <- 
+     palette.colors(n = 5, 
+                    palette = 'Okabe-Ito') %>% 
+     unname()
+```
+
+```{r}
+# Plotting themes
+theme_set(theme_bw() +
+               theme(
+                    axis.text = element_text(size = 12),
+                    axis.title.x = element_text(size = 14,
+                                                face = 'bold'),
+                    axis.title.y = element_text(size = 14,
+                                                face = 'bold'),
+                    legend.title = element_text(size = 12,
+                                                face = 'bold'),
+                    strip.text = element_text(size = 12,
+                                              face = 'bold')
+               )
+)
+```
+
 # Read in data
 
 ## Metaproteomic phyloseq
@@ -240,8 +265,8 @@ nsamples(ps.menu)
 ```{r}
 ps.menu <- 
      ps.menu %>% 
-     prune_samples(sample_names(.) %in% c(sample_data(ps.mb)$delta1,
-                                         sample_data(ps.protein)$delta1),
+     prune_samples(sample_names(.) %in% c(sample_data(ps.mb.plant)$delta1,
+                                         sample_data(ps.protein.plant)$delta1),
                    .) %>% 
      prune_taxa(taxa_sums(.) > 0, .)
 
@@ -268,59 +293,50 @@ ps.menu.animal <-
 ps.menu.animal
 ```
 
+```{r}
+# Get leftovers as for metaproteomic dataset above
+ps.menu.other <- 
+     ps.menu %>% 
+     subset_taxa(!(kingdom %in% c('Viridiplantae',
+                                  'Metazoa'))) 
+
+ps.menu.other
+```
+
+```{r}
+# What foods?
+ps.menu.other@tax_table@.Data %>% 
+     data.frame()
+```
+
+Xanthan gum, mix of mushrooms.
+
 # Analyze
 
 ## Ordinations
 
-### Metaproteomics
+### trnL
+
+#### Metaproteomics
 
 Is metaproteomic data compositional??
 Think that it may be, because PCA on raw data looks wonky.
 
-#### PCA
+##### PCA
 
 ```{r}
 # CLR transform
-asvtab.protein <- ps.protein@otu_table@.Data 
-
-# asvtab[asvtab < 20] = 0
-asvtab.protein.clr <- driver::clr(asvtab.protein + 1) # pseudocount = 1
-
-# Replace names, but remember these aren't interpretable as strict ASVs any longer
-colnames(asvtab.protein.clr) <- colnames(asvtab.protein)
-
-# Make updated phyloseq object
-ps.protein.clr <- phyloseq(otu_table(asvtab.protein.clr, taxa_are_rows = FALSE),
-                   sample_data(sample_data(ps.protein)),
-                   tax_table(tax_table(ps.protein)))
-```
-
-```{r}
-# Plant only
-# CLR transform
-asvtab.protein.plant <- 
-     ps.protein %>% 
-     subset_taxa(kingdom == 'Viridiplantae') %>% 
-     otu_table(.) 
-
-# asvtab[asvtab < 20] = 0
-asvtab.protein.plant.clr <- 
-     driver::clr(asvtab.protein.plant@.Data + 1) # pseudocount = 1
-
-# Replace names, but remember these aren't interpretable as strict ASVs any longer
-colnames(asvtab.protein.plant.clr) <- colnames(asvtab.protein.plant)
-
-# Make updated phyloseq object
 ps.protein.plant.clr <- 
-     phyloseq(otu_table(asvtab.protein.plant.clr, taxa_are_rows = FALSE),
-                   sample_data(sample_data(ps.protein)),
-                   tax_table(tax_table(ps.protein)))
+     microbiome::transform(ps.protein.plant,
+                           transform = 'clr',
+                           shift = 1)
 ```
 
 ```{r}
 # PCA
-pca <- prcomp(asvtab.protein.clr, center = TRUE, scale = FALSE)
-# pca <- prcomp(asvtab.protein.plant.clr, center = TRUE, scale = FALSE)
+pca <- prcomp(ps.protein.plant.clr@otu_table@.Data, 
+              center = TRUE, 
+              scale = FALSE)
 
 pca.df <- 
         data.frame(pca$x) %>% 
@@ -333,21 +349,13 @@ ve.pc2 <- as.character(100*round(eigs[2] / sum(eigs), 3))
 
 # Add back sample data
 samdf <- 
-     data.frame(ps.protein@sam_data) %>% 
+     data.frame(ps.protein.plant@sam_data) %>% 
      rownames_to_column(var = 'well')
 
 pca.df <- left_join(pca.df, samdf)
 
 limit <- max(abs(pca.df[, c('PC1', 'PC2')])) +
           0.05*(max(abs(pca.df[, c('PC1', 'PC2')])))
-```
-
-```{r}
-# Define color palettes
-subj.colors <- 
-     palette.colors(n = 5, 
-                    palette = 'Okabe-Ito') %>% 
-     unname()
 ```
 
 ```{r}
@@ -361,17 +369,7 @@ pca.plot <-
           y = paste0(' PC2 (', ve.pc2, '%)')) +
      scale_color_manual(values = subj.colors) +
      xlim(-limit, limit) + ylim(-limit, limit) +
-     theme_classic() +
-     theme(axis.line = element_line(size = 1, color = 'gray'),
-           axis.ticks = element_line(color = 'gray'),
-           axis.title = element_text(size = 14, face = 'bold', color = 'gray'),
-           axis.text = element_blank(),
-           # plot.title = element_text(size = 14, face = 'bold'),
-           # legend.position = 'None',
-           legend.background = element_blank(),
-           legend.title = element_blank(),
-           legend.text = element_text(size = 10),
-           legend.position = 'bottom')
+     theme(panel.grid = element_blank())
 
 pca.plot
 ```
@@ -383,71 +381,51 @@ ggsave(here('results',
             'manuscript',
             '2',
             paste0(plotID, '_Plant metaproteomic ordination (Aitchison).pdf')),
-       height = 5, width = 5)
+       height = 4, width = 4)
 ```
 
 ```{r}
-samdf <- data.frame(ps.protein.clr@sam_data)
-vegan::adonis(distance(ps.protein.clr, method = 'euclidean') ~ subj, 
+samdf <- data.frame(ps.protein.plant@sam_data)
+vegan::adonis(distance(ps.protein.plant.clr, 
+                       method = 'euclidean') ~ subj, 
               data = samdf)
 ```
 
-#### PCoA on Jaccard
+##### PCoA on Jaccard
 
 ```{r}
-ord.protein <- 
-     ordinate(ps.protein,
+ord.protein.plant <- 
+     ordinate(ps.protein.plant,
               method = 'PCoA',
               distance = 'jaccard',
               binary = TRUE)
 ```
 
 ```{r}
-p <-  
-     plot_ordination(ps.protein,
-                     ord.protein,
+# Raw plot, to be re-done below
+plot_ordination(ps.protein.plant,
+                     ord.protein.plant,
                      type = 'samples',
-                     color = 'subj')
-p
+                     color = 'subj') +
+     scale_color_manual(values = subj.colors) 
 ```
 
-```{r}
-subj.colors <- 
-     palette.colors(n = 5,
-                    palette = 'Okabe-Ito') %>% 
-     unname()
-```
 
 ```{r}
 # Customize plot 
-data <- data.frame(ord.protein$vectors)
-samdf.protein <- data.frame(ps.protein@sam_data)
+data <- data.frame(ord.protein.plant$vectors)
+samdf.protein.plant <- data.frame(ps.protein.plant@sam_data)
 
-data <- bind_cols(data, samdf.protein)
+data <- bind_cols(data, samdf.protein.plant)
 
 ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
      geom_point(alpha = 0.8,
                 size = 3) +
-     labs(x = 'PCo1 (17.0%)',
-          y = 'PCo2 (12.4%)') +
+     labs(x = 'PCo1 (17.2%)',
+          y = 'PCo2 (14.3%)') +
      scale_color_manual(values = subj.colors) +
      coord_equal() +
-     theme_bw() +
-     theme(legend.title = element_blank()) +
-     theme(axis.text = element_text(size = 12,
-                                    face = 'bold',
-                                    color = 'gray80'), 
-           axis.title = element_text(size = 14,
-                                    face = 'bold',
-                                    color = 'gray80'), 
-           axis.ticks = element_line(size = 1, 
-                                     color = 'gray80'),
-           legend.text = element_text(size = 10,
-                                      face = 'bold',
-                                      color = 'gray40'),
-           panel.border = element_rect(size = 3,
-                                       color = 'gray80'),
-           panel.grid.major = element_blank())
+     theme(legend.title = element_blank())
 ```
 
 ```{r}
@@ -456,41 +434,33 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results',
             'manuscript',
             '2',
-            paste0(plotID, '_Metaproteomic ordination (Bray-Curtis).pdf')))
+            paste0(plotID, '_Metaproteomic ordination (Jaccard).pdf')))
 ```
 
 ```{r}
-vegan::adonis(distance(ps.protein, 
+vegan::adonis(distance(ps.protein.plant, 
                        method = 'jaccard',
                        binary = TRUE) ~ subj,
-              data = samdf.protein)
+              data = samdf.protein.plant)
 ```
 
-### Metabarcoding
+#### Metabarcoding
 
-#### PCA
+##### PCA
 
 ```{r}
-# CLR transform
-asvtab.mb.plant <- ps.mb.plant@otu_table@.Data 
-
-# asvtab[asvtab < 20] = 0
-asvtab.mb.plant.clr <- driver::clr(asvtab.mb.plant + 1) # pseudocount = 1
-
-# Replace names, but remember these aren't interpretable as strict ASVs any longer
-colnames(asvtab.mb.plant.clr) <- colnames(asvtab.mb.plant)
-
 # Make updated phyloseq object
-ps.mb.plant.clr <- phyloseq(otu_table(asvtab.mb.plant.clr, 
-                                      taxa_are_rows = FALSE),
-                   sample_data(sample_data(ps.mb.plant)),
-                   tax_table(tax_table(ps.mb.plant)))
+ps.mb.plant.clr <- 
+     microbiome::transform(ps.mb.plant,
+                           transform = 'clr',
+                           shift = 1)
 ```
-
 
 ```{r}
 # PCA
-pca <- prcomp(asvtab.mb.plant.clr, center = TRUE, scale = FALSE)
+pca <- prcomp(ps.mb.plant.clr@otu_table@.Data, 
+              center = TRUE, 
+              scale = FALSE)
 
 pca.df <- 
         data.frame(pca$x) %>% 
@@ -502,22 +472,14 @@ ve.pc1 <- as.character(100*round(eigs[1] / sum(eigs), 3))
 ve.pc2 <- as.character(100*round(eigs[2] / sum(eigs), 3))
 
 # Add back sample data
-samdf <- 
+samdf.mb.plant <- 
      data.frame(ps.mb.plant@sam_data) %>% 
      rownames_to_column(var = 'name')
 
-pca.df <- left_join(pca.df, samdf)
+pca.df <- left_join(pca.df, samdf.mb.plant)
 
 limit <- max(abs(pca.df[, c('PC1', 'PC2')])) +
           0.05*(max(abs(pca.df[, c('PC1', 'PC2')])))
-```
-
-```{r}
-# Define color palettes
-subj.colors <- 
-     palette.colors(n = 5, 
-                    palette = 'Okabe-Ito') %>% 
-     unname()
 ```
 
 ```{r}
@@ -531,17 +493,7 @@ pca.plot <-
           y = paste0(' PC2 (', ve.pc2, '%)')) +
      scale_color_manual(values = subj.colors) +
      xlim(-limit, limit) + ylim(-limit, limit) +
-     theme_classic() +
-     theme(axis.line = element_line(size = 1, color = 'gray'),
-           axis.ticks = element_line(color = 'gray'),
-           axis.title = element_text(size = 14, face = 'bold', color = 'gray'),
-           axis.text = element_blank(),
-           # plot.title = element_text(size = 14, face = 'bold'),
-           # legend.position = 'None',
-           legend.background = element_blank(),
-           legend.title = element_blank(),
-           legend.text = element_text(size = 10),
-           legend.position = 'bottom')
+     theme(panel.grid = element_blank())
 
 pca.plot
 ```
@@ -552,80 +504,50 @@ ggsave(here('results',
             'manuscript',
             '2',
             paste0(plotID, '_Plant metabarcoding ordination (Aitchison).pdf')),
-       height = 5, width = 5)
+       height = 4, width = 4)
 ```
 
 ```{r}
-samdf <- data.frame(ps.mb.plant.clr@sam_data)
 vegan::adonis(distance(ps.mb.plant.clr, method = 'euclidean') ~ subj, 
-              data = samdf)
+              data = samdf.mb.plant)
 ```
 
-#### PCoA on distances
+##### PCoA on Jaccard
 
 ```{r}
-# Convert to relative abundances
-ps.mb.plant <- 
-     transform_sample_counts(ps.mb.plant,
-                             function(x){x/sum(x)})
-```
-
-
-```{r}
-ord.mb <- 
-     ordinate(ps.mb.plant.clr,
+ord.mb.plant <- 
+     ps.mb.plant %>% 
+     # Need to remove samples w/ 0 counts, error otherwise
+     prune_samples(sample_sums(.) > 0, .) %>% 
+     ordinate(.,
               method = 'PCoA',
-              # distance = 'jaccard',
-              # binary = TRUE)
-              distance = 'bray')
+              distance = 'jaccard',
+              binary = TRUE)
 ```
 
 ```{r}
-p <-  
-     plot_ordination(ps.mb,
-                     ord.mb,
-                     type = 'samples',
-                     color = 'subj')
-p
-```
-
-```{r}
-subj.colors <- 
-     palette.colors(n = 5,
-                    palette = 'Okabe-Ito') %>% 
-     unname()
+plot_ordination(ps.mb.plant,
+                ord.mb.plant,
+                type = 'samples',
+                color = 'subj')
 ```
 
 ```{r}
 # Customize plot 
-data <- data.frame(ord.mb$vectors)
-samdf.mb <- data.frame(ps.mb.plant@sam_data)
+data <- 
+     data.frame(ord.mb.plant$vectors) %>% 
+     rownames_to_column(var = 'name')
 
-data <- bind_cols(data, samdf.mb)
+data <- left_join(data, samdf.mb.plant)
 
 ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
      geom_point(alpha = 0.8,
                 size = 3) +
-     labs(x = 'PCo1 (26.1%)', 
-          y = 'PCo2 (15.3%)') +
+     labs(x = 'PCo1 (21.8%)', 
+          y = 'PCo2 (12.7%)') +
      scale_color_manual(values = subj.colors) +
      coord_equal() +
-     theme_bw() +
-     theme(legend.title = element_blank()) +
-     theme(axis.text = element_text(size = 12,
-                                    face = 'bold',
-                                    color = 'gray80'), 
-           axis.title = element_text(size = 14,
-                                    face = 'bold',
-                                    color = 'gray80'), 
-           axis.ticks = element_line(size = 1, 
-                                     color = 'gray80'),
-           legend.text = element_text(size = 10,
-                                      face = 'bold',
-                                      color = 'gray40'),
-           panel.border = element_rect(size = 3,
-                                       color = 'gray80'),
-           panel.grid.major = element_blank())
+     theme(panel.grid = element_blank())
 ```
 
 ```{r}
@@ -634,14 +556,49 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results',
             'manuscript',
             '2',
-            paste0(plotID, '_Metabarcoding ordination (Bray-Curtis).pdf')))
+            paste0(plotID, '_Plant metabarcoding ordination (Jaccard).pdf')))
 ```
 
 ```{r}
-samdf.mb.plant <- data.frame(ps.mb.plant@sam_data)
+ps.mb.plant.nonzero <- 
+     ps.mb.plant %>% 
+     prune_samples(sample_sums(.) > 0, .) 
 
-vegan::adonis(distance(ps.mb.plant, method = 'bray') ~ subj,
-              data = samdf.mb.plant)
+samdf.mb.plant.nonzero <- 
+     data.frame(ps.mb.plant.nonzero@sam_data)
+
+vegan::adonis(distance(ps.mb.plant.nonzero, 
+                       method = 'jaccard',
+                       binary = TRUE) ~ subj,
+              data = samdf.mb.plant.nonzero)
+```
+
+### Mantel tests:
+
+#### Aitchison
+```{r}
+# trnL vs plant proteins
+# Subset to only sequenced samples
+
+samples <- intersect(sample_names(ps.protein.plant),
+                     sample_names(ps.mb.plant.nonzero))
+
+asvtab.mb.plant <- ps.mb.plant.clr@otu_table@.Data[samples, ]
+asvtab.protein.plant <- ps.protein.plant.clr@otu_table@.Data[samples, ]
+
+vegan::mantel(dist(asvtab.mb.plant),
+              dist(asvtab.protein.plant))
+```
+
+##### Jaccard
+
+```{r}
+vegan::mantel(distance(prune_samples(samples, ps.mb.plant),
+                       method = 'jaccard',
+                       binary = TRUE),
+              distance(prune_samples(samples, ps.protein.plant),
+                       method = 'jaccard',
+                       binary = TRUE))
 ```
 
 ### Menu
