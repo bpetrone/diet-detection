@@ -381,6 +381,7 @@ ggsave(here('results',
             'manuscript',
             '2',
             paste0(plotID, '_Plant metaproteomic ordination (Aitchison).pdf')),
+       device = cairo_pdf,
        height = 4, width = 4)
 ```
 
@@ -425,7 +426,8 @@ ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
           y = 'PCo2 (14.3%)') +
      scale_color_manual(values = subj.colors) +
      coord_equal() +
-     theme(legend.title = element_blank())
+     theme(legend.title = element_blank(),
+           panel.grid = element_blank())
 ```
 
 ```{r}
@@ -434,7 +436,9 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results',
             'manuscript',
             '2',
-            paste0(plotID, '_Metaproteomic ordination (Jaccard).pdf')))
+            paste0(plotID, '_Plant metaproteomic ordination (Jaccard).pdf')),
+       device = cairo_pdf,
+       height = 4, width = 4)
 ```
 
 ```{r}
@@ -504,6 +508,7 @@ ggsave(here('results',
             'manuscript',
             '2',
             paste0(plotID, '_Plant metabarcoding ordination (Aitchison).pdf')),
+       device = cairo_pdf,
        height = 4, width = 4)
 ```
 
@@ -556,7 +561,9 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results',
             'manuscript',
             '2',
-            paste0(plotID, '_Plant metabarcoding ordination (Jaccard).pdf')))
+            paste0(plotID, '_Plant metabarcoding ordination (Jaccard).pdf')),
+       device = cairo_pdf,
+       height = 4, width = 4)
 ```
 
 ```{r}
@@ -586,8 +593,15 @@ samples <- intersect(sample_names(ps.protein.plant),
 asvtab.mb.plant <- ps.mb.plant.clr@otu_table@.Data[samples, ]
 asvtab.protein.plant <- ps.protein.plant.clr@otu_table@.Data[samples, ]
 
+samples.strata <- 
+     samples %>% 
+     gsub(pattern = '_.*$', 
+          replacement = '') %>% 
+     factor()
+
 vegan::mantel(dist(asvtab.mb.plant),
-              dist(asvtab.protein.plant))
+              dist(asvtab.protein.plant),
+              strata = samples.strata)
 ```
 
 ##### Jaccard
@@ -598,7 +612,8 @@ vegan::mantel(distance(prune_samples(samples, ps.mb.plant),
                        binary = TRUE),
               distance(prune_samples(samples, ps.protein.plant),
                        method = 'jaccard',
-                       binary = TRUE))
+                       binary = TRUE),
+              strata = samples.strata)
 ```
 
 ### Menu
