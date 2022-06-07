@@ -505,6 +505,7 @@ samdf <-
 ## OTU table
 
 ```{r }
+# Species
 psm.counts.wide <-
      proteins.df %>%
      mutate(sample = paste(subj, 
@@ -517,6 +518,21 @@ psm.counts.wide <-
                  values_from = abundance, # Total # PSMs
                  values_fill = 0) %>% # If no entry, log as 0
      column_to_rownames(var = 'sample')
+```
+
+```{r}
+# Proteins
+# psm.counts.wide <-
+#      proteins.df %>%
+#      mutate(sample = paste(subj, 
+#                            date, 
+#                            sep = '_')) %>% # Create unique label
+#      group_by(sample, Accession) %>%
+#      summarize(abundance = sum(`# PSMs`)) %>% 
+#      pivot_wider(names_from = Accession,
+#                  values_from = abundance, # Total # PSMs
+#                  values_fill = 0) %>% # If no entry, log as 0
+#      column_to_rownames(var = 'sample')
 ```
 
 ## Taxonomy table
@@ -608,6 +624,17 @@ taxtab.protein <-
      column_to_rownames(var = 'name')
 ```
 
+```{r}
+# If preserving protein ID: join to accession
+# taxtab.protein <- 
+#      proteins.df %>% 
+#      select(Accession, name = scientific_name) %>% 
+#      distinct() %>% 
+#      left_join(rownames_to_column(taxtab.protein, var = 'name')) %>% 
+#      select(-name) %>% 
+#      column_to_rownames(var = 'Accession')
+```
+
 ```{r }
 # Check everything matches
 setdiff(names(psm.counts.wide), row.names(taxtab.protein))
@@ -622,10 +649,9 @@ ps.protein <- phyloseq(otu_table(psm.counts.wide, taxa_are_rows = FALSE),
 
 ps.protein
 
-# saveRDS(ps.protein,
-#         here('data', 
-#              'processed', 
-#              'phyloseq',
-#              '20220524_ps_mp.rds'))
+saveRDS(ps.protein,
+        here('data',
+             'processed',
+             'phyloseq',
+             '20220607_ps_mp.rds'))
 ```
-
