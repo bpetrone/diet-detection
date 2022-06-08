@@ -12,6 +12,7 @@ knitr::opts_knit$set(root.dir = file.path(getwd(), '..'))
 
 ```{r}
 library(Biostrings)
+library(eulerr) # For Euler plots
 library(here)
 library(phyloseq)
 library(tidyverse)
@@ -335,6 +336,14 @@ for (delta in 1:2){
 # Replace in phyloseq object
 sample_data(ps.mb.animal) <- column_to_rownames(samdf.mb.animal, var = 'row')
 ```
+
+### Rename
+
+```{r}
+taxa_names(ps.mb.plant) <- tax_table(ps.mb.plant)[, 'name']
+taxa_names(ps.mb.animal) <- tax_table(ps.mb.animal)[, 'name']
+```
+
 
 ## Metaproteomic phyloseq
 
@@ -820,29 +829,54 @@ melt.mb.animal %>%
 What species are shared between metaproteomic, metabarcoding, and (day before sample) menu datasets?
 
 ```{r}
+# Plants
 # Get union of taxa detected in the two analyses
-all <- 
-     union(taxa_names(ps.mb),
-           taxa_names(ps.protein)) %>% 
-     union(taxa_names(ps.menu)) # All taxa
-     # union(taxa.menu.mtwr) # Mon-Thurs menus only
+all.plants <- 
+     union(taxa_names(ps.mb.plant),
+           taxa_names(ps.protein.plant)) %>% 
+     union(taxa_names(ps.menu.plant)) 
 
-length(all)
+length(all.plants)
+```
+
+```{r}
+# Animals
+all.animals <- 
+     union(taxa_names(ps.mb.animal),
+           taxa_names(ps.protein.animal)) %>% 
+     union(taxa_names(ps.menu.animal)) 
+
+length(all.animals)
 ```
 
 ```{r}
 # Make dataframe for plot input
-plot.df <- 
-     data.frame(taxon = all) %>% 
-     mutate(dna = taxon %in% taxa_names(ps.mb),
-            protein = taxon %in% taxa_names(ps.protein),
-            menu = taxon %in% taxa_names(ps.menu))
-            # menu = taxon %in% taxa.menu.mtwr)
+# Plants
+plant.df <- 
+     data.frame(taxon = all.plants) %>% 
+     mutate(dna = taxon %in% taxa_names(ps.mb.plant),
+            protein = taxon %in% taxa_names(ps.protein.plant),
+            menu = taxon %in% taxa_names(ps.menu.plant))
 
 # Quick checks
-sum(plot.df$dna) # Should be 78
-sum(plot.df$protein) # Should be 158
-sum(plot.df$menu) # Should be 151 (133 if Mon-Thurs only)
+sum(plant.df$dna) # Should be 82
+sum(plant.df$protein) # Should be 83
+sum(plant.df$menu) # Should be 111
+```
+
+```{r}
+# Make dataframe for plot input
+# Animals
+animal.df <- 
+     data.frame(taxon = all.animals) %>% 
+     mutate(dna = taxon %in% taxa_names(ps.mb.animal),
+            protein = taxon %in% taxa_names(ps.protein.animal),
+            menu = taxon %in% taxa_names(ps.menu.animal))
+
+# Quick checks
+sum(animal.df$dna) # Should be 11
+sum(animal.df$protein) # Should be 28
+sum(animal.df$menu) # Should be 19
 ```
 
 ```{r}
@@ -852,7 +886,7 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 #          paste0(plotID, '_Taxa Euler diagram across methods, with counts, only M-R menu.pdf')),
 #     height = 4, width = 4)
 
-euler(plot.df[,c('dna', 'protein', 'menu')]) %>% 
+euler(plant.df[,c('dna', 'protein', 'menu')]) %>% 
      plot(
           # fills = c('firebrick3', 'steelblue4', 'goldenrod2'),
           fills = c('#b66353', '#849db1', '#d7ce9f'),
@@ -861,6 +895,24 @@ euler(plot.df[,c('dna', 'protein', 'menu')]) %>%
           quantities = TRUE
           )
 ```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+# pdf(here('results',
+#          'QC',
+#          paste0(plotID, '_Taxa Euler diagram across methods, with counts, only M-R menu.pdf')),
+#     height = 4, width = 4)
+
+euler(animal.df[,c('dna', 'protein', 'menu')]) %>% 
+     plot(
+          # fills = c('firebrick3', 'steelblue4', 'goldenrod2'),
+          fills = c('#b66353', '#849db1', '#d7ce9f'),
+          labels = TRUE,
+          shape = "ellipse", 
+          quantities = TRUE
+          )
+```
+
 
 ### Differences by dataset
 
