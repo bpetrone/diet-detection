@@ -51,7 +51,8 @@ ps.protein <-
           'processed', 
           'phyloseq',
           'combined',
-          'ps_mp.rds') %>% # 1UP
+          'ps_mp (all proteins).rds') %>% # 1UP
+          # 'ps_mp.rds') %>% # 1UP
      readRDS() 
 
 ps.protein
@@ -104,16 +105,18 @@ ps.mb.plant
 ## Metaproteomic phyloseq
 
 ```{r}
-# Impose >= 5 PSM/taxon filter
-asvtab.protein <- otu_table(ps.protein)@.Data
-sum(asvtab.protein)
+## Do not apply this filter for protein level analysis
 
-asvtab.protein[asvtab.protein < 5] <- 0
-sum(asvtab.protein)
-
-# Replace in phyloseq object
-otu_table(ps.protein) <- otu_table(asvtab.protein,
-                                   taxa_are_rows = FALSE)
+# # Impose >= 5 PSM/taxon filter
+# asvtab.protein <- otu_table(ps.protein)@.Data
+# sum(asvtab.protein)
+# 
+# asvtab.protein[asvtab.protein < 5] <- 0
+# sum(asvtab.protein)
+# 
+# # Replace in phyloseq object
+# otu_table(ps.protein) <- otu_table(asvtab.protein,
+#                                    taxa_are_rows = FALSE)
 ```
 
 ### Add lag day
@@ -250,28 +253,19 @@ for (delta in 1:2){
 sample_data(ps.mb.animal) <- column_to_rownames(samdf.mb.animal, var = 'row')
 ```
 
+### Remove failed samples
+
+```{r}
+min(sample_sums(ps.mb.plant)) 
+min(sample_sums(ps.mb.animal))
+```
+
+```{r}
+ps.mb.plant <- prune_samples(sample_sums(ps.mb.plant) > 0, ps.mb.plant)
+ps.mb.plant
+```
+
 ## Menu phyloseq
-
-Here, what should I plot? Aggregated menu from 1-2 d before intake (to be consistent w/downstream results?)
-
-Why don't I just start with one day before and see how it goes.
-
-### Subset to lag = -1
-
-```{r}
-nsamples(ps.menu)
-```
-
-```{r}
-ps.menu <- 
-     ps.menu %>% 
-     prune_samples(sample_names(.) %in% c(sample_data(ps.mb.plant)$delta1,
-                                         sample_data(ps.protein.plant)$delta1),
-                   .) %>% 
-     prune_taxa(taxa_sums(.) > 0, .)
-
-ps.menu
-```
 
 ### Separate by kingdom
 
@@ -308,8 +302,42 @@ ps.menu.other
 ps.menu.other@tax_table@.Data %>% 
      data.frame()
 ```
-
 Xanthan gum, mix of mushrooms.
+
+Here, what should I plot? Aggregated menu from 1-2 d before intake (to be consistent w/downstream results?)
+
+Why don't I just start with one day before and see how it goes.
+
+### Subset to lag = -1
+
+```{r}
+nsamples(ps.menu.plant)
+nsamples(ps.menu.animal)
+```
+
+```{r}
+ps.menu.plant <- 
+     ps.menu.plant %>% 
+     prune_samples(sample_names(.) %in% intersect(
+          sample_data(ps.mb.plant)$delta1,
+          sample_data(ps.protein.plant)$delta1),
+                   .) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+
+ps.menu.plant
+```
+
+```{r}
+ps.menu.animal <- 
+     ps.menu.animal %>% 
+     prune_samples(sample_names(.) %in% intersect(
+          sample_data(ps.mb.animal)$delta1,
+          sample_data(ps.protein.animal)$delta1),
+                   .) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+
+ps.menu.animal
+```
 
 # Analyze
 
@@ -853,12 +881,12 @@ samples.strata <-
      factor()
 
 vegan::mantel(dist(asvtab.mb.plant),
-              dist(asvtab.protein.plant),
-              strata = samples.strata)
+              dist(asvtab.protein.plant))
+              # strata = samples.strata)
 ```
 
 ```{r}
-# trnL vs plant proteins
+# 12SV5 vs animal proteins
 # Subset to only sequenced samples
 
 samples <- intersect(sample_names(ps.protein.animal),
@@ -880,12 +908,25 @@ vegan::mantel(dist(asvtab.mb.animal),
 ##### Jaccard
 
 ```{r}
-vegan::mantel(distance(prune_samples(samples, ps.mb.animal),
+vegan::mantel(distance(prune_samples(samples, ps.mb.plant),
                        method = 'jaccard',
                        binary = TRUE),
-              distance(prune_samples(samples, ps.protein.animal),
+              distance(prune_samples(samples, ps.protein.plant),
                        method = 'jaccard',
                        binary = TRUE))
+```
+
+```{r}
+vegan::mantel(distance(
+     prune_samples(
+          sample_names(ps.protein.animal),
+          ps.mb.animal
+     ),
+     method = 'jaccard',
+     binary = TRUE),
+     distance(ps.protein.animal,
+              method = 'jaccard',
+              binary = TRUE))
 ```
 
 ## Consecutive days
@@ -976,10 +1017,10 @@ ggplot(dist.protein.plant, aes(x = delta,
 
 ```{r}
 # Plot
-ggplot(dist.protein.plant, aes(x = delta, 
+ggplot(dist.protein.plant, aes(x = delta > 1, 
                                y = distance,
-                               group = delta,
-                               by = delta)) +
+                               group = delta > 1,
+                               by = delta > 1)) +
      geom_point() +
      facet_wrap(~subj)
 ```
@@ -1036,19 +1077,10 @@ dist.protein.animal
 ```
 ```{r}
 # Plot
-ggplot(dist.protein.animal, aes(x = delta, 
+ggplot(dist.protein.animal, aes(x = delta > 1, 
                           y = distance,
-                          group = delta,
-                          by = delta)) +
-     geom_boxplot()
-```
-
-```{r}
-# Plot
-ggplot(dist.protein.animal, aes(x = delta, 
-                                y = distance,
-                                group = delta,
-                                by = delta)) +
+                          group = delta > 1,
+                          by = delta > 1)) +
      geom_point() +
      facet_wrap(~subj)
 ```
@@ -1117,12 +1149,22 @@ ggplot(dist.mb.plant, aes(x = delta,
      geom_boxplot()
 ```
 
+
 ```{r}
 # Plot
-ggplot(dist.mb.plant, aes(x = delta, 
+ggplot(dist.mb.plant, aes(x = delta > 1, 
                           y = distance,
-                          group = delta,
-                          by = delta)) +
+                          group = delta > 1,
+                          by = delta > 1)) +
+     geom_boxplot()
+```
+
+```{r}
+# Plot
+ggplot(dist.mb.plant, aes(x = delta > 1, 
+                          y = distance,
+                          group = delta > 1,
+                          by = delta > 1)) +
      geom_point() +
      facet_wrap(~subj)
 ```
@@ -1189,10 +1231,10 @@ ggplot(dist.mb.animal, aes(x = delta,
 
 ```{r}
 # Plot
-ggplot(dist.mb.animal, aes(x = delta, 
+ggplot(dist.mb.animal, aes(x = delta > 1, 
                           y = distance,
-                          group = delta,
-                          by = delta)) +
+                          group = delta > 1,
+                          by = delta > 1)) +
      geom_point() +
      facet_wrap(~subj)
 ```
@@ -1281,32 +1323,3 @@ vegan::adonis(distance(ps.menu.plant,
                        binary = TRUE) ~ subj,
               data = samdf.menu)
 ```
-
-### Mantel test on differences
-
-```{r}
-# Need to do only on shared samples
-# Think this is okay to subset, because should be subcompositionally coherent?
-
-samples <- intersect(sample_names(ps.protein.plant.clr),
-                     sample_names(ps.mb.plant.clr))
-
-ps.protein.plant.clr <- 
-     prune_samples(samples, ps.protein.plant.clr)
-
-ps.mb.plant.clr <- 
-     prune_samples(samples, ps.mb.plant.clr)
-```
-
-```{r}
-d.protein <- distance(ps.protein.plant.clr,
-                      method = 'euclidean')
-
-d.dna <- distance(ps.mb.plant.clr,
-                  method = 'euclidean')
-```
-
-```{r}
-vegan::mantel(d.protein, d.dna)
-```
-
