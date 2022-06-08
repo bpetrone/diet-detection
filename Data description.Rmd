@@ -432,6 +432,28 @@ A few fungi, seaweeds (Rhodophyta), spirulina.  Might be fun to do an independen
 
 ## Menu phyloseq
 
+Here, what should I plot? Aggregated menu from 1-2 d before intake (to be consistent w/downstream results?)
+
+Why don't I just start with one day before and see how it goes.
+
+### Subset to lag = -1
+
+```{r}
+nsamples(ps.menu)
+```
+
+```{r}
+ps.menu <- 
+     ps.menu %>% 
+     # Use all possible samples here, rather than filtering for only successes
+     # This occurs in either metabarcoding object (full 27), not yet filtered for success
+     prune_samples(sample_names(.) %in% sample_data(ps.mb.animal)$delta1,
+                   .) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+
+ps.menu
+```
+
 ### Separate by kingdom
 
 ```{r}
@@ -469,54 +491,19 @@ ps.menu.other@tax_table@.Data %>%
 ```
 Xanthan gum, mix of mushrooms.
 
-Here, what should I plot? Aggregated menu from 1-2 d before intake (to be consistent w/downstream results?)
-
-Why don't I just start with one day before and see how it goes.
-
-### Subset to lag = -1
-
-```{r}
-nsamples(ps.menu.plant)
-nsamples(ps.menu.animal)
-```
-
-```{r}
-ps.menu.plant <- 
-     ps.menu.plant %>% 
-     prune_samples(sample_names(.) %in% intersect(
-          sample_data(ps.mb.plant)$delta1,
-          sample_data(ps.protein.plant)$delta1),
-                   .) %>% 
-     prune_taxa(taxa_sums(.) > 0, .)
-
-ps.menu.plant
-```
-
-```{r}
-ps.menu.animal <- 
-     ps.menu.animal %>% 
-     prune_samples(sample_names(.) %in% intersect(
-          sample_data(ps.mb.animal)$delta1,
-          sample_data(ps.protein.animal)$delta1),
-                   .) %>% 
-     prune_taxa(taxa_sums(.) > 0, .)
-
-ps.menu.animal
-```
-
 # Describe
 
 ```{r}
-melt.mp <- psmelt(ps.mp)
-melt.trnL <- psmelt(ps.trnL)
-melt.12SV5 <- psmelt(ps.12SV5)
+melt.mp <- psmelt(ps.protein)
+melt.mb.plant <- psmelt(ps.mb.plant)
+melt.mb.animal <- psmelt(ps.mb.animal)
 ```
 
 ## Success-failure
 
 ```{r}
 # Metabarcoding: trnL
-melt.trnL %>% 
+melt.mb.plant %>% 
      group_by(Sample) %>% 
      summarize(reads_tot = sum(Abundance)) %>% 
      group_by(reads_tot > 0) %>% 
@@ -525,7 +512,7 @@ melt.trnL %>%
 
 ```{r}
 # Metabarcoding: 12SV5
-melt.12SV5 %>% 
+melt.mb.animal %>% 
      group_by(Sample) %>% 
      summarize(reads_tot = sum(Abundance)) %>% 
      group_by(reads_tot > 0) %>% 
@@ -586,7 +573,7 @@ melt.mp %>%
 #### trnL
 
 ```{r}
-melt.trnL %>% 
+melt.mb.plant %>% 
      group_by(Sample, study) %>% 
      summarize(reads_tot = sum(Abundance)) %>% 
      filter(reads_tot > 0) %>% 
@@ -616,7 +603,7 @@ ggsave(here('results',
 ```
 
 ```{r}
-melt.trnL %>% 
+melt.mb.plant %>% 
      group_by(Sample) %>% 
      summarize(reads_tot = sum(Abundance)) %>% 
      filter(reads_tot > 0) %>% 
@@ -626,7 +613,7 @@ melt.trnL %>%
 #### 12SV5
 
 ```{r}
-melt.12SV5 %>% 
+melt.mb.animal %>% 
      group_by(Sample, study) %>% 
      summarize(reads_tot = sum(Abundance)) %>% 
      filter(reads_tot > 0) %>% 
@@ -657,7 +644,7 @@ ggsave(here('results',
 ```
 
 ```{r}
-melt.12SV5 %>% 
+melt.mb.animal %>% 
      group_by(Sample) %>% 
      summarize(reads_tot = sum(Abundance)) %>% 
      filter(reads_tot > 0) %>% 
@@ -748,7 +735,7 @@ n_distinct(ref.trnL$name)
 ### Metaproteomics
 
 ```{r}
-ntaxa(ps.mp)
+ntaxa(ps.protein)
 ```
 
 What about number of unique dietary peptides?  Use intermediate processing stage of data for this (saved in "Metaproteomic phyloseq" notebook):
@@ -785,16 +772,17 @@ melt.mp %>%
      summarize(abundance = sum(Abundance)) %>% 
      arrange(desc(abundance))
 ```
+
 ### Metabarcoding
 
 ```{r}
 # trnL
-ps.trnL
+ps.mb.plant
 ```
 
 ```{r}
 # Most prevalent foods
-melt.trnL %>% 
+melt.mb.plant %>% 
      group_by(Sample, name) %>% 
      summarize(prevalence_within = sum(Abundance > 0)) %>% 
      # Now group by just food, get across-sample prevalence
@@ -805,19 +793,20 @@ melt.trnL %>%
 
 ```{r}
 # Most abundant foods
-melt.trnL %>% 
+melt.mb.plant %>% 
      group_by(name) %>% 
      summarize(abundance = sum(Abundance)) %>% 
      arrange(desc(abundance))
 ```
+
 ```{r}
 # 12SV5
-ps.12SV5
+ps.mb.animal
 ```
 
 ```{r}
 # Most prevalent foods
-melt.12SV5 %>% 
+melt.mb.animal %>% 
      group_by(Sample, name) %>% 
      summarize(prevalence_within = sum(Abundance > 0)) %>% 
      # Now group by just food, get across-sample prevalence
@@ -826,36 +815,9 @@ melt.12SV5 %>%
      arrange(desc(prevalence_across))
 ```
 
-### Menu
+### Intersection
 
-```{r}
-asvtab.protein <- otu_table(ps.protein)@.Data
-asvtab.mb <- otu_table(ps.mb)@.Data
-asvtab.menu <- otu_table(ps.menu)@.Data
-```
-
-What species are shared between metaproteomic, metabarcoding, and menu datasets?
-
-### Euler plot
-
-Note that for menu data, perhaps best not to include the full range as this might include taxa we'd never expect to see in samples.  
-
-```{r}
-# Get only those taxa in Mon-Thu menu
-taxa.menu.mtwr <- 
-     ps.menu %>% 
-     subset_samples(day %in% c('Monday',
-                       'Tuesday',
-                       'Wednesday',
-                       'Thursday')) %>% 
-     prune_taxa(taxa_sums(.) > 0, .) %>% 
-     taxa_names()
-```
-
-```{r}
-# How many taxa does this remove?
-ntaxa(ps.menu) - length(taxa.menu.mtwr)
-```
+What species are shared between metaproteomic, metabarcoding, and (day before sample) menu datasets?
 
 ```{r}
 # Get union of taxa detected in the two analyses
