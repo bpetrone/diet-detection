@@ -450,8 +450,8 @@ data <- bind_cols(data, samdf.protein.plant)
 ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
      geom_point(alpha = 0.8,
                 size = 3) +
-     labs(x = 'PCo1 (17.2%)',
-          y = 'PCo2 (14.3%)') +
+     labs(x = 'PCo1 (8.9%)',
+          y = 'PCo2 (6%)') +
      scale_color_manual(values = subj.colors) +
      coord_equal() +
      theme(legend.title = element_blank(),
@@ -464,7 +464,7 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results',
             'manuscript',
             '2',
-            paste0(plotID, '_Plant metaproteomic ordination (Jaccard).pdf')),
+            paste0(plotID, '_Plant metaproteomic ordination, all proteins (Jaccard).pdf')),
        device = cairo_pdf,
        height = 4, width = 4)
 ```
@@ -550,8 +550,6 @@ vegan::adonis(distance(ps.mb.plant.clr, method = 'euclidean') ~ subj,
 ```{r}
 ord.mb.plant <- 
      ps.mb.plant %>% 
-     # Need to remove samples w/ 0 counts, error otherwise
-     prune_samples(sample_sums(.) > 0, .) %>% 
      ordinate(.,
               method = 'PCoA',
               distance = 'jaccard',
@@ -712,8 +710,8 @@ data <- bind_cols(data, samdf.protein.animal)
 ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
      geom_point(alpha = 0.8,
                 size = 3) +
-     labs(x = 'PCo1 (28.8%)',
-          y = 'PCo2 (24.9%)') +
+     labs(x = 'PCo1 (8.6%)',
+          y = 'PCo2 (7%)') +
      scale_color_manual(values = subj.colors) +
      coord_equal() +
      theme(legend.title = element_blank(),
@@ -865,32 +863,65 @@ vegan::adonis(distance(ps.mb.animal,
 
 #### Aitchison
 ```{r}
+set.seed(1234)
 # trnL vs plant proteins
 # Subset to only sequenced samples
 
 samples <- intersect(sample_names(ps.protein.plant),
-                     sample_names(ps.mb.plant.nonzero))
+                     sample_names(ps.mb.plant))
 
 asvtab.mb.plant <- ps.mb.plant.clr@otu_table@.Data[samples, ]
 asvtab.protein.plant <- ps.protein.plant.clr@otu_table@.Data[samples, ]
 
-samples.strata <- 
-     samples %>% 
-     gsub(pattern = '_.*$', 
-          replacement = '') %>% 
-     factor()
+# Does this Mantel need a strata argument?
+# samples.strata <- 
+#      samples %>% 
+#      gsub(pattern = '_.*$', 
+#           replacement = '') %>% 
+#      factor()
 
 vegan::mantel(dist(asvtab.mb.plant),
               dist(asvtab.protein.plant))
               # strata = samples.strata)
 ```
 
+This is surprising, esp based on the appearance of the ordination.  What about instead trying on distances between PCA-transformed points?
+
 ```{r}
+set.seed(1234)
+# trnL vs plant proteins
+# Subset to only sequenced samples
+
+samples.plant <- intersect(sample_names(ps.protein.plant),
+                           sample_names(ps.mb.plant))
+
+pca.mb.plant <- 
+     prcomp(ps.mb.plant.clr@otu_table@.Data[samples.plant, ],
+            center = TRUE, 
+            scale = FALSE)
+
+pca.protein.plant <- 
+     prcomp(ps.protein.plant.clr@otu_table@.Data[samples.plant, ],
+            center = TRUE,
+            scale = FALSE)
+
+# samples.strata <- 
+#      samples.plant %>% 
+#      gsub(pattern = '_.*$', 
+#           replacement = '') %>% 
+#      factor()
+
+vegan::mantel(dist(pca.mb.plant$x[,1:2]),
+              dist(pca.protein.plant$x[,1:2]))
+```
+
+```{r}
+set.seed(1234)
 # 12SV5 vs animal proteins
 # Subset to only sequenced samples
 
-samples <- intersect(sample_names(ps.protein.animal),
-                     sample_names(ps.mb.animal))
+samples.animal <- intersect(sample_names(ps.protein.animal),
+                            sample_names(ps.mb.animal))
 
 asvtab.mb.animal <- ps.mb.animal.clr@otu_table@.Data[samples, ]
 asvtab.protein.animal <- ps.protein.animal.clr@otu_table@.Data[samples, ]
@@ -905,28 +936,68 @@ vegan::mantel(dist(asvtab.mb.animal),
               dist(asvtab.protein.animal))
 ```
 
-##### Jaccard
+```{r}
+set.seed(1234)
+# 12SV5 vs animal proteins
+# Subset to only sequenced samples
+
+samples.animal <- intersect(sample_names(ps.protein.animal),
+                            sample_names(ps.mb.animal))
+
+pca.mb.animal <- 
+     prcomp(ps.mb.animal.clr@otu_table@.Data[samples.animal, ],
+            center = TRUE, 
+            scale = FALSE)
+
+pca.protein.animal <- 
+     prcomp(ps.protein.animal.clr@otu_table@.Data[samples.animal, ],
+            center = TRUE,
+            scale = FALSE)
+
+vegan::mantel(dist(pca.mb.animal$x[,1:2]),
+              dist(pca.protein.animal$x[,1:2]))
+```
+
+
+#### Jaccard
 
 ```{r}
-vegan::mantel(distance(prune_samples(samples, ps.mb.plant),
+set.seed(1234)
+vegan::mantel(distance(prune_samples(samples.plant, ps.mb.plant),
                        method = 'jaccard',
                        binary = TRUE),
-              distance(prune_samples(samples, ps.protein.plant),
+              distance(prune_samples(samples.plant, ps.protein.plant),
                        method = 'jaccard',
                        binary = TRUE))
 ```
 
 ```{r}
-vegan::mantel(distance(
-     prune_samples(
-          sample_names(ps.protein.animal),
-          ps.mb.animal
-     ),
-     method = 'jaccard',
-     binary = TRUE),
-     distance(ps.protein.animal,
-              method = 'jaccard',
-              binary = TRUE))
+set.seed(1234)
+
+vegan::mantel(dist(ord.mb.plant$vectors[samples.plant, 1:2]),
+              dist(ord.protein.plant$vectors[samples.plant, 1:2])
+)
+```
+
+```{r}
+vegan::mantel(
+     distance(
+          prune_samples(samples.animal,
+                        ps.mb.animal),
+          method = 'jaccard',
+          binary = TRUE),
+     distance(
+          ps.protein.animal,
+          method = 'jaccard',
+          binary = TRUE))
+```
+
+```{r}
+set.seed(1234)
+
+vegan::mantel(dist(ord.mb.animal$vectors[samples.animal, 1:2]),
+              dist(ord.protein.animal$vectors[samples.animal, 1:2])
+)
 ```
 
 ## Consecutive days
@@ -937,15 +1008,8 @@ Here can work only with Aitchison because it's what I've selected based on resul
 #### Plant
 
 ```{r}
-pca.protein.plant <- 
-     prcomp(ps.protein.plant.clr@otu_table@.Data,
-            center = TRUE,
-            scale = FALSE)
-```
-
-```{r}
 dist.protein.plant <- 
-     data.frame(pca.protein.plant$x) %>% 
+     ord.protein.plant$vectors %>% 
      dist() %>% 
      as.matrix() %>% 
      data.frame() %>% 
@@ -1028,15 +1092,8 @@ ggplot(dist.protein.plant, aes(x = delta > 1,
 #### Animal
 
 ```{r}
-pca.protein.animal <- 
-     ps.protein.animal.clr@otu_table@.Data %>% 
-     prcomp(center = TRUE,
-            scale = FALSE)
-```
-
-```{r}
 dist.protein.animal <- 
-     data.frame(pca.protein.animal$x) %>% 
+     data.frame(ord.protein.animal$vectors) %>% 
      dist() %>% 
      as.matrix() %>% 
      data.frame() %>% 
@@ -1089,18 +1146,8 @@ ggplot(dist.protein.animal, aes(x = delta > 1,
 #### Plant
 
 ```{r}
-pca.mb.plant <- 
-     ps.mb.plant.clr %>% 
-     subset_samples(reads_trnL > 0) %>% 
-     otu_table() %>% 
-     as.matrix() %>% 
-     prcomp(center = TRUE,
-            scale = FALSE)
-```
-
-```{r}
 dist.mb.plant <- 
-     data.frame(pca.mb.plant$x) %>% 
+     data.frame(ord.mb.plant$vectors) %>% 
      dist() %>% 
      as.matrix() %>% 
      data.frame() %>% 
@@ -1139,26 +1186,6 @@ dist.mb.plant <-
 
 dist.mb.plant
 ```
-
-```{r}
-# Plot
-ggplot(dist.mb.plant, aes(x = delta, 
-                          y = distance,
-                          group = delta,
-                          by = delta)) +
-     geom_boxplot()
-```
-
-
-```{r}
-# Plot
-ggplot(dist.mb.plant, aes(x = delta > 1, 
-                          y = distance,
-                          group = delta > 1,
-                          by = delta > 1)) +
-     geom_boxplot()
-```
-
 ```{r}
 # Plot
 ggplot(dist.mb.plant, aes(x = delta > 1, 
@@ -1172,15 +1199,8 @@ ggplot(dist.mb.plant, aes(x = delta > 1,
 #### Animal
 
 ```{r}
-pca.mb.animal <- 
-     prcomp(ps.mb.animal.clr@otu_table@.Data,
-            center = TRUE,
-            scale = FALSE)
-```
-
-```{r}
 dist.mb.animal <- 
-     data.frame(pca.mb.animal$x) %>% 
+     data.frame(ord.mb.animal$vectors) %>% 
      dist() %>% 
      as.matrix() %>% 
      data.frame() %>% 
@@ -1218,15 +1238,6 @@ dist.mb.animal <-
      distinct()
 
 dist.mb.animal
-```
-
-```{r}
-# Plot
-ggplot(dist.mb.animal, aes(x = delta, 
-                           y = distance,
-                           group = delta,
-                          by = delta)) +
-     geom_boxplot()
 ```
 
 ```{r}
