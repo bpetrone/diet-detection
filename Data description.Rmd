@@ -445,7 +445,7 @@ Here, what should I plot? Aggregated menu from 1-2 d before intake (to be consis
 
 Why don't I just start with one day before and see how it goes.
 
-### Subset to lag = -1
+### Subset to lag -1
 
 ```{r}
 nsamples(ps.menu)
@@ -828,6 +828,71 @@ melt.mb.animal %>%
 
 What species are shared between metaproteomic, metabarcoding, and (day before sample) menu datasets?
 
+#### Filter to only successful samples in all 3
+
+```{r}
+ps.mb.plant
+ps.mb.plant <- 
+     ps.mb.plant %>% 
+     prune_samples(sample_sums(.) > 0, .) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+
+ps.mb.plant
+```
+
+No similar pruning necessary for animal metabarcoding (all successful) or metaproteomic dataset (failed sample falls off when split kingdom-wise). 
+
+```{r}
+samples.plant <- 
+     intersect(sample_names(ps.mb.plant),
+               sample_names(ps.protein.plant))
+
+length(samples.plant)
+```
+
+```{r}
+samples.animal <- 
+     intersect(sample_names(ps.mb.animal),
+               sample_names(ps.protein.animal))
+
+length(samples.animal)
+```
+
+```{r}
+subset_ps <- function(ps, samples){
+     ps %>% 
+          prune_samples(samples, .) %>% 
+          prune_taxa(taxa_sums(.) > 0, .)
+}
+
+# Now, subset each dataset (except menu-- needs to be referenced w/ delta)
+ps.mb.plant <- subset_ps(ps.mb.plant, samples.plant)
+ps.protein.plant <- subset_ps(ps.protein.plant, samples.plant)
+
+ps.mb.animal <- subset_ps(ps.mb.animal, samples.animal)
+ps.protein.animal <- subset_ps(ps.protein.animal, samples.animal)
+```
+
+```{r}
+# Now, can subset menus
+ps.menu.plant <- 
+     ps.menu.plant %>% 
+     prune_samples(sample_names(.) %in% 
+                        c(sample_data(ps.mb.plant)$delta1,
+                          sample_data(ps.mb.plant)$delta2),
+                   .) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+
+ps.menu.animal <- 
+     ps.menu.animal %>% 
+     prune_samples(sample_names(.) %in% 
+                        c(sample_data(ps.mb.animal)$delta1,
+                          sample_data(ps.mb.animal)$delta2),
+                   .) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+```
+
+
 ```{r}
 # Plants
 # Get union of taxa detected in the two analyses
@@ -859,9 +924,9 @@ plant.df <-
             menu = taxon %in% taxa_names(ps.menu.plant))
 
 # Quick checks
-sum(plant.df$dna) # Should be 82
-sum(plant.df$protein) # Should be 83
-sum(plant.df$menu) # Should be 111
+sum(plant.df$dna) # Should be 81
+sum(plant.df$protein) # Should be 75
+sum(plant.df$menu) # Should be 111 (123 for 2 days)
 ```
 
 ```{r}
@@ -876,20 +941,21 @@ animal.df <-
 # Quick checks
 sum(animal.df$dna) # Should be 11
 sum(animal.df$protein) # Should be 28
-sum(animal.df$menu) # Should be 19
+sum(animal.df$menu) # Should be 19 (20 for 2 days)
 ```
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# pdf(here('results',
-#          'QC',
-#          paste0(plotID, '_Taxa Euler diagram across methods, with counts, only M-R menu.pdf')),
-#     height = 4, width = 4)
+pdf(here('results',
+         'manuscript',
+         'tbd',
+         paste0(plotID, 
+                '_Plant taxa Euler diagram across methods, with counts, 1 day prior menu.pdf')),
+    height = 4, width = 4)
 
 euler(plant.df[,c('dna', 'protein', 'menu')]) %>% 
      plot(
-          # fills = c('firebrick3', 'steelblue4', 'goldenrod2'),
-          fills = c('#b66353', '#849db1', '#d7ce9f'),
+          fills = c('#fbb04e', '#849db1', '#7e756d'),
           labels = TRUE,
           shape = "ellipse", 
           quantities = TRUE
@@ -898,27 +964,28 @@ euler(plant.df[,c('dna', 'protein', 'menu')]) %>%
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# pdf(here('results',
-#          'QC',
-#          paste0(plotID, '_Taxa Euler diagram across methods, with counts, only M-R menu.pdf')),
-#     height = 4, width = 4)
+pdf(here('results',
+         'manuscript',
+         'tbd',
+         paste0(plotID, '_Animal taxa Euler diagram across methods, with counts, 1 day prior menu.pdf')),
+    height = 4, width = 4)
 
 euler(animal.df[,c('dna', 'protein', 'menu')]) %>% 
      plot(
-          # fills = c('firebrick3', 'steelblue4', 'goldenrod2'),
-          fills = c('#b66353', '#849db1', '#d7ce9f'),
+          fills = c('#fbb04e', '#849db1', '#7e756d'),
           labels = TRUE,
           shape = "ellipse", 
           quantities = TRUE
           )
 ```
 
-
 ### Differences by dataset
+
+#### Plant
 
 ```{r}
 # In all
-filter(plot.df,
+filter(plant.df,
        dna & protein & menu) %>% 
      pull(taxon) %>% 
      sort()
@@ -926,18 +993,24 @@ filter(plot.df,
 
 ```{r}
 # In DNA and protein, missing from menu
-filter(plot.df,
+filter(plant.df,
        dna & protein & !menu) %>% 
      pull(taxon) %>% 
      sort()
 ```
 
-Cashew, tea, goat, chickpea, hazelnut, sunflower, banana, pistachio, raspberry, sorghum.
+Tea, chickpea, pistachio, pomegranate, sorghum, mung bean.
 
 Confirmed each of these against menu.  Notes:
-* No record of other nuts: cashew, hazelnut, pistachio
-* Capra hircus named as Capra aegagrus subsp. hircus: Will correct in menu
-* 
+* No record of pistachio
+
+```{r}
+# In DNA and menu, missing from protein
+filter(plant.df,
+       dna & !protein & menu) %>% 
+     pull(taxon) %>% 
+     sort()
+```
 
 ## Per-sample details
 
@@ -948,7 +1021,7 @@ melt.menu <- psmelt(ps.menu)
 counts.menu <- 
      melt.menu %>% 
      filter(Abundance > 0) %>% 
-     group_by(ID, date, kingdom) %>% 
+     group_by(subj, date, kingdom) %>% 
      count(name = 'menu_taxa')
 ```
 
@@ -973,6 +1046,19 @@ melt.protein %>%
 If one defines the kingdom Plantae to mean the Archaeplastida, the red algae will be part of that kingdom.
 If Plantae are defined more narrowly, to be the Viridiplantae, then the red algae might be considered their own kingdom, or part of the kingdom Protista.
 
+```{r echo = FALSE}
+# How many food taxa detected daily (metabarcoding)?
+melt.mb <- psmelt(
+     merge_phyloseq(ps.mb.plant,
+                    ps.mb.animal)
+)
+counts.mb <- 
+     melt.mb %>% 
+     filter(Abundance > 4) %>% 
+     group_by(subj, date, phylum) %>% 
+     count(name = 'dna_taxa')
+```
+
 ```{r}
 # Do this for only samples in common
 # Though need to preserve Fungi, which aren't measured by metabarcoding
@@ -985,7 +1071,7 @@ counts <-
      # Join to menu, lagged 1 day 
      # Full join to add kingdom if necessary
      full_join(counts.menu, by = c('kingdom',
-                                   'subj' = 'ID', 
+                                   'subj', 
                                    'delta1' = 'date')) %>% 
      # Then remove elements that didn't join by the date
      filter(!is.na(date))
