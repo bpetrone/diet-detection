@@ -247,6 +247,8 @@ dim(proteins.df) # Removes ~30K proteins
 
 ### Remove non-dietary proteins
 
+#### Host, microbe matches
+
 Some of these slipped past original filter in the Weight Loss dataset if they had an identification made to multiple species (e.g. human *and* pig).  On inspection, these seem to be things we'd want to remove, like histones and ubiquitin.  They are not yet filtered from the 908 data.
 
 ```{r}
@@ -281,7 +283,53 @@ dim(proteins.df)
 table(proteins.df$`Found in Sample`)
 ```
 
-#### Master proteins
+#### Digestive proteins
+
+Any lingering digestive proteins that are being mistakenly mapped to animal taxa (trypsin, digestive proteins)?
+
+```{r}
+proteins.df %>% 
+     # Need !inhibitor, because otherwise this pulls plants that have alpha-
+     # amylase inhibitors
+     filter(grepl(pattern = 'Alpha-amylase', Description) & 
+                 !grepl(pattern = 'inhibitor', Description)) %>% 
+     select(Description, `# PSMs`) %>% 
+     group_by(Description) %>% 
+     summarize(psms = sum(`# PSMs`))
+```
+```{r}
+proteins.df %>% 
+     # Need !inhibitor, because otherwise this pulls plants that have alpha-
+     # amylase inhibitors
+     filter(grepl(pattern = '[Tt]rypsin', Description)) %>% 
+     select(Description, `# PSMs`) %>% 
+     group_by(Description) %>% 
+     summarize(psms = sum(`# PSMs`))
+```
+
+```{r}
+proteins.df %>% 
+     filter(grepl(pattern = 'intestinal', Description)) %>% 
+     select(Description, `# PSMs`) %>% 
+     unique()
+```
+```{r}
+# Remove:
+dim(proteins.df)
+
+proteins.df <- 
+     proteins.df %>% 
+     # Need !inhibitor, because otherwise this pulls plants that have alpha-
+     # amylase inhibitors
+     filter(!(grepl(pattern = 'Alpha-amylase', Description) & 
+                 !grepl(pattern = 'inhibitor', Description))) %>% 
+     filter(!grepl(pattern = '[Tt]rypsin', Description)) %>% 
+     filter(!grepl(pattern = 'intestinal', Description))
+
+dim(proteins.df)
+```
+
+### Master proteins
 
 Manuel: check for master proteins with no protein unique peptides
 Unique peptides: unique to *protein group*
@@ -320,7 +368,7 @@ proteins.df %>%
 A substantial portion:
 
 ```{r}
-5368/15143
+5364/15058
 ```
 
 Revisit this once I've assigned scientific name, to see what species they map to. But for now, filter to only those proteins that are master proteins of their respective group:
@@ -333,7 +381,7 @@ proteins.df <-
 dim(proteins.df)
 ```
 
-### Check for multiple labels
+### Multiple labels
 
 ```{r}
 proteins.df %>% 
@@ -352,7 +400,7 @@ proteins.df %>%
 ```
 
 ```{r}
-812/sum(proteins.df$`# PSMs`)
+804/sum(proteins.df$`# PSMs`)
 ```
 
 ### Relabel with food species
@@ -524,11 +572,11 @@ psm.counts.wide <-
 # Proteins
 # psm.counts.wide <-
 #      proteins.df %>%
-#      mutate(sample = paste(subj, 
-#                            date, 
+#      mutate(sample = paste(subj,
+#                            date,
 #                            sep = '_')) %>% # Create unique label
 #      group_by(sample, Accession) %>%
-#      summarize(abundance = sum(`# PSMs`)) %>% 
+#      summarize(abundance = sum(`# PSMs`)) %>%
 #      pivot_wider(names_from = Accession,
 #                  values_from = abundance, # Total # PSMs
 #                  values_fill = 0) %>% # If no entry, log as 0
@@ -626,12 +674,12 @@ taxtab.protein <-
 
 ```{r}
 # If preserving protein ID: join to accession
-# taxtab.protein <- 
-#      proteins.df %>% 
-#      select(Accession, name = scientific_name) %>% 
-#      distinct() %>% 
-#      left_join(rownames_to_column(taxtab.protein, var = 'name')) %>% 
-#      select(-name) %>% 
+# taxtab.protein <-
+#      proteins.df %>%
+#      select(Accession, name = scientific_name) %>%
+#      distinct() %>%
+#      left_join(rownames_to_column(taxtab.protein, var = 'name')) %>%
+#      select(-name) %>%
 #      column_to_rownames(var = 'Accession')
 ```
 
