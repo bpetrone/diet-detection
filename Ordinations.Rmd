@@ -52,7 +52,7 @@ ps.protein <-
           'phyloseq',
           'combined',
           'ps_mp (all proteins).rds') %>% # 1UP
-          # 'ps_mp.rds') %>% # 1UP
+          # 'ps_mp.rds') %>%  # 1UP
      readRDS() 
 
 ps.protein
@@ -93,7 +93,7 @@ ps.mb.plant <-
      here('data',
           'processed',
           'phyloseq',
-          'combined',
+          'combined', 
           'ps_mb_trnL.rds') %>% 
      readRDS() 
 
