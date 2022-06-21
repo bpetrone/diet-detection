@@ -528,6 +528,7 @@ dim(proteins.df) # How many entries?
 any(is.na(proteins.df$scientific_name)) # Any missing entries?
 ```
 
+### Save
 ```{r}
 # Save processed data (use for biomarkers, before summarizing PSMs within each organism)
 
@@ -667,7 +668,7 @@ Add lowest level name as row name
 ```{r }
 taxtab.protein <-
      taxtab.protein %>%
-     MButils::lowest_level() %>% 
+     MButils::lowest_level() %>%
      select(-taxon_id) %>%
      column_to_rownames(var = 'name')
 ```
@@ -703,3 +704,47 @@ saveRDS(ps.protein,
              'phyloseq',
              '20220607_ps_mp.rds'))
 ```
+
+### Format for word cloud
+
+Concerned with animal taxa here: filter to only those in taxonomy, then pull Description and # PSM columns
+
+```{r}
+table(taxtab.protein$kingdom)
+```
+
+```{r}
+# Get accessions of animal-derived proteins
+animal.accs <- 
+     taxtab.protein %>% 
+     filter(kingdom == 'Metazoa') %>% 
+     row.names()
+
+# Filter to only these and columns of interest
+animal.proteins <- 
+     proteins.df %>% 
+     filter(Accession %in% animal.accs) %>% 
+     select(Description, `# PSMs`)
+
+animal.proteins
+```
+
+Remove info after protein name, then replicate based on # PSMs.
+
+```{r}
+animal.proteins %>% 
+     mutate(Description = gsub(pattern = ' OS=.*$',
+                               replacement = '',
+                               Description)) %>% 
+     group_by(Description) %>% 
+     summarize(sum = sum(`# PSMs`)) %>% 
+     arrange(desc(sum)) %>% 
+     rename(word = Description,
+            weight = sum) %>% 
+     select(weight, word) %>% 
+     # uncount(`# PSMs`) %>% 
+     write_csv(here('data',
+                    'processed',
+                    'Animal-based proteins.csv'))
+```
+
