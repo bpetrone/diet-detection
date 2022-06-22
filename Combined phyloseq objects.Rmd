@@ -98,7 +98,8 @@ mp <-
      here('data',
           'processed',
           'phyloseq',
-          '20220524_ps_mp.rds') %>% 
+          # '20220524_ps_mp.rds') %>% # Grouped by species
+          '20220607_ps_mp.rds') %>%  # Unique accessions within species preserved
      readRDS()
 
 mp
@@ -508,7 +509,8 @@ saveRDS(menu,
              'processed',
              'phyloseq',
              'combined',
-             'ps_menu.rds') 
+             # 'ps_menu.rds') 
+             'ps_menu (all proteins).rds')
 )
 
 # Metabarcoding
