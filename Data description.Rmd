@@ -79,7 +79,7 @@ ps.protein <-
           'processed',
           'phyloseq',
           'combined',
-          'ps_mp.rds') %>% 
+          'ps_mp.rds') %>%
      readRDS()
 
 ps.protein
@@ -344,8 +344,9 @@ taxa_names(ps.mb.plant) <- tax_table(ps.mb.plant)[, 'name']
 taxa_names(ps.mb.animal) <- tax_table(ps.mb.animal)[, 'name']
 ```
 
-
 ## Metaproteomic phyloseq
+
+### Filter to >=5 counts
 
 ```{r}
 # Do not apply this filter for protein level analysis
@@ -450,6 +451,20 @@ Why don't I just start with one day before and see how it goes.
 ```{r}
 nsamples(ps.menu)
 ```
+
+```{r}
+# What taxa are removed in this filtering?
+ps.menu %>% 
+     # Use all possible samples here, rather than filtering for only successes
+     # This occurs in either metabarcoding object (full 27), 
+     # not yet filtered for success
+     prune_samples(sample_names(.) %in% sample_data(ps.mb.animal)$delta1,
+                   .) %>% 
+     prune_taxa(taxa_sums(.) == 0, .) %>% 
+     taxa_names() %>% 
+     sort()
+```
+
 
 ```{r}
 ps.menu <- 
@@ -750,10 +765,6 @@ ntaxa(ps.protein)
 What about number of unique dietary peptides?  Use intermediate processing stage of data for this (saved in "Metaproteomic phyloseq" notebook):
 
 ```{r}
-str(proteins.df)
-```
-
-```{r}
 dim(proteins.df)
 ```
 
@@ -766,11 +777,187 @@ n_distinct(proteins.df$Description)
 # Most prevalent foods
 melt.mp %>% 
      group_by(Sample, OTU) %>% 
-     summarize(prevalence_within = sum(Abundance > 5)) %>% 
+     summarize(prevalence_within = sum(Abundance >= 5)) %>% 
      # Now group by just food, get across-sample prevalence
      group_by(OTU) %>% 
      summarize(prevalence_across = sum(prevalence_within)) %>% 
      arrange(desc(prevalence_across))
+```
+
+Oh wow-- with what proportion of total PSMs?
+
+```{r}
+all.plants <- c(
+     'Arachis hypogaea',
+     'Glycine max',
+     'Helianthus annuus',
+     'Lactuca sativa',
+     'Malus domestica',
+     'Phoenix dactylifera',
+     'Theobroma cacao',
+     'Triticum aestivum',
+     'Triticum turgidum subsp. durum',
+     'Zea mays'
+)
+
+all.animals <- c(
+     'Bos taurus',
+     'Capra hircus',
+     'Gallus gallus',
+     'Meleagris gallopavo',
+     'Oncorhynchus mykiss',
+     'Salmo salar',
+     'Siluriformes',
+     'Sus scrofa'
+)
+
+melt.protein.animal <- psmelt(ps.protein.animal)
+melt.protein.plant <- psmelt(ps.protein.plant)
+```
+
+```{r}
+# Write loop to examine
+# Same plot ID for all
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+for (plant in all.plants){
+     p <- 
+          melt.protein.plant %>% 
+          group_by(is_plant = OTU == plant,
+                   Sample) %>% 
+          summarize(Abundance = sum(Abundance)) %>% 
+          ggplot(aes(x = Sample,
+                     y = Abundance,
+                     fill = is_plant)) +
+          geom_bar(stat = 'identity',
+                   position = 'fill') +
+          labs(title = plant) +
+          scale_fill_manual(values = c('gray80',
+                                       '#638b66')) +
+          theme(panel.grid = element_blank(),
+                legend.position = 'none',
+                axis.text.x = element_blank(),
+                axis.title.x = element_blank(),
+                plot.title = element_text(face = 'bold.italic'))
+     
+     ggsave(here('results',
+                 'manuscript',
+                 'tbd',
+                 paste0(plotID, 
+                        '_',
+                        plant,
+                        ' PSMs across all metaproteomic samples.pdf')),
+            plot = p,
+            height = 1.5, width = 4)
+}
+```
+
+```{r}
+# Write loop to examine
+# Same plot ID for all
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+for (animal in all.animals){
+     p <- 
+          melt.protein.animal %>% 
+          group_by(is_animal = OTU == animal,
+                   Sample) %>% 
+          summarize(Abundance = sum(Abundance)) %>% 
+          ggplot(aes(x = Sample,
+                     y = Abundance,
+                     fill = is_animal)) +
+          geom_bar(stat = 'identity',
+                   position = 'fill') +
+          labs(title = animal) +
+          scale_fill_manual(values = c('gray80',
+                                       '#b66353')) +
+          theme(panel.grid = element_blank(),
+                legend.position = 'none',
+                axis.text.x = element_blank(),
+                axis.title.x = element_blank(),
+                plot.title = element_text(face = 'bold.italic'))
+     
+     ggsave(here('results',
+                 'manuscript',
+                 'tbd',
+                 paste0(plotID, 
+                        '_',
+                        animal,
+                        ' PSMs across all metaproteomic samples.pdf')),
+            plot = p,
+            height = 1.5, width = 4)
+}
+```
+
+```{r}
+# Pick one for follow up-- look at proteins
+proteins.df %>% 
+     filter(scientific_name == 'Capra hircus') %>% 
+     select(`# PSMs`, Description) %>% 
+     arrange(desc(`# PSMs`)) %>% 
+     View()
+```
+
+This seems like a nice example:
+- carboxypeptidase (digestive-- thinking cross-reactive)
+- myosins/myoglobins/microtubule
+- others
+
+```{r}
+goat <- 
+     proteins.df %>% 
+     filter(scientific_name == 'Capra hircus') %>%
+     mutate(Sample = paste(subj,
+                           date,
+                           sep = '_')) %>%      
+     select(Sample, Description, `# PSMs`) %>% 
+     mutate(category = case_when(
+          grepl(pattern = 'myo',
+                ignore.case = TRUE, 
+                Description) ~ 'muscle',
+          grepl(pattern = 'carboxypeptidase|progastricsin',
+                ignore.case = TRUE, 
+                Description) ~ 'digestive',
+          TRUE ~ 'other'
+     ))
+```
+
+```{r}
+goat %>% 
+     group_by(Sample, category) %>% 
+     summarize(Abundance = sum(`# PSMs`)) %>% 
+     ggplot(aes(x = Sample,
+                y = Abundance,
+                fill = category)) +
+     geom_bar(stat = 'identity',
+              position = 'fill') +
+     scale_fill_manual(values =
+                            c('gray80',
+                              '#b66353',
+                              '#fbb04e')) +
+     theme(panel.grid.minor = element_blank(),
+           panel.grid.major.x = element_blank(),
+           axis.text.x = element_blank(),
+           legend.title = element_blank())
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results',
+            'manuscript',
+            'tbd',
+            paste0(plotID, 
+                   '_',
+                   'Capra hircus PSMs by category.pdf')),
+       height = 1.5, width = 5)
+```
+
+```{r}
+goat %>% 
+     group_by(Sample, category) %>% 
+     summarize(Abundance = sum(`# PSMs`)) %>% 
+     filter(category == 'muscle' & Abundance >= 5)
 ```
 
 ```{r}
