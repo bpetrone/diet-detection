@@ -1,0 +1,242 @@
+---
+title: "Protein categorization"
+output: html_notebook
+---
+
+# R setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r libraries, echo=FALSE}
+library(here) 
+library(phyloseq) 
+library(tidyverse) 
+```
+
+# Read in data
+
+## Metaproteomic phyloseq
+
+```{r}
+# 1UP analysis, master proteins only, both datasets
+ps.protein <-
+     here('data',
+          'processed',
+          'phyloseq',
+          # '20220524_ps_mp.rds') %>% # Grouped by species
+          '20220607_ps_mp.rds') %>%  # Unique accessions within species preserved
+     readRDS()
+
+ps.protein
+```
+
+```{r}
+proteins.df <- 
+     here('data',
+          'processed',
+          '5FDR_1UP_both datasets.rds') %>% 
+     readRDS()
+
+proteins.df
+```
+# Subset
+
+## Animal
+
+```{r}
+taxtab.protein <-
+     ps.protein@tax_table@.Data %>% 
+     data.frame()
+
+table(taxtab.protein$kingdom)
+```
+
+```{r}
+# Get accessions of animal-derived proteins
+animal.accs <-
+     taxtab.protein %>% 
+     filter(kingdom == 'Metazoa') %>% 
+     row.names()
+
+# Filter to only these and columns of interest
+animal.proteins <- 
+     proteins.df %>% 
+     filter(Accession %in% animal.accs) %>% 
+     select(Description, `# PSMs`)
+
+animal.proteins
+```
+
+Remove info after protein name, then replicate based on # PSMs.
+
+```{r eval = FALSE}
+# animal.proteins %>% 
+#      mutate(Description = gsub(pattern = ' OS=.*$',
+#                                replacement = '',
+#                                Description)) %>% 
+#      group_by(Description) %>% 
+#      summarize(sum = sum(`# PSMs`)) %>% 
+#      arrange(desc(sum)) %>% 
+#      rename(word = Description,
+#             weight = sum) %>% 
+#      select(weight, word) %>% 
+#      write_csv(here('data',
+#                     'processed',
+#                     'Animal-based proteins.csv'))
+```
+
+### Manual labels (>=5 PSMs)
+
+Categories are 
+- muscle
+- tissue
+- egg
+- dairy
+- none (== 'other')
+
+```{r}
+animal.proteins <-
+     here('data',
+          'processed',
+          'Animal-based proteins (annotated).csv') %>% 
+     read.csv() %>% 
+     # Convert empty category to "Other"
+     mutate(category = ifelse(category == '',
+                              yes = 'other',
+                              no = category))
+
+animal.proteins
+```
+I manually labeled these based on searches of protein names.  How does the grouping break out? 
+
+```{r}
+animal.proteins %>% 
+     group_by(category, certainty) %>% 
+     count()
+```
+
+```{r}
+# Make "other" label "certain"
+animal.proteins$certainty[animal.proteins$category == 'other'] <- 1
+```
+
+### Automated labels (<-5 PSMs)
+
+Scan certain terms from above to make regular expressions:
+
+```{r}
+manual.label <- filter(animal.proteins, weight >= 5)
+automatic.label <- filter(animal.proteins, weight < 5)
+```
+
+```{r}
+# Muscle
+# Need the [^nt] to filter out hits to "interACTINg" and 'contACTIN'
+ex.muscle <- '[^rt][Aa]ctin|[Cc]reatine|[Mm]yo|[Ff]erritin|[Nn]ebulin|[Ss]arco|[Tt]itin|[Tt]ropo'
+
+# Tissue
+ex.tissue <- '[Kk]eratin|[Cc]ollagen|[Ff]ormin|[Pp]rojectin'
+
+# Egg
+ex.egg <- '[Vv]itell|^Ovo|[Aa]lbumin'
+
+# Dairy
+# Lacto gives other hits (e.g. beta-galactosidase, galactokinase), but nothing resembling lactoglobulin, so removed
+ex.dairy <- '[Cc]asein|[Bb]utyrophilin'
+```
+
+```{r}
+# Label these in data
+automatic.label <- 
+     automatic.label %>%
+     mutate(category = 
+                 case_when(grepl(word, pattern = ex.muscle) ~ 'muscle',
+                           grepl(word, pattern = ex.tissue) ~ 'tissue',
+                           grepl(word, pattern = ex.dairy) ~ 'dairy',
+                           grepl(word, pattern = ex.egg) ~ 'egg',
+                           TRUE ~ 'other')) %>% 
+     mutate(certainty = 1)
+     
+```
+```{r}
+# How many labels assigned (out of 1170 starting?)
+sum(automatic.label$category != 'other')
+```
+
+6%.  May want to go back and refine this, but consider it workable for now.
+
+```{r}
+# Join automated to manual assignments
+animal.proteins <- 
+     bind_rows(manual.label,
+               automatic.label)
+```
+
+```{r}
+# For now, consider only certain assignments:
+animal.proteins <- 
+     mutate(animal.proteins,
+            category = ifelse(certainty == 0,
+                              yes = 'other',
+                              no = category))
+
+table(animal.proteins$category)
+```
+
+## Phyloseq object
+
+PSM counts are named with accession-- need to connect this to protein name, and then subset. 
+```{r}
+head(taxa_names(ps.protein))
+```
+
+Join to taxonomy, because I want to preserve all plants while subset animals
+```{r}
+proteins.df <- 
+     taxtab.protein %>% 
+     rownames_to_column(var = 'Accession') %>% 
+     left_join(proteins.df, .) 
+```
+
+```{r}
+# Protein names to subset by
+meat.dairy.egg <- 
+     filter(animal.proteins, category != 'other') %>% 
+     pull(word) 
+
+head(meat.dairy.egg)
+```
+
+```{r}
+cat('Starting entries:', nrow(proteins.df), '\n')
+
+proteins.df <- 
+     proteins.df %>% 
+     mutate(protein = gsub(Description,
+                           pattern = ' OS=.*$',
+                           replacement = '')) %>% 
+     filter(protein %in% meat.dairy.egg | kingdom != 'Metazoa')
+
+cat('Filtered entries:', nrow(proteins.df))
+```
+
+Now, can subset phyloseq object based on accessions
+```{r}
+ps.protein
+
+ps.protein <- prune_taxa(proteins.df$Accession, ps.protein)
+ps.protein
+```
+
+```{r}
+ps.protein %>% 
+     saveRDS(here('data',
+                  'processed',
+                  'phyloseq',
+                  # '20220524_ps_mp.rds') %>% # Grouped by species
+                  '20220607_ps_mp_filtered animal.rds')) # Unique accessions within species preserved
+```
+
