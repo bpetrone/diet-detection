@@ -226,6 +226,8 @@ sample_data(mp) <-
 
 ## Metabarcoding
 
+### Tidy metadata
+
 Check overlap between variables between studies and markers
 ```{r}
 setdiff(sample_variables(mb.dfc.animal),
@@ -383,6 +385,38 @@ mb.animal <-
 mb.animal
 ```
 
+### Update assignment
+
+```{r}
+ref.trnL <- 
+     here('..',
+          'food-dbs',
+          'data', 
+          'processed', 
+          'dada2-compatible',
+          'trnL',
+          'trnLGH.fasta')
+
+ref.12SV5 <- 
+     here('..',
+          'food-dbs',
+          'data', 
+          'processed', 
+          'dada2-compatible',
+          '12SV5',
+          '12SV5_taxonomy.fasta')
+```
+
+```{r}
+mb.plant <- MButils::update_assignment(mb.plant,
+                                       ref.trnL,
+                                       use_function = 'species')
+
+mb.animal <- MButils::update_assignment(mb.animal,
+                                        ref.12SV5,
+                                        use_function = 'taxonomy')
+```
+
 ### Glom taxa
 
 #### 12SV5
@@ -402,8 +436,6 @@ dups <- taxtab.animal$name[duplicated(taxtab.animal$name)]
 ```{r}
 sort(dups)
 ```
-
-This is a bit fraught at higher levels, because depending on exact ASVs these families may actually map to different species. Luckily though that doesn't happen here, so can merge all.
 
 ```{r}
 # Replace taxonomy table in phyloseq object
@@ -481,6 +513,8 @@ taxtab.plant['ATCCCGTTTTATGAAAACAAACAAGGGTTTCAGAAAGCGAGAATAAATAAAG',
 taxtab.plant['ATCCTGTTTTATGAAAATAAACAAGGGTTTCATAAACCGAAAATAAAAAAG',
        'name'] <-
      'Rosaceae (apple, pear)'
+
+# Oryza sativa, Solanum lycopersicum can be merged
 ```
 
 ```{r}
