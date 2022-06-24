@@ -467,15 +467,16 @@ ps.menu %>%
 
 
 ```{r}
-ps.menu <- 
-     ps.menu %>% 
-     # Use all possible samples here, rather than filtering for only successes
-     # This occurs in either metabarcoding object (full 27), not yet filtered for success
-     prune_samples(sample_names(.) %in% sample_data(ps.mb.animal)$delta1,
-                   .) %>% 
-     prune_taxa(taxa_sums(.) > 0, .)
-
-ps.menu
+# Hold off on filtering for now
+# ps.menu <- 
+#      ps.menu %>% 
+#      # Use all possible samples here, rather than filtering for only successes
+#      # This occurs in either metabarcoding object (full 27), not yet filtered for success
+#      prune_samples(sample_names(.) %in% sample_data(ps.mb.animal)$delta1,
+#                    .) %>% 
+#      prune_taxa(taxa_sums(.) > 0, .)
+# 
+# ps.menu
 ```
 
 ### Separate by kingdom
