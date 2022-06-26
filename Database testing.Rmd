@@ -58,7 +58,7 @@ ps.menu <-
      here('data', 
           'processed', 
           'phyloseq',
-          'cleaned',
+          'combined',
           'WORKING_ps_menu.rds') %>% 
      readRDS()
 
@@ -74,7 +74,7 @@ ps.mb <-
      here('data', 
           'processed', 
           'phyloseq',
-          'cleaned',
+          'combined',
           'WORKING_ps_mb.rds') %>% 
      readRDS()
 
