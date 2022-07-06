@@ -1,0 +1,88 @@
+---
+title: "Filter phyloseq objects"
+output: html_notebook
+---
+
+This filters the phyloseq objects created in the "Combined phyloseq objects" notebook.
+
+# Setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r}
+library(here)
+library(phyloseq)
+library(tidyverse)
+```
+
+# Read in data
+
+
+## Metabarcoding
+### trnL
+```{r}
+ps.mb.plant <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'ps_mb_trnL.rds') %>% 
+     readRDS()
+
+ps.mb.plant
+```
+
+### 12SV5
+```{r}
+ps.mb.animal <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'ps_mb_12SV5.rds') %>% 
+     readRDS()
+
+ps.mb.animal
+```
+
+## Metaproteomics
+
+```{r}
+# Phyloseq
+ps.protein <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'ps_mp.rds') %>%
+     readRDS()
+
+ps.protein
+```
+
+```{r}
+# Protein detail
+proteins.df <- 
+     here('data',
+          'processed',
+          '5FDR_1UP_both datasets.rds') %>% 
+     readRDS()
+```
+
+## Menu
+
+```{r}
+ps.menu <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'ps_menu.rds') %>% 
+     readRDS()
+
+ps.menu
+```
+
