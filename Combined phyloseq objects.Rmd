@@ -158,43 +158,7 @@ sample_data(menu.908)$study <- 'Healthy Donor'
 
 ## Metaproteomics
 
-### Add in missing sample
-
-ML48 (10/17/19) omitted due to low spectra counts and poor extraction.
-
-```{r}
-psmtab <- mp@otu_table@.Data
-samdf <- data.frame(mp@sam_data)
-```
-
-```{r}
-# Add a row of 0s to the data
-row <- matrix(0, nrow = 1, ncol = ncol(psmtab))
-colnames(row) <- colnames(psmtab)
-rownames(row) <- 'ML48_2019-10-17'
-
-psmtab <- rbind(psmtab, row)
-```
-
-```{r}
-# Add corresponding metadata
-row <- 
-     data.frame(subj = 'ML48',
-                date = as.Date('2019-10-17',
-                               format = '%Y-%m-%d')) %>% 
-     mutate(row = paste(subj, date, sep = '_')) %>% 
-     column_to_rownames(var = 'row')
-
-samdf <- bind_rows(samdf, row)
-```
-
-```{r}
-# Replace in phyloseq object
-mp <- 
-     phyloseq(sample_data(samdf),
-              otu_table(psmtab, taxa_are_rows = FALSE),
-              tax_table(mp@tax_table@.Data))
-```
+Missing sample neds to be added after split by kingdom, otherwise it won't be preserved.
 
 ### Tidy
 
@@ -210,8 +174,8 @@ sample_variables(mp)
 # Add study in line with other datasets
 sample_data(mp)$study <- 
      ifelse(sample_data(mp)$subj == '908',
-            yes = 'Healthy Donor',
-            no = 'Weight Loss')
+            yes = 'Habitual Diet',
+            no = 'Intervention')
 ```
 
 ```{r}
