@@ -528,14 +528,24 @@ dim(proteins.df) # How many entries?
 any(is.na(proteins.df$scientific_name)) # Any missing entries?
 ```
 
+```{r}
+# Make final corrections from naming discrepancies spreadsheet to synchronize names
+
+proteins.df$scientific_name[proteins.df$scientific_name == 'Anguilliformes'] <- 'Anguilla japonica'
+
+proteins.df$scientific_name[proteins.df$scientific_name == 'Beta vulgaris'] <- 'Beta vulgaris subsp. vulgaris'
+
+proteins.df$scientific_name[proteins.df$scientific_name == 'Coffea canephora'] <- 'Coffea'
+```
+
 ### Save
 ```{r}
 # Save processed data (use for biomarkers, before summarizing PSMs within each organism)
 
-# saveRDS(proteins.df,
-#         here('data',
-#              'processed',
-#              '5FDR_1UP_both datasets.rds'))
+saveRDS(proteins.df,
+        here('data',
+             'processed',
+             '5FDR_1UP_both datasets.rds'))
 ```
 
 # Format as phyloseq object

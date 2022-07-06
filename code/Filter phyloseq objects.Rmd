@@ -19,8 +19,6 @@ library(tidyverse)
 ```
 
 # Read in data
-
-
 ## Metabarcoding
 ### trnL
 ```{r}
@@ -50,14 +48,17 @@ ps.mb.animal
 
 ## Metaproteomics
 
+Two versions of this dataset: one with an entry for each protein accession, and another for each species.
+
+However, can go from one to the other, right?  Can always group accession information by taxon and sum up PSMs. 
+
 ```{r}
-# Phyloseq
 ps.protein <- 
      here('data',
           'processed',
           'phyloseq',
           'combined',
-          'ps_mp.rds') %>%
+          'ps_mp (all proteins).rds') %>%
      readRDS()
 
 ps.protein
@@ -70,8 +71,20 @@ proteins.df <-
           'processed',
           '5FDR_1UP_both datasets.rds') %>% 
      readRDS()
+
+proteins.df
 ```
 
+```{r}
+# Animal-based protein mapping
+proteins.animal <- 
+     here('data',
+          'processed',
+          'Animal-based proteins (annotated).csv') %>% 
+     read_csv()
+
+proteins.animal
+```
 ## Menu
 
 ```{r}

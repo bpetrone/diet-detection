@@ -1,0 +1,97 @@
+---
+title: "Menu data phyloseq"
+output: html_notebook
+---
+
+This notebook processes and prepares the DFC and Healthy Donor menu data phyloseq objects for use in downstream analyses.
+
+# R setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r libraries, echo=FALSE}
+library(here) 
+library(phyloseq) 
+library(tidyverse) 
+```
+
+# Read in data
+
+## Healthy donor diet phyloseq
+
+```{r}
+ps.hd <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          '20211115_ps_menu.rds') %>% 
+     readRDS()
+
+ps.hd
+```
+
+## DFC menu data phyloseq
+
+```{r}
+ps.dfc <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          '20210220_ps_menu.rds') %>% 
+     readRDS()
+
+ps.dfc
+```
+
+# Pre-process
+
+```{r}
+# Check sample names are compatible: all should be SUBJ_DATE
+head(sample_names(ps.dfc))
+head(sample_names(ps.hd))
+```
+
+```{r}
+# Peek at sample variables
+sample_variables(ps.dfc)
+sample_variables(ps.hd)
+```
+
+```{r}
+# Align names
+sample_data(ps.hd) <- 
+     ps.hd@sam_data %>% 
+     data.frame() %>% 
+     rename(date = day)
+```
+
+```{r}
+# Add study name
+sample_data(ps.dfc)$study <- 'Weight Loss'
+sample_data(ps.hd)$study <- 'Healthy Donor'
+```
+
+# Join
+
+```{r}
+ps <- merge_phyloseq(ps.dfc,
+                     ps.hd)
+
+ps
+```
+
+# Save
+
+```{r}
+saveRDS(
+     ps, 
+     here('data',
+          'processed',
+          'phyloseq',
+          'cleaned',
+          'WORKING_ps_menu.rds')
+)
+```

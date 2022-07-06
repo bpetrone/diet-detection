@@ -20,8 +20,9 @@ library(tidyverse)
 ### Metaproteomic phyloseq
 
 ```{r}
+# DFC
 ps.protein <- readRDS(here('data', 'processed', 'phyloseq',
-                           '20210212_ps_mp.rds'))
+                           '20210912_ps_mp.rds'))
 ps.protein
 ```
 

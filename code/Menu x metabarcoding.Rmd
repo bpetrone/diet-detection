@@ -58,7 +58,7 @@ ps.menu <-
      here('data', 
           'processed', 
           'phyloseq',
-          'combined',
+          'cleaned',
           'WORKING_ps_menu.rds') %>% 
      readRDS()
 
@@ -74,7 +74,7 @@ ps.mb <-
      here('data', 
           'processed', 
           'phyloseq',
-          'combined',
+          'cleaned',
           'WORKING_ps_mb.rds') %>% 
      readRDS()
 
@@ -238,194 +238,6 @@ detected.mb
 detected.mb %>% 
      group_by(kingdom, detected) %>% 
      count()
-```
-
-## Per-sample details
-
-Overall view:
-```{r echo = FALSE}
-# How many food taxa consumed daily (menu)?
-melt.menu <- psmelt(ps.menu)
-counts.menu <- 
-     melt.menu %>% 
-     filter(Abundance > 0) %>% 
-     group_by(ID, date, kingdom) %>% 
-     count(name = 'menu_taxa')
-```
-
-```{r echo = FALSE}
-# How many food taxa detected daily (metaproteomics)?
-melt.protein <- psmelt(ps.protein)
-counts.protein <- 
-     melt.protein %>% 
-     filter(Abundance > 4) %>% 
-     group_by(subj, date, kingdom) %>% 
-     count(name = 'protein_taxa')
-```
-
-```{r}
-# Note some NA values here: what are they?
-melt.protein %>% 
-     filter(Abundance > 4) %>% 
-     filter(is.na(kingdom)) %>% 
-     pull(OTU) %>% 
-     unique()
-```
-If one defines the kingdom Plantae to mean the Archaeplastida, the red algae will be part of that kingdom.
-If Plantae are defined more narrowly, to be the Viridiplantae, then the red algae might be considered their own kingdom, or part of the kingdom Protista.
-
-```{r}
-# Do this for only samples in common
-# Though need to preserve Fungi, which aren't measured by metabarcoding
-# This can be done by doing a full join
-counts <- 
-     counts.protein %>% 
-     full_join(counts.mb) %>% 
-     filter(!is.na(kingdom)) %>% 
-     mutate(delta1 = date - 1) %>% 
-     # Join to menu, lagged 1 day 
-     # Full join to add kingdom if necessary
-     full_join(counts.menu, by = c('kingdom',
-                                   'subj' = 'ID', 
-                                   'delta1' = 'date')) %>% 
-     # Then remove elements that didn't join by the date
-     filter(!is.na(date))
-
-# Long version for plotting
-counts.long <- pivot_longer(counts, 
-                            cols = ends_with('taxa'),
-                            names_to = 'dataset',
-                            values_to = 'value')
-```
-
-```{r}
-# Update names for plotting
-counts.long$dataset <- factor(counts.long$dataset, 
-                                     levels = c('menu_taxa', 
-                                                'protein_taxa',
-                                                'dna_taxa'), 
-                                     labels = c('Recorded menu',
-                                                'Metaproteomics',
-                                                'Metabarcoding'))
-# Refactor for plotting
-counts.long$kingdom <- factor(counts.long$kingdom,
-                              levels = c('Viridiplantae',
-                                         'Metazoa', 
-                                         'Fungi'))
-```
-
-```{r}
-ggplot(counts.long, aes(x = kingdom, y = value, fill = dataset)) +
-     geom_boxplot() +
-     labs(title = 'Number of food taxa identified by measure',
-          subtitle = '>4 PSMs per taxon filter',
-          x = 'Kingdom',
-          y = 'Number of taxa', fill = 'Measure') +
-     ylim(0, 65) + # Leave room to add significance
-     # scale_y_log10() +
-     scale_fill_manual(values = c('#d7ce9f', '#849db1', '#b66353')) +
-     theme_classic() +
-     theme()
-```
-
-```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-ggsave(
-     here(
-          'results',
-          'QC',
-          paste0(plotID,
-                 '_Number of food taxa by measure, shared samples only.pdf'
-                 )
-          ),
-     height = 3,
-     width = 6)
-```
-
-Statistics on above plot: 
-
-```{r}
-# Repeated measures ANOVA (Viridiplantae)
-# Get only plant detection events, make unique sample ID
-viridiplantae <- 
-     counts.long %>% 
-     mutate(sample = paste(subj, date, sep = '_')) %>% 
-     filter(kingdom == 'Viridiplantae') 
-
-model <- lm(value ~ dataset + sample,
-            data = viridiplantae)
-
-analysis <- Anova(model, 
-                  idata = viridiplantae,
-                  idesign = ~sample)
-
-print(analysis)
-```
-
-```{r}
-# Post-hoc testing
-
-# Unadjusted p values
-pairwise.t.test(viridiplantae$value,
-                viridiplantae$dataset,
-                p.adjust.method = 'BH')
-```
-
-```{r}
-# Repeated measures ANOVA (Metazoa)
-metazoa <- 
-     counts.long %>% 
-     mutate(sample = paste(subj, date, sep = '_')) %>% 
-     filter(kingdom == 'Metazoa') 
-
-model <- lm(value ~ dataset + sample,
-            data = metazoa)
-
-analysis <- Anova(model, 
-                  idata = metazoa,
-                  idesign = ~sample)
-
-print(analysis)
-```
-
-```{r}
-# Unadjusted p values
-pairwise.t.test(metazoa$value,
-                metazoa$dataset,
-                p.adjust.method = 'BH')
-```
-
-
-```{r}
-# Paired t-test (Fungi)
-fungi <- 
-     filter(counts, kingdom == 'Fungi')
-
-t.test(fungi$menu_taxa, fungi$protein_taxa,
-       paired = TRUE)
-```
-
-Patterns of recorded foods by day of week: 
-
-```{r echo = FALSE}
-counts.long %>% 
-     group_by(ID, date, dataset) %>% 
-     summarize(value = sum(value, na.rm = TRUE)) %>% 
-     filter(dataset == 'Recorded menu') %>% 
-     ggplot(aes(x = date, y = value)) +
-     geom_point(aes(color = dataset)) +
-     facet_wrap(~ ID, nrow = 4, scales = 'free_x') + 
-     labs(x = 'Date', y = 'Number of taxa') +
-     theme_bw() +
-     theme(axis.title.x = element_blank(),
-           legend.title = element_blank(),
-           legend.position = 'bottom')
-
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# ggsave(here('results', 
-#             paste0(plotID, 
-#                    '_Number of food taxa in menu by day.pdf')),
-#        height = 7, width = 4)
 ```
 
 ## Metaproteomics x menu
