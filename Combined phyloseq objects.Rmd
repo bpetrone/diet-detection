@@ -98,8 +98,8 @@ mp <-
      here('data',
           'processed',
           'phyloseq',
-          # '20220524_ps_mp.rds') %>% # Grouped by species
-          '20220607_ps_mp.rds') %>%  # Unique accessions within species preserved
+          # '20220607_ps_mp.rds') %>% # Grouped by species
+          '20220607_ps_mp (all proteins).rds') %>%  # Unique accessions within species preserved
      readRDS()
 
 mp
@@ -152,8 +152,8 @@ sample_data(menu.908) <-
 
 ```{r}
 # Add study variable
-sample_data(menu.dfc)$study <- 'Weight Loss'
-sample_data(menu.908)$study <- 'Healthy Donor'
+sample_data(menu.dfc)$study <- 'Intervention'
+sample_data(menu.908)$study <- 'Habitual Diet'
 ```
 
 ## Metaproteomics
@@ -218,8 +218,6 @@ sample_data(mb.dfc.animal) <-
             subj = as.character(subj)) %>% 
      left_join(times) %>% 
      column_to_rownames(var = 'row')
-
-
 ```
 
 ```{r}
@@ -286,6 +284,14 @@ sample_data(mb.908.plant) <-
      rename(reads_trnL = reads_plant) %>% 
      left_join(times) %>% 
      column_to_rownames(var = 'row')
+```
+
+```{r}
+# Add study in line with other datasets
+sample_data(mb.dfc.animal)$study <- 'Intervention'
+sample_data(mb.dfc.plant)$study <- 'Intervention'
+sample_data(mb.908.animal)$study <- 'Habitual Diet'
+sample_data(mb.908.plant)$study <- 'Habitual Diet'
 ```
 
 ### Subset samples
@@ -507,8 +513,7 @@ saveRDS(menu,
              'processed',
              'phyloseq',
              'combined',
-             # 'ps_menu.rds') 
-             'ps_menu (all proteins).rds')
+             'ps_menu.rds')
 )
 
 # Metabarcoding
@@ -534,6 +539,7 @@ saveRDS(mp,
              'processed',
              'phyloseq',
              'combined',
-             'ps_mp.rds') 
+             # 'ps_mp.rds')
+             'ps_mp (all proteins).rds')
 )
 ```
