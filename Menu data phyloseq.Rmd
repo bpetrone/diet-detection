@@ -96,6 +96,17 @@ sample_data(ps)$subj <-
             levels = c('908', 'AK65', 'JN55', 'ML48', 'PC74'))
 ```
 
+# Synchronize names
+
+Manual edits
+To do this, may need to drop taxonomy table from object, update names, and then query again. 
+
+```{r}
+# Acer to Acer saccharum
+
+# Capra aegagrus to Capra hircus
+```
+
 # Save
 
 ```{r}
