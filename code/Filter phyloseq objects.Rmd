@@ -64,6 +64,8 @@ ps.protein <-
 ps.protein
 ```
 
+#### Detailed data
+
 ```{r}
 # Protein detail
 proteins.df <- 
@@ -99,3 +101,399 @@ ps.menu <-
 ps.menu
 ```
 
+# Pre-process
+
+## Metabarcoding
+
+### Unidentified reads
+
+#### trnL
+
+```{r}
+# What proportion of overall dataset?
+MButils::percent_unassigned(ps.mb.plant)
+```
+
+```{r}
+# Per sample?
+trnL.no.id <- 
+     MButils::percent_unassigned(ps.mb.plant, by_sample = TRUE) %>% 
+     data.frame(pct_no_id = .) %>% 
+     rownames_to_column(var = 'sample') %>% 
+     separate(sample,
+              into = c('subj', 'date'),
+              sep = '_') %>% 
+     mutate(study = ifelse(subj == '908',
+                           yes = 'Habitual Diet',
+                           no = 'Intervention'))
+
+trnL.no.id
+```
+```{r}
+median(trnL.no.id$pct_no_id, na.rm = TRUE)
+```
+
+```{r}
+range(trnL.no.id$pct_no_id, na.rm = TRUE)
+```
+
+Small enough to safely drop: remove these from object.
+
+```{r}
+ps.mb.plant <- subset_taxa(ps.mb.plant, !is.na(phylum))
+ps.mb.plant
+
+rm(trnL.no.id)
+```
+
+#### 12SV5
+
+```{r}
+# What proportion of each sample?
+MButils::percent_unassigned(ps.mb.animal)
+```
+
+Here, may want to instead ask what we can't assign to the family level.
+
+```{r}
+ps.mb.animal@tax_table@.Data %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'asv') %>% 
+     select(family:species)
+```
+Nothing: everything has a genus or species assignment. 
+
+### Filter to >=5 counts 
+
+Impose >= 5 count/taxon filter. 
+
+```{r}
+# trnL
+asvtab.mb.plant <- otu_table(ps.mb.plant)@.Data
+sum(asvtab.mb.plant)
+
+asvtab.mb.plant[asvtab.mb.plant < 5] <- 0
+sum(asvtab.mb.plant)
+
+# Replace in phyloseq object
+otu_table(ps.mb.plant) <- otu_table(asvtab.mb.plant,
+                                    taxa_are_rows = FALSE)
+```
+
+```{r}
+# 12SV5
+asvtab.mb.animal <- otu_table(ps.mb.animal)@.Data
+sum(asvtab.mb.animal)
+
+asvtab.mb.animal[asvtab.mb.animal < 5] <- 0
+sum(asvtab.mb.animal)
+
+# Replace in phyloseq object
+otu_table(ps.mb.animal) <- otu_table(asvtab.mb.animal,
+                                    taxa_are_rows = FALSE)
+```
+
+### Add lag day
+
+```{r echo = FALSE}
+# trnL
+samdf.mb.plant <- 
+     sample_data(ps.mb.plant) %>% 
+     as('data.frame') %>% 
+     rownames_to_column(var = 'row')
+
+# Label each stool sample with its two preceding days
+for (delta in 1:2){
+     varname <- paste0('delta', delta)
+     samdf.mb.plant <- mutate(samdf.mb.plant, 
+                             !!varname := paste(subj, date - delta, 
+                                                sep = '_'))
+}
+
+# Replace in phyloseq object
+sample_data(ps.mb.plant) <- column_to_rownames(samdf.mb.plant, var = 'row')
+```
+
+```{r echo = FALSE}
+# 12SV5
+samdf.mb.animal <- 
+     sample_data(ps.mb.animal) %>% 
+     as('data.frame') %>% 
+     rownames_to_column(var = 'row')
+
+# Label each stool sample with its two preceding days
+for (delta in 1:2){
+     varname <- paste0('delta', delta)
+     samdf.mb.animal <- mutate(samdf.mb.animal, 
+                             !!varname := paste(subj, date - delta, 
+                                                sep = '_'))
+}
+
+# Replace in phyloseq object
+sample_data(ps.mb.animal) <- column_to_rownames(samdf.mb.animal, var = 'row')
+```
+
+### Rename
+
+```{r}
+taxa_names(ps.mb.plant) <- tax_table(ps.mb.plant)[, 'name']
+taxa_names(ps.mb.animal) <- tax_table(ps.mb.animal)[, 'name']
+```
+
+## Metaproteomic phyloseq
+
+### Add lag day
+
+```{r echo = FALSE}
+# Pull sample data for stool samples
+samdf.protein <- 
+     sample_data(ps.protein) %>% 
+     as('data.frame') %>% 
+     rownames_to_column(var = 'row')
+
+# Label each stool sample with its two preceding days
+for (delta in 1:2){
+     varname <- paste0('delta', delta)
+     samdf.protein <- mutate(samdf.protein, 
+                             !!varname := paste(subj, date - delta, 
+                                                sep = '_'))
+}
+
+# Replace in phyloseq object
+sample_data(ps.protein) <- column_to_rownames(samdf.protein, var = 'row')
+```
+
+### Separate by kingdom
+
+Need to think about how to transform data when doing a combined ordination on plant and animals (if this is even possible)???
+
+For now I'm not certain, so splitting.
+```{r}
+nsamples(ps.protein)
+```
+
+```{r}
+ps.protein.plant <- 
+     ps.protein %>% 
+     subset_taxa(kingdom == 'Viridiplantae') %>% 
+     prune_samples(sample_sums(.) > 0, .)
+
+ps.protein.plant
+```
+
+```{r}
+ps.protein.animal <- 
+     ps.protein %>% 
+     subset_taxa(kingdom == 'Metazoa') %>% 
+     prune_samples(sample_sums(.) > 0, .)
+ps.protein.animal
+```
+
+```{r}
+# What foods are left over?
+ps.protein.other <- 
+     ps.protein %>% 
+     subset_taxa(!(kingdom %in% c('Viridiplantae',
+                                  'Metazoa'))) 
+
+ntaxa(ps.protein.other)
+```
+
+```{r}
+ps.protein.other@tax_table@.Data %>% 
+     data.frame() %>% 
+     pull(species) %>% 
+     unique()
+```
+
+A few fungi, seaweeds (Rhodophyta), spirulina.  Might be fun to do an independent analysis of the prevalence of these taxa. 
+
+#### Filter animal proteins
+
+Here, think I should only include proteins that I'm certain are muscle-derived.
+
+```{r}
+str(proteins.animal)
+```
+
+```{r}
+# Trim to only certain entries and their assigned category
+proteins.animal <- 
+     proteins.animal %>% 
+     filter(certainty == 1) %>% 
+     select(word, category)
+```
+
+Now, need to get accessions of only these proteins, so everything else can be pruned from the phyloseq object.
+
+```{r}
+proteins.animal.filter <- 
+     proteins.df %>% 
+     select(Accession, Description) %>% 
+     mutate(word = gsub(pattern = ' OS=.*',
+                        replacement = '',
+                        Description)) %>% 
+     select(-Description) %>% 
+     distinct() %>% 
+     left_join(proteins.animal) %>% 
+     filter(!is.na(category))
+
+proteins.animal.filter
+```
+Now, subset only these accessions from the phyloseq object.
+
+```{r}
+ps.protein.animal
+
+ps.protein.animal <- prune_taxa(proteins.animal.filter$Accession,
+                                ps.protein.animal)
+
+ps.protein.animal
+```
+
+### Group by taxon
+
+#### Plant
+
+```{r}
+# Relabel with lowest taxonomic level
+tax_table(ps.protein.plant) <- 
+     ps.protein.plant@tax_table@.Data %>% 
+     data.frame() %>% 
+     MButils::lowest_level() %>% 
+     as.matrix()
+
+ps.protein.plant.taxon <- tax_glom(ps.protein.plant,
+                                    taxrank = 'name')
+
+taxa_names(ps.protein.plant.taxon) <- 
+     ps.protein.plant.taxon@tax_table@.Data[, 'name']
+
+ps.protein.plant.taxon
+```
+
+#### Animal
+
+```{r}
+# Relabel with lowest taxonomic level
+tax_table(ps.protein.animal) <- 
+     ps.protein.animal@tax_table@.Data %>% 
+     data.frame() %>% 
+     MButils::lowest_level() %>% 
+     as.matrix()
+
+ps.protein.animal.taxon <- tax_glom(ps.protein.animal,
+                                    taxrank = 'name')
+
+taxa_names(ps.protein.animal.taxon) <- 
+     ps.protein.animal.taxon@tax_table@.Data[, 'name']
+
+ps.protein.animal.taxon
+```
+
+#### Filter to >=5 counts
+
+Note that I'm applying this filter to the taxon-level analysis only
+
+```{r}
+# Impose >= 5 PSM/taxon filter
+asvtab.protein <- otu_table(ps.protein)@.Data
+sum(asvtab.protein)
+
+asvtab.protein[asvtab.protein < 5] <- 0
+sum(asvtab.protein)
+
+# Replace in phyloseq object
+otu_table(ps.protein) <- otu_table(asvtab.protein,
+                                   taxa_are_rows = FALSE)
+```
+
+```{r}
+# Does this remove any taxa? 
+ntaxa(ps.protein)
+
+ps.protein <- 
+     ps.protein %>% 
+     prune_taxa(taxa_sums(.) > 0, .) 
+
+ntaxa(ps.protein)
+```
+
+Wowww! Lots more than I thought.  
+
+
+## Menu phyloseq
+
+Here, what should I plot? Aggregated menu from 1-2 d before intake (to be consistent w/downstream results?)
+
+Why don't I just start with one day before and see how it goes.
+
+### Subset to lag -1
+
+```{r}
+nsamples(ps.menu)
+```
+
+```{r}
+# What taxa are removed in this filtering?
+ps.menu %>% 
+     # Use all possible samples here, rather than filtering for only successes
+     # This occurs in either metabarcoding object (full 27), 
+     # not yet filtered for success
+     prune_samples(sample_names(.) %in% sample_data(ps.mb.animal)$delta1,
+                   .) %>% 
+     prune_taxa(taxa_sums(.) == 0, .) %>% 
+     taxa_names() %>% 
+     sort()
+```
+
+
+```{r}
+# Hold off on filtering for now
+# ps.menu <- 
+#      ps.menu %>% 
+#      # Use all possible samples here, rather than filtering for only successes
+#      # This occurs in either metabarcoding object (full 27), not yet filtered for success
+#      prune_samples(sample_names(.) %in% sample_data(ps.mb.animal)$delta1,
+#                    .) %>% 
+#      prune_taxa(taxa_sums(.) > 0, .)
+# 
+# ps.menu
+```
+
+### Separate by kingdom
+
+```{r}
+ps.menu.plant <- 
+     ps.menu %>% 
+     subset_taxa(kingdom == 'Viridiplantae') %>% 
+     prune_samples(sample_sums(.) > 0, .)
+
+ps.menu.plant
+```
+
+```{r}
+ps.menu.animal <- 
+     ps.menu %>% 
+     subset_taxa(kingdom == 'Metazoa') %>% 
+     prune_samples(sample_sums(.) > 0, .)
+
+ps.menu.animal
+```
+
+```{r}
+# Get leftovers as for metaproteomic dataset above
+ps.menu.other <- 
+     ps.menu %>% 
+     subset_taxa(!(kingdom %in% c('Viridiplantae',
+                                  'Metazoa'))) 
+
+ps.menu.other
+```
+
+```{r}
+# What foods?
+ps.menu.other@tax_table@.Data %>% 
+     data.frame()
+```
+Xanthan gum, mix of mushrooms.
