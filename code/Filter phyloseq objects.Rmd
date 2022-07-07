@@ -420,143 +420,49 @@ ps.protein
 
 ### Group by taxon
 
-#### Plant
-
 ```{r}
 # Relabel with lowest taxonomic level
-tax_table(ps.protein.plant) <- 
-     ps.protein.plant@tax_table@.Data %>% 
+tax_table(ps.protein) <- 
+     ps.protein@tax_table@.Data %>% 
      data.frame() %>% 
      MButils::lowest_level() %>% 
      as.matrix()
 
-ps.protein.plant.taxon <- tax_glom(ps.protein.plant,
+ps.protein.taxon <- tax_glom(ps.protein,
                                     taxrank = 'name')
 
-taxa_names(ps.protein.plant.taxon) <- 
-     ps.protein.plant.taxon@tax_table@.Data[, 'name']
+taxa_names(ps.protein.taxon) <- 
+     ps.protein.taxon@tax_table@.Data[, 'name']
 
-ps.protein.plant.taxon
-```
-
-#### Animal
-
-```{r}
-# Relabel with lowest taxonomic level
-tax_table(ps.protein.animal) <- 
-     ps.protein.animal@tax_table@.Data %>% 
-     data.frame() %>% 
-     MButils::lowest_level() %>% 
-     as.matrix()
-
-ps.protein.animal.taxon <- tax_glom(ps.protein.animal,
-                                    taxrank = 'name')
-
-taxa_names(ps.protein.animal.taxon) <- 
-     ps.protein.animal.taxon@tax_table@.Data[, 'name']
-
-ps.protein.animal.taxon
-```
-
-#### Other
-
-```{r}
-# Relabel with lowest taxonomic level
-tax_table(ps.protein.other) <- 
-     ps.protein.other@tax_table@.Data %>% 
-     data.frame() %>% 
-     MButils::lowest_level() %>% 
-     as.matrix()
-
-ps.protein.other.taxon <- tax_glom(ps.protein.other,
-                                    taxrank = 'name')
-
-taxa_names(ps.protein.other.taxon) <- 
-     ps.protein.other.taxon@tax_table@.Data[, 'name']
-
-ps.protein.other.taxon
+ps.protein.taxon
 ```
 
 ### Filter to >=5 counts
 
 Note that I'm applying this filter to the taxon-level analysis only.
 
-#### Animal
-
 ```{r}
 # Impose >= 5 PSM/taxon filter
-asvtab.protein.animal.taxon <- otu_table(ps.protein.animal.taxon)@.Data
-sum(asvtab.protein.animal.taxon)
+asvtab.protein.taxon <- otu_table(ps.protein.taxon)@.Data
+sum(asvtab.protein.taxon)
 
-asvtab.protein.animal.taxon[asvtab.protein.animal.taxon < 5] <- 0
-sum(asvtab.protein.animal.taxon)
+asvtab.protein.taxon[asvtab.protein.taxon < 5] <- 0
+sum(asvtab.protein.taxon)
 
 # Replace in phyloseq object
-otu_table(ps.protein.animal.taxon) <- otu_table(asvtab.protein.animal.taxon,
+otu_table(ps.protein.taxon) <- otu_table(asvtab.protein.taxon,
                                                 taxa_are_rows = FALSE)
 ```
 
 ```{r}
 # Does this remove any taxa? 
-ntaxa(ps.protein.animal.taxon)
+ntaxa(ps.protein.taxon)
 
-ps.protein.animal.taxon <- 
-     ps.protein.animal.taxon %>% 
+ps.protein.taxon <- 
+     ps.protein.taxon %>% 
      prune_taxa(taxa_sums(.) > 0, .) 
 
-ntaxa(ps.protein.animal.taxon)
-```
-
-#### Plant
-
-```{r}
-# Impose >= 5 PSM/taxon filter
-asvtab.protein.plant.taxon <- otu_table(ps.protein.plant.taxon)@.Data
-sum(asvtab.protein.plant.taxon)
-
-asvtab.protein.plant.taxon[asvtab.protein.plant.taxon < 5] <- 0
-sum(asvtab.protein.plant.taxon)
-
-# Replace in phyloseq object
-otu_table(ps.protein.plant.taxon) <- otu_table(asvtab.protein.plant.taxon,
-                                                taxa_are_rows = FALSE)
-```
-
-```{r}
-# Does this remove any taxa? 
-ntaxa(ps.protein.plant.taxon)
-
-ps.protein.plant.taxon <- 
-     ps.protein.plant.taxon %>% 
-     prune_taxa(taxa_sums(.) > 0, .) 
-
-ntaxa(ps.protein.plant.taxon)
-```
-
-#### Other
-
-```{r}
-# Impose >= 5 PSM/taxon filter
-asvtab.protein.other.taxon <- otu_table(ps.protein.other.taxon)@.Data
-sum(asvtab.protein.other.taxon)
-
-asvtab.protein.other.taxon[asvtab.protein.other.taxon < 5] <- 0
-sum(asvtab.protein.other.taxon)
-
-# Replace in phyloseq object
-otu_table(ps.protein.other.taxon) <- otu_table(asvtab.protein.other.taxon,
-                                                taxa_are_rows = FALSE)
-```
-
-```{r}
-# Does this remove any taxa? 
-ntaxa(ps.protein.other.taxon)
-
-ps.protein.other.taxon <- 
-     ps.protein.other.taxon %>% 
-     prune_taxa(taxa_sums(.) > 0, .) 
-
-ntaxa(ps.protein.other.taxon)
+ntaxa(ps.protein.taxon)
 ```
 
 ### Add missing sample
@@ -588,7 +494,6 @@ ps.menu %>%
      sort()
 ```
 
-
 ```{r}
 # Hold off on filtering for now
 # ps.menu <- 
@@ -601,43 +506,6 @@ ps.menu %>%
 # 
 # ps.menu
 ```
-
-### Separate by kingdom
-
-```{r}
-ps.menu.plant <- 
-     ps.menu %>% 
-     subset_taxa(kingdom == 'Viridiplantae') %>% 
-     prune_samples(sample_sums(.) > 0, .)
-
-ps.menu.plant
-```
-
-```{r}
-ps.menu.animal <- 
-     ps.menu %>% 
-     subset_taxa(kingdom == 'Metazoa') %>% 
-     prune_samples(sample_sums(.) > 0, .)
-
-ps.menu.animal
-```
-
-```{r}
-# Get leftovers as for metaproteomic dataset above
-ps.menu.other <- 
-     ps.menu %>% 
-     subset_taxa(!(kingdom %in% c('Viridiplantae',
-                                  'Metazoa'))) 
-
-ps.menu.other
-```
-
-```{r}
-# What foods?
-ps.menu.other@tax_table@.Data %>% 
-     data.frame()
-```
-Xanthan gum, mix of mushrooms.
 
 # Save
 
