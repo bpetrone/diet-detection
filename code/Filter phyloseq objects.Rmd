@@ -84,9 +84,8 @@ proteins.animal <-
           'processed',
           'Animal-based proteins (annotated).csv') %>% 
      read_csv()
-
-proteins.animal
 ```
+
 ## Menu
 
 ```{r}
@@ -263,65 +262,159 @@ for (delta in 1:2){
 sample_data(ps.protein) <- column_to_rownames(samdf.protein, var = 'row')
 ```
 
-### Separate by kingdom
+### Protein categories
 
-Need to think about how to transform data when doing a combined ordination on plant and animals (if this is even possible)???
+I manually labeled entries with >=5 PSMs. Categories are:
+- muscle
+- tissue
+- egg
+- dairy
+- none (== 'other')
 
-For now I'm not certain, so splitting.
 ```{r}
-nsamples(ps.protein)
+proteins.animal <-
+     proteins.animal %>% 
+     # Convert empty category to "Other"
+     mutate(category = ifelse(category == '',
+                              yes = 'other',
+                              no = category))
+
+str(proteins.animal)
+```
+I manually labeled these based on searches of protein names.  How does the grouping break out? 
+
+```{r}
+proteins.animal %>% 
+     group_by(category, certainty) %>% 
+     count()
 ```
 
 ```{r}
-ps.protein.plant <- 
-     ps.protein %>% 
-     subset_taxa(kingdom == 'Viridiplantae') %>% 
-     prune_samples(sample_sums(.) > 0, .)
+# Make "other" label "certain"
+proteins.animal$certainty[proteins.animal$category == 'other'] <- 1
+```
 
-ps.protein.plant
+### Automated labels (<-5 PSMs)
+
+Scan certain terms from above to make regular expressions:
+
+```{r}
+manual.label <- filter(proteins.animal, weight >= 5)
+automatic.label <- filter(proteins.animal, weight < 5)
 ```
 
 ```{r}
-ps.protein.animal <- 
-     ps.protein %>% 
-     subset_taxa(kingdom == 'Metazoa') %>% 
-     prune_samples(sample_sums(.) > 0, .)
-ps.protein.animal
+# Muscle
+# Need the [^nt] to filter out hits to "interACTINg" and 'contACTIN'
+ex.muscle <- '[^rt][Aa]ctin|[Cc]reatine|[Mm]yo|[Ff]erritin|[Nn]ebulin|[Ss]arco|[Tt]itin|[Tt]ropo'
+
+# Tissue
+# Think many of these (had previously had as '[Kk]eratin|[Cc]ollagen|[Ff]ormin') are not cell-type specific and could be reasonably expected to be in human epithelia
+
+# Egg
+ex.egg <- '[Vv]itell|^Ovo|[Aa]lbumin'
+
+# Dairy
+# Lacto gives other hits (e.g. beta-galactosidase, galactokinase), but nothing resembling lactoglobulin, so removed
+ex.dairy <- '[Cc]asein|[Bb]utyrophilin'
 ```
 
 ```{r}
-# What foods are left over?
-ps.protein.other <- 
-     ps.protein %>% 
-     subset_taxa(!(kingdom %in% c('Viridiplantae',
-                                  'Metazoa'))) 
-
-ntaxa(ps.protein.other)
+# Label these in data
+automatic.label <- 
+     automatic.label %>%
+     mutate(category = 
+                 case_when(grepl(word, pattern = ex.muscle) ~ 'muscle',
+                           grepl(word, pattern = ex.dairy) ~ 'dairy',
+                           grepl(word, pattern = ex.egg) ~ 'egg',
+                           TRUE ~ 'other')) %>% 
+     mutate(certainty = 1)
 ```
 
 ```{r}
-ps.protein.other@tax_table@.Data %>% 
-     data.frame() %>% 
-     pull(species) %>% 
-     unique()
+# How many labels assigned (out of 1170 starting?)
+sum(automatic.label$category != 'other')
 ```
 
-A few fungi, seaweeds (Rhodophyta), spirulina.  Might be fun to do an independent analysis of the prevalence of these taxa. 
+~5%.  May want to go back and refine this, but consider it workable for now.
+
+```{r}
+# Join automated to manual assignments
+proteins.animal <- 
+     bind_rows(manual.label,
+               automatic.label)
+```
+
+```{r}
+# For now, consider only certain assignments:
+proteins.animal <- 
+     proteins.animal %>% 
+     mutate(category = ifelse(certainty == 0,
+                              yes = 'other',
+                              no = category),
+            category = ifelse(is.na(category),
+                              yes = 'other',
+                              no = category)) 
+
+table(proteins.animal$category)
+```
+
+```{r}
+sum(proteins.animal$category != 'other')/length(proteins.animal$category)
+```
+
+```{r}
+proteins.animal %>% 
+     group_by(category != 'other') %>% 
+     summarize(psms = sum(weight)) %>% 
+     mutate(pct = psms/sum(psms))
+```
+This is 10.6% of peptides, and 42.2% of PSMs.
 
 #### Filter animal proteins
 
-Here, think I should only include proteins that I'm certain are muscle-derived.
 
+PSM counts are named with accession-- need to connect this to protein name, and then subset. 
 ```{r}
-str(proteins.animal)
+head(taxa_names(ps.protein))
+```
+
+Join to taxonomy, because I want to preserve all plants while subset animals
+```{r}
+proteins.df <- 
+     taxtab.protein %>% 
+     rownames_to_column(var = 'Accession') %>% 
+     left_join(proteins.df, .) 
 ```
 
 ```{r}
-# Trim to only certain entries and their assigned category
-proteins.animal <- 
-     proteins.animal %>% 
-     filter(certainty == 1) %>% 
-     select(word, category)
+# Protein names to subset by
+meat.dairy.egg <- 
+     filter(animal.proteins, category != 'other') %>% 
+     pull(word) 
+
+head(meat.dairy.egg)
+```
+
+```{r}
+cat('Starting entries:', nrow(proteins.df), '\n')
+
+proteins.df <- 
+     proteins.df %>% 
+     mutate(protein = gsub(Description,
+                           pattern = ' OS=.*$',
+                           replacement = '')) %>% 
+     filter(protein %in% meat.dairy.egg | kingdom != 'Metazoa')
+
+cat('Filtered entries:', nrow(proteins.df))
+```
+
+Now, can subset phyloseq object based on accessions
+```{r}
+ps.protein
+
+ps.protein <- prune_taxa(proteins.df$Accession, ps.protein)
+ps.protein
 ```
 
 Now, need to get accessions of only these proteins, so everything else can be pruned from the phyloseq object.
