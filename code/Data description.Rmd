@@ -74,63 +74,29 @@ ps.mb.animal
 
 ## Metaproteomics
 
+Filtering steps done in notebook "Filtered phyloseq objects":
+- Subset animal proteins to only those certainly of muscle, dairy, or egg origin
+- Filter taxa identified to only those with cumulatively >= 5 PSMs
+
 ```{r}
 # Tax-glommed
-ps.protein.animal.taxon <- 
+ps.protein.taxon <- 
      here('data',
           'processed',
           'phyloseq',
           'combined',
           'filtered',
-          'ps_mp_animal.rds') %>%
+          'ps_mp_taxa.rds') %>%
      readRDS()
 
-ps.protein.plant.taxon <- 
+# By protein
+ps.protein <- 
      here('data',
           'processed',
           'phyloseq',
           'combined',
           'filtered',
-          'ps_mp_plant.rds') %>%
-     readRDS()
-
-ps.protein.other.taxon <- 
-     here('data',
-          'processed',
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_mp_other.rds') %>%
-     readRDS()
-```
-
-```{r}
-# Protein-level
-ps.protein.animal <- 
-     here('data',
-          'processed',
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_mp_animal (selected proteins).rds') %>%
-     readRDS()
-
-ps.protein.plant <- 
-     here('data',
-          'processed',
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_mp_plant (selected proteins).rds') %>%
-     readRDS()
-
-ps.protein.other <- 
-     here('data',
-          'processed',
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_mp_other (selected proteins).rds') %>%
+          'ps_mp_proteins.rds') %>%
      readRDS()
 ```
 
@@ -146,31 +112,13 @@ proteins.df <-
 ## Menu
 
 ```{r}
-ps.menu.animal <- 
+ps.menu <- 
      here('data', 
           'processed', 
           'phyloseq',
           'combined',
           'filtered',
-          'ps_menu_animal.rds') %>% 
-     readRDS()
-
-ps.menu.plant <- 
-     here('data', 
-          'processed', 
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_menu_plant.rds') %>% 
-     readRDS()
-
-ps.menu.other <- 
-     here('data', 
-          'processed', 
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_menu_other.rds') %>% 
+          'ps_menu.rds') %>% 
      readRDS()
 ```
 
@@ -516,7 +464,9 @@ n_distinct(ref.trnL$name)
 ### Metaproteomics
 
 ```{r}
-ntaxa(ps.protein)
+ntaxa(ps.protein.animal.taxon) + 
+     ntaxa(ps.protein.plant.taxon) +
+     ntaxa(ps.protein.other.taxon)
 ```
 
 What about number of unique dietary peptides?  Use intermediate processing stage of data for this (saved in "Metaproteomic phyloseq" notebook):
@@ -532,14 +482,48 @@ n_distinct(proteins.df$Description)
 
 ```{r}
 # Most prevalent foods
-melt.mp %>% 
+melt.mp.animal %>% 
      group_by(Sample, OTU) %>% 
-     summarize(prevalence_within = sum(Abundance >= 5)) %>% 
+     summarize(prevalence_within = sum(Abundance > 0)) %>% 
      # Now group by just food, get across-sample prevalence
      group_by(OTU) %>% 
      summarize(prevalence_across = sum(prevalence_within)) %>% 
      arrange(desc(prevalence_across))
 ```
+
+Interesting: there are still some that trigger questions for me here. For example, goat had previously been down to 4 detections, maybe I am being too permissive?  Check which proteins are listed and maybe flag??
+
+```{r}
+proteins.animal <- 
+     proteins.df %>% 
+     select(Accession, Description) %>% 
+     mutate(word = gsub(Description,
+                        pattern = ' OS=.*',
+                        replacement = '')) %>% 
+     distinct() %>% 
+     right_join(melt.mp.animal, by = c('Accession'='OTU')) %>% 
+     left_join(proteins.animal)
+```
+
+```{r}
+proteins.animal %>% 
+     filter(name == 'Astacoidea') %>% 
+     select(word, Abundance, Sample) %>% 
+     arrange(desc(Abundance))
+```
+
+
+```{r}
+# Most prevalent foods
+melt.mp.plant %>% 
+     group_by(Sample, OTU) %>% 
+     summarize(prevalence_within = sum(Abundance > 0)) %>% 
+     # Now group by just food, get across-sample prevalence
+     group_by(OTU) %>% 
+     summarize(prevalence_across = sum(prevalence_within)) %>% 
+     arrange(desc(prevalence_across))
+```
+
 
 Oh wow-- with what proportion of total PSMs?
 
