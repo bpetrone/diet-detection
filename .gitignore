@@ -1,1 +1,9 @@
 *.html
+
+.Rproj.user
+.DS_Store
+
+/results
+/docs
+/data/metadata
+/data/raw
