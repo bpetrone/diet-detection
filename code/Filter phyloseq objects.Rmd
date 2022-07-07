@@ -533,83 +533,35 @@ saveRDS(ps.mb.animal,
 
 ```{r}
 # Tax-glommed
-saveRDS(ps.protein.plant.taxon,
+saveRDS(ps.protein.taxon,
         here('data',
              'processed',
              'phyloseq',
              'combined',
              'filtered',
-             'ps_mp_plant.rds'))
-
-saveRDS(ps.protein.animal.taxon,
-        here('data',
-             'processed',
-             'phyloseq',
-             'combined',
-             'filtered',
-             'ps_mp_animal.rds'))
-
-saveRDS(ps.protein.other.taxon,
-        here('data',
-             'processed',
-             'phyloseq',
-             'combined',
-             'filtered',
-             'ps_mp_other.rds'))
+             'ps_mp_taxa.rds'))
 ```
 
 ```{r}
 # By proteins
-saveRDS(ps.protein.plant,
+saveRDS(ps.protein,
         here('data',
              'processed',
              'phyloseq',
              'combined',
              'filtered',
-             'ps_mp_plant (selected proteins).rds'))
-
-saveRDS(ps.protein.animal,
-        here('data',
-             'processed',
-             'phyloseq',
-             'combined',
-             'filtered',
-             'ps_mp_animal (selected proteins).rds'))
-
-saveRDS(ps.protein.other,
-        here('data',
-             'processed',
-             'phyloseq',
-             'combined',
-             'filtered',
-             'ps_mp_other (selected proteins).rds'))
+             'ps_mp_proteins.rds'))
 ```
 
 ## Menu
 
 ```{r}
-saveRDS(ps.menu.plant,
+saveRDS(ps.menu,
         here('data',
              'processed',
              'phyloseq',
              'combined',
              'filtered',
-             'ps_menu_plant.rds'))
-
-saveRDS(ps.menu.animal,
-        here('data',
-             'processed',
-             'phyloseq',
-             'combined',
-             'filtered',
-             'ps_menu_animal.rds'))
-
-saveRDS(ps.menu.other,
-        here('data',
-             'processed',
-             'phyloseq',
-             'combined',
-             'filtered',
-             'ps_menu_other.rds'))
+             'ps_menu.rds'))
 ```
 
