@@ -1,5 +1,6 @@
 *.html
 
+.Rhistory
 .Rproj.user
 .DS_Store
 
@@ -7,3 +8,5 @@
 /docs
 /data/metadata
 /data/raw
+/data/processed/*.xlsx
+/data/processed/phyloseq
