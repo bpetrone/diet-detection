@@ -294,7 +294,7 @@ proteins.animal %>%
 proteins.animal$certainty[proteins.animal$category == 'other'] <- 1
 ```
 
-### Automated labels (<-5 PSMs)
+#### Automated labels (<-5 PSMs)
 
 Scan certain terms from above to make regular expressions:
 
@@ -371,16 +371,17 @@ proteins.animal %>%
 ```
 This is 10.6% of peptides, and 42.2% of PSMs.
 
-#### Filter animal proteins
-
+#### Filter
 
 PSM counts are named with accession-- need to connect this to protein name, and then subset. 
+
 ```{r}
 head(taxa_names(ps.protein))
 ```
 
 Join to taxonomy, because I want to preserve all plants while subset animals
 ```{r}
+taxtab.protein <- data.frame(ps.protein@tax_table@.Data)
 proteins.df <- 
      taxtab.protein %>% 
      rownames_to_column(var = 'Accession') %>% 
@@ -390,7 +391,7 @@ proteins.df <-
 ```{r}
 # Protein names to subset by
 meat.dairy.egg <- 
-     filter(animal.proteins, category != 'other') %>% 
+     filter(proteins.animal, category != 'other') %>% 
      pull(word) 
 
 head(meat.dairy.egg)
@@ -409,39 +410,12 @@ proteins.df <-
 cat('Filtered entries:', nrow(proteins.df))
 ```
 
-Now, can subset phyloseq object based on accessions
+Now, can subset phyloseq object based on accessions.
 ```{r}
 ps.protein
 
 ps.protein <- prune_taxa(proteins.df$Accession, ps.protein)
 ps.protein
-```
-
-Now, need to get accessions of only these proteins, so everything else can be pruned from the phyloseq object.
-
-```{r}
-proteins.animal.filter <- 
-     proteins.df %>% 
-     select(Accession, Description) %>% 
-     mutate(word = gsub(pattern = ' OS=.*',
-                        replacement = '',
-                        Description)) %>% 
-     select(-Description) %>% 
-     distinct() %>% 
-     left_join(proteins.animal) %>% 
-     filter(!is.na(category))
-
-proteins.animal.filter
-```
-Now, subset only these accessions from the phyloseq object.
-
-```{r}
-ps.protein.animal
-
-ps.protein.animal <- prune_taxa(proteins.animal.filter$Accession,
-                                ps.protein.animal)
-
-ps.protein.animal
 ```
 
 ### Group by taxon
