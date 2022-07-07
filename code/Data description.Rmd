@@ -37,8 +37,8 @@ theme_set(theme_bw() +
 ```
 
 ```{r}
-study.color <- c('#4e79a7', # Weight Loss
-                 '#f28e2b') # Healthy Donor
+study.color <- c('#4e79a7', # Intervention
+                 '#f28e2b') # Habitual Diet
 ```
 
 # Read in data
@@ -51,6 +51,7 @@ ps.mb.plant <-
           'processed',
           'phyloseq',
           'combined',
+          'filtered',
           'ps_mb_trnL.rds') %>% 
      readRDS()
 
@@ -64,6 +65,7 @@ ps.mb.animal <-
           'processed',
           'phyloseq',
           'combined',
+          'filtered',
           'ps_mb_12SV5.rds') %>% 
      readRDS()
 
@@ -73,20 +75,67 @@ ps.mb.animal
 ## Metaproteomics
 
 ```{r}
-# Phyloseq
-ps.protein <- 
+# Tax-glommed
+ps.protein.animal.taxon <- 
      here('data',
           'processed',
           'phyloseq',
           'combined',
-          'ps_mp.rds') %>%
+          'filtered',
+          'ps_mp_animal.rds') %>%
      readRDS()
 
-ps.protein
+ps.protein.plant.taxon <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mp_plant.rds') %>%
+     readRDS()
+
+ps.protein.other.taxon <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mp_other.rds') %>%
+     readRDS()
 ```
 
 ```{r}
-# Protein detail
+# Protein-level
+ps.protein.animal <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mp_animal (selected proteins).rds') %>%
+     readRDS()
+
+ps.protein.plant <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mp_plant (selected proteins).rds') %>%
+     readRDS()
+
+ps.protein.other <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mp_other (selected proteins).rds') %>%
+     readRDS()
+```
+
+```{r}
+# Unfiltered data
 proteins.df <- 
      here('data',
           'processed',
@@ -97,15 +146,32 @@ proteins.df <-
 ## Menu
 
 ```{r}
-ps.menu <- 
+ps.menu.animal <- 
      here('data', 
           'processed', 
           'phyloseq',
           'combined',
-          'ps_menu.rds') %>% 
+          'filtered',
+          'ps_menu_animal.rds') %>% 
      readRDS()
 
-ps.menu
+ps.menu.plant <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_menu_plant.rds') %>% 
+     readRDS()
+
+ps.menu.other <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_menu_other.rds') %>% 
+     readRDS()
 ```
 
 ## References
@@ -137,7 +203,6 @@ ref.trnL <-
 
 ref.trnL
 ```
-
 
 ### 12SV5
 
