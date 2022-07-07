@@ -61,7 +61,7 @@ weight,word,category,certainty,notes
 48,Slow-tonic S2 myosin heavy chain,muscle,1,
 46,"myosin heavy chain, fast skeletal muscle-like isoform X4",muscle,1,
 46,"Myosin regulatory light chain 2, skeletal muscle isoform",muscle,1,
-40,IF rod domain-containing protein,tissue,1,Cytoskeletal component
+40,IF rod domain-containing protein,tissue,0,Cytoskeletal component
 40,Ubiquitin/ribosomal fusion protein,,,Covalent modification of proteinaceous substrates recycled by ubiquitin-proteasome system
 39,ATP synthase subunit beta (Fragment),muscle,0,Mitochondrial
 38,"Phosphate carrier protein, mitochondrial",muscle,0,Mitochondrial
@@ -69,7 +69,7 @@ weight,word,category,certainty,notes
 34,L-lactate dehydrogenase (Fragment),muscle,0,Glycoloysis
 34,Progastricsin,,,"Pepsinogen precursor of the enzyme gastricsin, produced in stomach"
 32,Membrane metalloendopeptidase,,,Extracellular and transmembrane peptide cleavage
-31,Formin 1,tissue,1,Adherens junction protein
+31,Formin 1,tissue,0,Adherens junction protein
 30,Fast myosin heavy chain (Fragment),muscle,1,
 29,Pyruvate kinase,muscle,0,Last step of glycolysis
 29,Zgc:86709,muscle,1,"Alpha actin, cardiac muscle 2"
@@ -88,20 +88,20 @@ weight,word,category,certainty,notes
 22,Alpha-S2-casein,dairy,1,
 22,Actinin alpha 2,muscle,1,
 22,Myoglobin,muscle,1,
-21,Nucleoside diphosphate kinase,muscle,0,NDPK activities maintain an equilibrium between the concentrations of different nucleoside triphosphates
 21,Cytoplasmic actin 1 (Fragment),muscle,1,
 21,"Glycogen phosphorylase, muscle form",muscle,1,
 21,"Myosin, heavy chain 6, cardiac muscle, alpha",muscle,1,
 21,Neuronal acetylcholine receptor subunit non-alpha-2,muscle,1,Neuromuscular junction protein
+21,Nucleoside diphosphate kinase,muscle,0,NDPK activities maintain an equilibrium between the concentrations of different nucleoside triphosphates
+21,Collagen type I alpha 1 chain,tissue,0,
 21,Keratin 79,tissue,0,Hair canal migratory keratinocyte protein
-21,Collagen type I alpha 1 chain,tissue,1,
 21,X-prolyl aminopeptidase 2,,,"Aminopeptidase P is a hydrolase specific for N-terminal imido bonds, which are common to several collagen degradation products, neuropeptides, vasoactive peptides, and cytokines"
 21,Zymogen granule protein 16,,,Predicted to act upstream of or within defense response to Gram-positive bacterium and suppression of symbiont entry into host
 20,Kappa-casein,dairy,1,
 20,GLOBIN domain-containing protein,muscle,0,"Hemoglobin, myoglobin (though could also be host-derived)"
 20,Muscle-type creatine kinase (Fragment),muscle,1,
 20,Myosin light chain 1,muscle,1,
-20,Projectin,tissue,1,An invertebrate connectin (titin)
+20,Projectin,muscle,1,An invertebrate connectin (titin)
 19,Ovotransferrin (Fragment),egg,1,
 19,Alpha-enolase,muscle,0,"Glycolysis, likely high in skeletal muscle"
 19,Calsequestrin,muscle,1,Calcium-binding protein that acts as a calcium buffer within the sarcoplasmic reticulum
@@ -110,14 +110,14 @@ weight,word,category,certainty,notes
 19,titin-like isoform X20,muscle,1,
 18,ADP/ATP translocase 2,muscle,0,
 18,myosin-7-like,muscle,1,
-17,L-lactate dehydrogenase,muscle,0,"Glycolysis, likely high in skeletal muscle"
 17,"Creatine kinase, mitochondrial 2",muscle,1,
+17,L-lactate dehydrogenase,muscle,0,"Glycolysis, likely high in skeletal muscle"
 17,Myosin essential light chain isoform 1,muscle,1,
 16,Gp_dh_C domain-containing protein,muscle,0,"Glycolysis: Glyceraldehyde 3-phosphate dehydrogenase, C-terminal domain"
 16,"Troponin T, slow skeletal muscle",muscle,1,
+15,calcium release-activated calcium channel protein 1-like isoform X1,muscle,1,
 15,cGMP-dependent protein kinase,muscle,0,"Commonly regulate calcium homeostasis, calcium sensitivity of cellular proteins, platelet activation and adhesion, smooth muscle contraction, cardiac function, gene expression, feedback of the NO-signaling pathway, and other processes"
 15,Hemoglobin subunit beta,muscle,0,Could also be cross-reactive-- check species
-15,calcium release-activated calcium channel protein 1-like isoform X1,muscle,1,
 15,Myosin-1,muscle,1,
 14,N-acetylated alpha-linked acidic dipeptidase like 1,muscle,0,Expressed by non-myelinating Schwann cells in the peripheral nervous system
 14,"Troponin C, isoform 2B",muscle,1,
@@ -127,10 +127,10 @@ weight,word,category,certainty,notes
 14,G_PROTEIN_RECEP_F2_4 domain-containing protein,,,Unclear results
 14,NDK domain-containing protein,,,Major role in the synthesis of nucleoside triphosphates other than ATP
 14,Signal induced proliferation associated 1 like 2,,,Ubiquitous expression in many tissues
+13,"Actin, gamma-enteric smooth muscle (Fragment)",muscle,1,
 13,C-type lectin domain containing 9A,muscle,0,"Recognizes filamentous form of actin in association with particular actin-binding domains of cytoskeletal proteins, including spectrin, exposed when cell membranes are damaged"
 13,Fumarylacetoacetate hydrolase domain containing 1,muscle,0,Mitochondrial protein
 13,Glyceraldehyde-3-phosphate dehydrogenase (Fragment),muscle,0,Glycolysis
-13,"Actin, gamma-enteric smooth muscle (Fragment)",muscle,1,
 13,Myosin heavy chain 7-like,muscle,1,
 13,"Troponin T, fast skeletal muscle",muscle,1,
 13,Nesprin-1,tissue,0,Multi-isomeric modular protein which forms a linking network between organelles and the actin cytoskeleton to maintain the subcellular spatial organization
@@ -141,9 +141,9 @@ weight,word,category,certainty,notes
 12,Vitellogenin-1,egg,1,
 12,Angiotensin-converting enzyme,muscle,0,Vasculature
 12,Carbonic anhydrase 4,muscle,0,"Zinc metalloenzymes that catalyze the reversible hydration of carbon dioxide; occur in muscle, where they contribute 20% of the total CA activity in mouse (https://pubmed.ncbi.nlm.nih.gov/18003750/)"
+12,"Phosphofructokinase, muscle",muscle,1,Glycolysis
 12,Solute carrier family 25 member 5,muscle,0,Antiporter for ADP/ATP exchange between the mitochondrial matrix and cytoplasm
 12,Voltage-dependent anion-selective channel protein 1 (Fragment),muscle,0,Mitochondrial outer membrane protein
-12,"Phosphofructokinase, muscle",muscle,1,Glycolysis
 12,collagen alpha-6(VI) chain-like,,,Basal lamina component of epithelial cells
 11,Calcyphosin,muscle,0,Calcium binding protein
 11,Fibrillar collagen NC1 domain-containing protein,tissue,0,Extracellular matrix collagen
@@ -179,8 +179,8 @@ weight,word,category,certainty,notes
 8,alpha-enolase isoform X1,muscle,0,Glycolysis
 8,Ezrin,muscle,0,"Plasma membrane–actin cytoskeleton linker, participate in the formation of specialized domains of the plasma membrane"
 8,"Glycogen phosphorylase, brain form",muscle,0,"Glycogen mobilization, could be relevant for muscle but interesting that this is brain isoform"
-8,NADH-ubiquinone oxidoreductase chain 5,muscle,0,Core subunit of the mitochondrial membrane respiratory chain NADH dehydrogenase
 8,Myosin heavy chain 15,muscle,1,
+8,NADH-ubiquinone oxidoreductase chain 5,muscle,0,Core subunit of the mitochondrial membrane respiratory chain NADH dehydrogenase
 8,"Filamin C, gamma a (actin binding protein 280)",tissue,0,"Filamin C (FLNC) is one of three filamin proteins (Filamin A (FLNA), Filamin B (FLNB), and FLNC) that cross-link actin filaments"
 8,"Keratin, type I cytoskeletal 19",tissue,0,
 8,Adenosine deaminase,,,Involved in purine metabolism. It is needed for the breakdown of adenosine from food and for the turnover of nucleic acids in tissues
@@ -198,10 +198,10 @@ weight,word,category,certainty,notes
 7,Short-chain mitochondrial-like specific acyl (Fragment),muscle,0,
 7,Synaptophysin like 2,muscle,1,Involved in communication between the T-tubular and junctional sarcoplasmic reticulum (SR) membranes
 7,Unc-45-like protein A,muscle,1,Myosin chaperone protein: https://www.nature.com/articles/s41467-019-12667-8
+7,Keratin 14,tissue,0,
+7,Keratin 4,tissue,0,
+7,"Keratin, type II cytoskeletal 6C (Fragment)",tissue,0,
 7,Serpin B6,tissue,0,"Intracellular serine protease inhibitors, localized mainly in the cytoplasm of endothelial cells, some epithelial cells, monocytes, and neutrophils"
-7,Keratin 14,tissue,1,
-7,Keratin 4,tissue,1,
-7,"Keratin, type II cytoskeletal 6C (Fragment)",tissue,1,
 7,ABC transporter G family member 20,,,ABC: ATP-binding cassette
 7,Aspartyl aminopeptidase,,,Likely digestive: release of an N-terminal aspartate or glutamate from a peptide
 7,Bifunctional purine biosynthesis protein PURH (Fragment),,,De novo purine biosynthesis
@@ -216,13 +216,13 @@ weight,word,category,certainty,notes
 7,Uncharacterized protein KIAA0141 (Fragment),,,Unclear function
 7,zf-C3H1 domain-containing protein,,,"Subunit of the trimeric poly(A) tail exosome targeting (PAXT) complex, a complex that directs a subset of long and polyadenylated poly(A) RNAs for exosomal degradation"
 6,Alpha-fetoprotein,egg,1,Produced in the liver of a developing fetus
+6,"Alpha-actinin, sarcomeric-like isoform X1 (Fragment)",muscle,1,
 6,ATP synthase subunit alpha,muscle,0,Mitochondrial
 6,Cytochrome c domain-containing protein,muscle,0,Mitochondrial electron transport
 6,Latrophilin-3,muscle,0,Regulator of synaptic function and maintenance in brain regions that mediate locomotor activity
+6,"Myosin-binding protein C, fast-type",muscle,1,
 6,Phosphoglycerate mutase 1,muscle,0,Glycolysis
 6,Solute carrier family 25 member 11,muscle,0,"Potentially mitochondrial, see https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=732505"
-6,"Alpha-actinin, sarcomeric-like isoform X1 (Fragment)",muscle,1,
-6,"Myosin-binding protein C, fast-type",muscle,1,
 6,Hyaluronan binding protein 2,tissue,0,Extracellular serine protease which binds hyaluronic acid. It is involved in cell adhesion
 6,Aminopeptidase,,,Likely digestive
 6,Apoptosis inhibitor 5,,,
@@ -243,25 +243,25 @@ weight,word,category,certainty,notes
 5,Trophoblast Kunitz domain protein 4,dairy,0,Specifically expressed in placenta of ruminant ungulates
 5,Apovitellenin-1,egg,1,Protein component of the very low density lipoprotein (VLDL) of egg-laying females
 5,Actin-related protein 2/3 complex subunit 4,muscle,0,Part of a multiprotein complex that mediates actin polymerization
+5,Actinin alpha 3 (gene/pseudogene),muscle,1,"Actin binding, specifically expressed in skeletal muscle"
 5,"Adenylate kinase 2, mitochondrial",muscle,0,Mitochondrial
 5,Calponin-homology (CH) domain-containing protein,muscle,0,Superfamily of actin-binding domains found in both cytoskeletal proteins and signal transduction proteins
 5,Clustered mitochondria protein homolog,muscle,0,Mitochondrial
 5,Glucose-6-phosphate isomerase,muscle,0,Glycolysis
-5,L-lactate dehydrogenase A chain,muscle,0,Lactate dehydrogenase A catalyzes the inter-conversion of pyruvate and L-lactate
-5,Transmembrane protein 38A,muscle,0,Predicted to enable potassium channel activity
-5,Actinin alpha 3 (gene/pseudogene),muscle,1,"Actin binding, specifically expressed in skeletal muscle"
 5,Kinesin motor domain-containing protein,muscle,1,
+5,L-lactate dehydrogenase A chain,muscle,0,Lactate dehydrogenase A catalyzes the inter-conversion of pyruvate and L-lactate
 5,Myosin heavy chain,muscle,1,
 5,nebulin,muscle,1,Nebulin is an actin-binding protein which is localized to the thin filament of the sarcomeres in skeletal muscle
 5,Nebulin,muscle,1,Nebulin is an actin-binding protein which is localized to the thin filament of the sarcomeres in skeletal muscle
+5,Transmembrane protein 38A,muscle,0,Predicted to enable potassium channel activity
 5,Tropomyosin alpha-1 chain (Fragment),muscle,1,
 5,Tropomyosin-1 alpha chain,muscle,1,
 5,"Troponin C, skeletal muscle (Fragment)",muscle,1,
 5,Collagen IV NC1 domain-containing protein,tissue,0,
+5,Keratin 17,tissue,0,
+5,Keratin 77,tissue,0,
 5,Protocadherin-18,tissue,0,Potential calcium-dependent cell-adhesion protein.
 5,Vimentin-related 2,tissue,0,Intermediate filament
-5,Keratin 17,tissue,1,
-5,Keratin 77,tissue,1,
 5,Actinin alpha 4,,,Non-muscle alpha actinin isoform concentrated in the cytoplasm
 5,Autophagy-related protein 16-1,,,Function characterized in human intestinal Paneth cells
 5,dedicator of cytokinesis protein 3,,,Specifically expressed in the central nervous system (CNS). It encodes a member of the DOCK (dedicator of cytokinesis) family of guanine nucleotide exchange factors (GEFs)
