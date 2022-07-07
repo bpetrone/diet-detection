@@ -391,36 +391,110 @@ taxa_names(ps.protein.animal.taxon) <-
 ps.protein.animal.taxon
 ```
 
-#### Filter to >=5 counts
+#### Other
 
-Note that I'm applying this filter to the taxon-level analysis only
+```{r}
+# Relabel with lowest taxonomic level
+tax_table(ps.protein.other) <- 
+     ps.protein.other@tax_table@.Data %>% 
+     data.frame() %>% 
+     MButils::lowest_level() %>% 
+     as.matrix()
+
+ps.protein.other.taxon <- tax_glom(ps.protein.other,
+                                    taxrank = 'name')
+
+taxa_names(ps.protein.other.taxon) <- 
+     ps.protein.other.taxon@tax_table@.Data[, 'name']
+
+ps.protein.other.taxon
+```
+
+### Filter to >=5 counts
+
+Note that I'm applying this filter to the taxon-level analysis only.
+
+#### Animal
 
 ```{r}
 # Impose >= 5 PSM/taxon filter
-asvtab.protein <- otu_table(ps.protein)@.Data
-sum(asvtab.protein)
+asvtab.protein.animal.taxon <- otu_table(ps.protein.animal.taxon)@.Data
+sum(asvtab.protein.animal.taxon)
 
-asvtab.protein[asvtab.protein < 5] <- 0
-sum(asvtab.protein)
+asvtab.protein.animal.taxon[asvtab.protein.animal.taxon < 5] <- 0
+sum(asvtab.protein.animal.taxon)
 
 # Replace in phyloseq object
-otu_table(ps.protein) <- otu_table(asvtab.protein,
-                                   taxa_are_rows = FALSE)
+otu_table(ps.protein.animal.taxon) <- otu_table(asvtab.protein.animal.taxon,
+                                                taxa_are_rows = FALSE)
 ```
 
 ```{r}
 # Does this remove any taxa? 
-ntaxa(ps.protein)
+ntaxa(ps.protein.animal.taxon)
 
-ps.protein <- 
-     ps.protein %>% 
+ps.protein.animal.taxon <- 
+     ps.protein.animal.taxon %>% 
      prune_taxa(taxa_sums(.) > 0, .) 
 
-ntaxa(ps.protein)
+ntaxa(ps.protein.animal.taxon)
 ```
 
-Wowww! Lots more than I thought.  
+#### Plant
 
+```{r}
+# Impose >= 5 PSM/taxon filter
+asvtab.protein.plant.taxon <- otu_table(ps.protein.plant.taxon)@.Data
+sum(asvtab.protein.plant.taxon)
+
+asvtab.protein.plant.taxon[asvtab.protein.plant.taxon < 5] <- 0
+sum(asvtab.protein.plant.taxon)
+
+# Replace in phyloseq object
+otu_table(ps.protein.plant.taxon) <- otu_table(asvtab.protein.plant.taxon,
+                                                taxa_are_rows = FALSE)
+```
+
+```{r}
+# Does this remove any taxa? 
+ntaxa(ps.protein.plant.taxon)
+
+ps.protein.plant.taxon <- 
+     ps.protein.plant.taxon %>% 
+     prune_taxa(taxa_sums(.) > 0, .) 
+
+ntaxa(ps.protein.plant.taxon)
+```
+
+#### Other
+
+```{r}
+# Impose >= 5 PSM/taxon filter
+asvtab.protein.other.taxon <- otu_table(ps.protein.other.taxon)@.Data
+sum(asvtab.protein.other.taxon)
+
+asvtab.protein.other.taxon[asvtab.protein.other.taxon < 5] <- 0
+sum(asvtab.protein.other.taxon)
+
+# Replace in phyloseq object
+otu_table(ps.protein.other.taxon) <- otu_table(asvtab.protein.other.taxon,
+                                                taxa_are_rows = FALSE)
+```
+
+```{r}
+# Does this remove any taxa? 
+ntaxa(ps.protein.other.taxon)
+
+ps.protein.other.taxon <- 
+     ps.protein.other.taxon %>% 
+     prune_taxa(taxa_sums(.) > 0, .) 
+
+ntaxa(ps.protein.other.taxon)
+```
+
+### Add missing sample
+
+ML48 (10/17/19) omitted due to low spectra counts and poor extraction.  Hold off on including for now; not sure if I need.
 
 ## Menu phyloseq
 
