@@ -306,7 +306,7 @@ automatic.label <- filter(proteins.animal, weight < 5)
 ```{r}
 # Muscle
 # Need the [^nt] to filter out hits to "interACTINg" and 'contACTIN'
-ex.muscle <- '[^rt][Aa]ctin|[Cc]reatine|[Mm]yo|[Ff]erritin|[Nn]ebulin|[Ss]arco|[Tt]itin|[Tt]ropo'
+ex.muscle <- '[^rt][Aa]ctin|[Mm]yo|[Nn]ebulin|[Ss]arco|[Tt]itin|[Tt]ropo'
 
 # Tissue
 # Think many of these (had previously had as '[Kk]eratin|[Cc]ollagen|[Ff]ormin') are not cell-type specific and could be reasonably expected to be in human epithelia
@@ -369,7 +369,7 @@ proteins.animal %>%
      summarize(psms = sum(weight)) %>% 
      mutate(pct = psms/sum(psms))
 ```
-This is 10.6% of peptides, and 42.2% of PSMs.
+This is 9.4% of peptides, and 39% of PSMs.
 
 #### Filter
 
