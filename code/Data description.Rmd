@@ -43,6 +43,8 @@ study.color <- c('#4e79a7', # Intervention
 
 # Read in data
 
+## Taxon name mapping
+
 ## Metabarcoding
 ### trnL
 ```{r}
@@ -219,6 +221,17 @@ db$scientific_name[db$scientific_name == 'Pyropia yezoensis'] <-
 db$scientific_name[db$scientific_name == 'Acer nigrum'] <- 
      'Acer saccharum subsp. nigrum'
 ``` 
+
+## Menu
+
+### Separate by kingdom
+
+```{r}
+ps.menu.plant <- subset_taxa(ps.menu, kingdom == 'Viridiplantae')
+ps.menu.animal <- subset_taxa(ps.menu, kingdom == 'Metazoa')
+ps.menu.other <- subset_taxa(ps.menu, !(kingdom %in% c('Viridiplantae',
+                                                       'Metazoa')))
+```
 
 # Describe
 
@@ -464,9 +477,7 @@ n_distinct(ref.trnL$name)
 ### Metaproteomics
 
 ```{r}
-ntaxa(ps.protein.animal.taxon) + 
-     ntaxa(ps.protein.plant.taxon) +
-     ntaxa(ps.protein.other.taxon)
+ntaxa(ps.protein.taxon)
 ```
 
 What about number of unique dietary peptides?  Use intermediate processing stage of data for this (saved in "Metaproteomic phyloseq" notebook):
@@ -482,13 +493,15 @@ n_distinct(proteins.df$Description)
 
 ```{r}
 # Most prevalent foods
-melt.mp.animal %>% 
-     group_by(Sample, OTU) %>% 
-     summarize(prevalence_within = sum(Abundance > 0)) %>% 
+melt.mp %>% 
+     group_by(Sample, kingdom, name) %>% 
+     summarize(psms_tot = sum(Abundance)) %>% 
+     mutate(prevalence_within = psms_tot >= 5) %>% 
      # Now group by just food, get across-sample prevalence
-     group_by(OTU) %>% 
+     group_by(kingdom, name) %>% 
      summarize(prevalence_across = sum(prevalence_within)) %>% 
-     arrange(desc(prevalence_across))
+     arrange(desc(prevalence_across)) %>% 
+     filter(kingdom == 'Metazoa')
 ```
 
 Interesting: there are still some that trigger questions for me here. For example, goat had previously been down to 4 detections, maybe I am being too permissive?  Check which proteins are listed and maybe flag??
@@ -501,29 +514,27 @@ proteins.animal <-
                         pattern = ' OS=.*',
                         replacement = '')) %>% 
      distinct() %>% 
-     right_join(melt.mp.animal, by = c('Accession'='OTU')) %>% 
-     left_join(proteins.animal)
+     right_join(melt.mp, by = c('Accession'='OTU'))
 ```
 
 ```{r}
 proteins.animal %>% 
-     filter(name == 'Astacoidea') %>% 
+     filter(name == 'Phoenix dactylifera') %>% 
      select(word, Abundance, Sample) %>% 
      arrange(desc(Abundance))
 ```
-
-
 ```{r}
 # Most prevalent foods
-melt.mp.plant %>% 
-     group_by(Sample, OTU) %>% 
-     summarize(prevalence_within = sum(Abundance > 0)) %>% 
+melt.mp %>% 
+     filter(kingdom == 'Viridiplantae') %>% 
+     group_by(Sample, name) %>%
+     summarize(psms_tot = sum(Abundance)) %>% 
+     mutate(prevalence_within = psms_tot >= 5) %>% 
      # Now group by just food, get across-sample prevalence
-     group_by(OTU) %>% 
+     group_by(name) %>% 
      summarize(prevalence_across = sum(prevalence_within)) %>% 
      arrange(desc(prevalence_across))
 ```
-
 
 Oh wow-- with what proportion of total PSMs?
 
@@ -773,7 +784,7 @@ No similar pruning necessary for animal metabarcoding (all successful) or metapr
 ```{r}
 samples.plant <- 
      intersect(sample_names(ps.mb.plant),
-               sample_names(ps.protein.plant))
+               sample_names(ps.protein))
 
 length(samples.plant)
 ```
@@ -781,7 +792,7 @@ length(samples.plant)
 ```{r}
 samples.animal <- 
      intersect(sample_names(ps.mb.animal),
-               sample_names(ps.protein.animal))
+               sample_names(ps.protein))
 
 length(samples.animal)
 ```
@@ -795,29 +806,36 @@ subset_ps <- function(ps, samples){
 
 # Now, subset each dataset (except menu-- needs to be referenced w/ delta)
 ps.mb.plant <- subset_ps(ps.mb.plant, samples.plant)
-ps.protein.plant <- subset_ps(ps.protein.plant, samples.plant)
+ps.protein.plant <- 
+     ps.protein.taxon %>% 
+     subset_taxa(kingdom == 'Viridiplantae') %>% 
+     subset_ps(., samples.plant)
 
 ps.mb.animal <- subset_ps(ps.mb.animal, samples.animal)
-ps.protein.animal <- subset_ps(ps.protein.animal, samples.animal)
+ps.protein.animal <- 
+     ps.protein.taxon %>% 
+     subset_taxa(kingdom == 'Metazoa') %>% 
+     subset_ps(., samples.animal)
 ```
 
 ```{r}
 # Now, can subset menus
-ps.menu.plant <- 
-     ps.menu.plant %>% 
-     prune_samples(sample_names(.) %in% 
-                        c(sample_data(ps.mb.plant)$delta1,
-                          sample_data(ps.mb.plant)$delta2),
-                   .) %>% 
-     prune_taxa(taxa_sums(.) > 0, .)
-
-ps.menu.animal <- 
-     ps.menu.animal %>% 
-     prune_samples(sample_names(.) %in% 
-                        c(sample_data(ps.mb.animal)$delta1,
-                          sample_data(ps.mb.animal)$delta2),
-                   .) %>% 
-     prune_taxa(taxa_sums(.) > 0, .)
+# Hold off on this for now: try with/without
+# ps.menu.plant <- 
+#      ps.menu.plant %>% 
+#      prune_samples(sample_names(.) %in% 
+#                         c(sample_data(ps.mb.plant)$delta1,
+#                           sample_data(ps.mb.plant)$delta2),
+#                    .) %>% 
+#      prune_taxa(taxa_sums(.) > 0, .)
+# 
+# ps.menu.animal <- 
+#      ps.menu.animal %>% 
+#      prune_samples(sample_names(.) %in% 
+#                         c(sample_data(ps.mb.animal)$delta1,
+#                           sample_data(ps.mb.animal)$delta2),
+#                    .) %>% 
+#      prune_taxa(taxa_sums(.) > 0, .)
 ```
 
 
@@ -905,39 +923,6 @@ euler(animal.df[,c('dna', 'protein', 'menu')]) %>%
           shape = "ellipse", 
           quantities = TRUE
           )
-```
-
-### Differences by dataset
-
-#### Plant
-
-```{r}
-# In all
-filter(plant.df,
-       dna & protein & menu) %>% 
-     pull(taxon) %>% 
-     sort()
-```
-
-```{r}
-# In DNA and protein, missing from menu
-filter(plant.df,
-       dna & protein & !menu) %>% 
-     pull(taxon) %>% 
-     sort()
-```
-
-Tea, chickpea, pistachio, pomegranate, sorghum, mung bean.
-
-Confirmed each of these against menu.  Notes:
-* No record of pistachio
-
-```{r}
-# In DNA and menu, missing from protein
-filter(plant.df,
-       dna & !protein & menu) %>% 
-     pull(taxon) %>% 
-     sort()
 ```
 
 ## Per-sample details
