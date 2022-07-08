@@ -12,6 +12,7 @@ knitr::opts_knit$set(root.dir = file.path(getwd(), '..'))
 
 ```{r}
 library(Biostrings)
+library(cowplot)
 library(eulerr) # For Euler plots
 library(here)
 library(phyloseq)
@@ -819,7 +820,7 @@ subset_ps <- function(ps, samples){
           prune_taxa(taxa_sums(.) > 0, .)
 }
 
-# Now, subset each dataset (except menu-- needs to be referenced w/ delta)
+# Now, subset each dataset (except menu)
 ps.mb.plant <- subset_ps(ps.mb.plant, samples.plant)
 ps.protein.plant <- 
      ps.protein.taxon %>% 
@@ -832,27 +833,6 @@ ps.protein.animal <-
      subset_taxa(kingdom == 'Metazoa') %>% 
      subset_ps(., samples.animal)
 ```
-
-```{r}
-# Now, can subset menus
-# Hold off on this for now: try with/without
-# ps.menu.plant <- 
-#      ps.menu.plant %>% 
-#      prune_samples(sample_names(.) %in% 
-#                         c(sample_data(ps.mb.plant)$delta1,
-#                           sample_data(ps.mb.plant)$delta2),
-#                    .) %>% 
-#      prune_taxa(taxa_sums(.) > 0, .)
-# 
-# ps.menu.animal <- 
-#      ps.menu.animal %>% 
-#      prune_samples(sample_names(.) %in% 
-#                         c(sample_data(ps.mb.animal)$delta1,
-#                           sample_data(ps.mb.animal)$delta2),
-#                    .) %>% 
-#      prune_taxa(taxa_sums(.) > 0, .)
-```
-
 
 ```{r}
 # Plants
@@ -930,56 +910,58 @@ sum(other.df$menu)
 ```
 
 ```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-pdf(here('results',
-         'manuscript',
-         'tbd',
-         paste0(plotID, 
-                '_Plant taxa Euler diagram across methods, with counts, 1 day prior menu.pdf')),
-    height = 4, width = 4)
-
-euler(plant.df[,c('dna', 'protein', 'menu')]) %>% 
+a <- 
+     euler(plant.df[,c('dna', 'protein', 'menu')]) %>% 
      plot(
           fills = c('#fbb04e', '#849db1', '#7e756d'),
           labels = TRUE,
+          shape = "ellipse", 
+          quantities = TRUE
+          )
+
+b <- 
+     euler(animal.df[,c('dna', 'protein', 'menu')]) %>% 
+     plot(
+          fills = c('#fbb04e', '#849db1', '#7e756d'),
+          labels = FALSE,
+          shape = "ellipse", 
+          quantities = TRUE
+     )
+
+c <- 
+     euler(other.df[,c('dna', 'protein', 'menu')]) %>% 
+     plot(
+          fills = c('#fbb04e', '#849db1', '#7e756d'),
+          labels = FALSE,
           shape = "ellipse", 
           quantities = TRUE
           )
 ```
 
 ```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-pdf(here('results',
-         'manuscript',
-         'tbd',
-         paste0(plotID, '_Animal taxa Euler diagram across methods, with counts, 1 day prior menu.pdf')),
-    height = 4, width = 4)
-
-euler(animal.df[,c('dna', 'protein', 'menu')]) %>% 
-     plot(
-          fills = c('#fbb04e', '#849db1', '#7e756d'),
-          labels = TRUE,
-          shape = "ellipse", 
-          quantities = TRUE
-          )
+# Combined plot
+plot_grid(a, b, c, 
+          labels = c('a', 'b', 'c'), 
+          label_size = 12,
+          nrow = 1,
+          rel_widths = c(6, 4, 2)) + 
+     draw_plot_label(label = c('Plant', 'Animal', 'Other'),
+                     x = c(0.21, 0.53, 0.85),
+                     y = c(0, 0.17, 0.32),
+                     size = 12) +
+     theme(plot.margin = unit(c(0.5, 0.5, 1, 0.5), "cm")) 
 ```
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-pdf(here('results',
-         'manuscript',
-         'tbd',
-         paste0(plotID, '_Animal taxa Euler diagram across methods, with counts, 1 day prior menu.pdf')),
-    height = 4, width = 4)
-
-euler(other.df[,c('dna', 'protein', 'menu')]) %>% 
-     plot(
-          fills = c('#fbb04e', '#849db1', '#7e756d'),
-          labels = TRUE,
-          shape = "ellipse", 
-          quantities = TRUE
-          )
+ggsave(here('results',
+            'manuscript',
+            'tbd',
+            paste0(plotID, 
+                   '_Plant taxa Euler diagram across methods, with counts, menu lag of 1-2 days.pdf')),
+       height = 4, width = 8)
 ```
+
 
 ## Per-sample details
 
