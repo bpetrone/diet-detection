@@ -23,7 +23,7 @@ weight,word,category,certainty,notes
 167,Ovalbumin-related protein Y,egg,1,
 164,Histone H4,,,
 150,Transthyretin,,,"Also called ""prealbumin"" but only because it ran faster on gel in early experiments-- transfer protein in plasma and CSF for thyroxine and retinol"
-149,Calcium-transporting ATPase,muscle,1,
+149,Calcium-transporting ATPase,muscle,0,
 134,Myosin heavy chain 4,muscle,1,
 128,Fibrinogen C-terminal domain-containing protein,,,A type II trans-membrane endocytic receptor that is expressed apically on enterocytes
 124,Avidin,egg,1,
@@ -33,10 +33,10 @@ weight,word,category,certainty,notes
 108,Filamin C,muscle,1,Functions at Z-discs and subsarcolemmal regions in skeletal muscle
 107,Alpha actin,muscle,1,
 107,Uncharacterized protein (Fragment),,,
-106,Creatine kinase M-type,muscle,1,"Play a central role in energy transduction in tissues with large, fluctuating energy demands, such as skeletal muscle, heart, brain and spermatozoa"
+106,Creatine kinase M-type,muscle,0,"Play a central role in energy transduction in tissues with large, fluctuating energy demands, such as skeletal muscle, heart, brain and spermatozoa"
 102,"Alpha-1,4 glucan phosphorylase",,,Carbohydrate metabolism (could be either host or microbial)
 98,Dipeptidyl peptidase 4,,,Circulating or transmembrane serine exopeptidase that cleaves X-proline or X-alanine dipeptides from the N-terminus of polypeptides
-90,Beta-enolase,muscle,1,Predominantly expressed in skeletal muscle
+90,Beta-enolase,muscle,0,Predominantly expressed in skeletal muscle
 90,Myosin heavy chain-2,muscle,1,
 85,Annexin,muscle,0,"Characterized by their calcium dependent ability to bind to negatively charged phospholipids (i.e. membrane walls), play roles in scaffolding"
 84,Alpha-actinin-2,muscle,1,
@@ -51,8 +51,8 @@ weight,word,category,certainty,notes
 57,Myosin_tail_1 domain-containing protein,muscle,1,
 56,"SPG11 vesicle trafficking associated, spatacsin",muscle,0,Cortical projection neuron transport
 55,Vitellogenin domain-containing protein (Fragment),egg,1,
+54,Sarcoplasmic/endoplasmic reticulum calcium ATPase 1,muscle,0,
 54,Vitellogenin-2,egg,1,
-54,Sarcoplasmic/endoplasmic reticulum calcium ATPase 1,muscle,1,
 53,Ubiquitin,,,
 52,Actin beta like 2,muscle,1,
 50,Solute carrier family 25 member 4,muscle,0,Gated pore that translocates ADP from the cytoplasm into the mitochondrial matrix and ATP from the mitochondrial matrix into the cytoplasm
@@ -73,100 +73,97 @@ weight,word,category,certainty,notes
 30,Fast myosin heavy chain (Fragment),muscle,1,
 29,Pyruvate kinase,muscle,0,Last step of glycolysis
 29,Zgc:86709,muscle,1,"Alpha actin, cardiac muscle 2"
-27,"Creatine kinase U-type, mitochondrial",muscle,1,
+27,"Creatine kinase U-type, mitochondrial",muscle,0,
 27,Enteropeptidase,,,"Produced by duodenal cells, involved in digestion"
 26,Heart-and neural crest derivatives-expressed protein 2,muscle,0,"Angiogenesis, cardiac morphogenesis, branchial arches"
 26,Heat shock protein,muscle,0,Has some muscle function among many (note that ubiquitin also an HSP)
 25,Myosin motor domain-containing protein (Fragment),muscle,1,
 25,Skeletal muscle actin 3,muscle,1,
 25,"Troponin C, skeletal muscle",muscle,1,
-24,Serum albumin,egg,1,
-24,Ferritin,muscle,1,Skeletal muscle iron stores
+24,Ferritin,muscle,0,Skeletal muscle iron stores
 24,Reticulon,,,"Present in endoplasmic reticulum, abundant cellular roles"
-23,ZP domain-containing protein,egg,0,Think could have other roles: follow up on domain
+24,Serum albumin,egg,1,
 23,Peptidase A1 domain-containing protein,,,Potentially digestive
-22,Alpha-S2-casein,dairy,1,
+23,ZP domain-containing protein,egg,0,Think could have other roles: follow up on domain
 22,Actinin alpha 2,muscle,1,
+22,Alpha-S2-casein,dairy,1,
 22,Myoglobin,muscle,1,
-21,Cytoplasmic actin 1 (Fragment),muscle,1,
-21,"Glycogen phosphorylase, muscle form",muscle,1,
-21,"Myosin, heavy chain 6, cardiac muscle, alpha",muscle,1,
-21,Neuronal acetylcholine receptor subunit non-alpha-2,muscle,1,Neuromuscular junction protein
-21,Nucleoside diphosphate kinase,muscle,0,NDPK activities maintain an equilibrium between the concentrations of different nucleoside triphosphates
 21,Collagen type I alpha 1 chain,tissue,0,
+21,Cytoplasmic actin 1 (Fragment),muscle,1,
+21,"Glycogen phosphorylase, muscle form",muscle,0,
 21,Keratin 79,tissue,0,Hair canal migratory keratinocyte protein
+21,"Myosin, heavy chain 6, cardiac muscle, alpha",muscle,1,
+21,Neuronal acetylcholine receptor subunit non-alpha-2,muscle,0,Neuromuscular junction protein
+21,Nucleoside diphosphate kinase,muscle,0,NDPK activities maintain an equilibrium between the concentrations of different nucleoside triphosphates
 21,X-prolyl aminopeptidase 2,,,"Aminopeptidase P is a hydrolase specific for N-terminal imido bonds, which are common to several collagen degradation products, neuropeptides, vasoactive peptides, and cytokines"
 21,Zymogen granule protein 16,,,Predicted to act upstream of or within defense response to Gram-positive bacterium and suppression of symbiont entry into host
-20,Kappa-casein,dairy,1,
 20,GLOBIN domain-containing protein,muscle,0,"Hemoglobin, myoglobin (though could also be host-derived)"
-20,Muscle-type creatine kinase (Fragment),muscle,1,
+20,Kappa-casein,dairy,1,
+20,Muscle-type creatine kinase (Fragment),muscle,0,
 20,Myosin light chain 1,muscle,1,
 20,Projectin,muscle,1,An invertebrate connectin (titin)
-19,Ovotransferrin (Fragment),egg,1,
 19,Alpha-enolase,muscle,0,"Glycolysis, likely high in skeletal muscle"
-19,Calsequestrin,muscle,1,Calcium-binding protein that acts as a calcium buffer within the sarcoplasmic reticulum
-19,creatine kinase B-type-like,muscle,1,
+19,Calsequestrin,muscle,0,Calcium-binding protein that acts as a calcium buffer within the sarcoplasmic reticulum
+19,creatine kinase B-type-like,muscle,0,
+19,Ovotransferrin (Fragment),egg,1,
 19,Slow muscle myosin S1 heavy chain (Fragment),muscle,1,
 19,titin-like isoform X20,muscle,1,
 18,ADP/ATP translocase 2,muscle,0,
 18,myosin-7-like,muscle,1,
-17,"Creatine kinase, mitochondrial 2",muscle,1,
+17,"Creatine kinase, mitochondrial 2",muscle,0,
 17,L-lactate dehydrogenase,muscle,0,"Glycolysis, likely high in skeletal muscle"
 17,Myosin essential light chain isoform 1,muscle,1,
 16,Gp_dh_C domain-containing protein,muscle,0,"Glycolysis: Glyceraldehyde 3-phosphate dehydrogenase, C-terminal domain"
 16,"Troponin T, slow skeletal muscle",muscle,1,
-15,calcium release-activated calcium channel protein 1-like isoform X1,muscle,1,
+15,calcium release-activated calcium channel protein 1-like isoform X1,muscle,0,
 15,cGMP-dependent protein kinase,muscle,0,"Commonly regulate calcium homeostasis, calcium sensitivity of cellular proteins, platelet activation and adhesion, smooth muscle contraction, cardiac function, gene expression, feedback of the NO-signaling pathway, and other processes"
 15,Hemoglobin subunit beta,muscle,0,Could also be cross-reactive-- check species
 15,Myosin-1,muscle,1,
-14,N-acetylated alpha-linked acidic dipeptidase like 1,muscle,0,Expressed by non-myelinating Schwann cells in the peripheral nervous system
-14,"Troponin C, isoform 2B",muscle,1,
-14,Voltage-dependent anion-selective channel protein 1,muscle,1,
 14,Acid sphingomyelinase-like phosphodiesterase,,,On macrophages
 14,ANK_REP_REGION domain-containing protein,,,Unclear results
 14,G_PROTEIN_RECEP_F2_4 domain-containing protein,,,Unclear results
+14,N-acetylated alpha-linked acidic dipeptidase like 1,muscle,0,Expressed by non-myelinating Schwann cells in the peripheral nervous system
 14,NDK domain-containing protein,,,Major role in the synthesis of nucleoside triphosphates other than ATP
 14,Signal induced proliferation associated 1 like 2,,,Ubiquitous expression in many tissues
+14,"Troponin C, isoform 2B",muscle,1,
+14,Voltage-dependent anion-selective channel protein 1,muscle,0,
 13,"Actin, gamma-enteric smooth muscle (Fragment)",muscle,1,
 13,C-type lectin domain containing 9A,muscle,0,"Recognizes filamentous form of actin in association with particular actin-binding domains of cytoskeletal proteins, including spectrin, exposed when cell membranes are damaged"
+13,Coiled-coil-helix-coiled-coil-helix domain containing 1,,,Transcription factor
 13,Fumarylacetoacetate hydrolase domain containing 1,muscle,0,Mitochondrial protein
 13,Glyceraldehyde-3-phosphate dehydrogenase (Fragment),muscle,0,Glycolysis
-13,Myosin heavy chain 7-like,muscle,1,
-13,"Troponin T, fast skeletal muscle",muscle,1,
-13,Nesprin-1,tissue,0,Multi-isomeric modular protein which forms a linking network between organelles and the actin cytoskeleton to maintain the subcellular spatial organization
-13,Coiled-coil-helix-coiled-coil-helix domain containing 1,,,Transcription factor
 13,Lysosomal associated membrane protein 2,,,Lysosomal glycoprotein that provides selectins with carbohydrate ligands
 13,Metabotropic glutamate receptor 2,,,In humans expressed only in brain: presynaptic terminal of glutaminergic neurons
+13,Myosin heavy chain 7-like,muscle,1,
+13,Nesprin-1,tissue,0,Multi-isomeric modular protein which forms a linking network between organelles and the actin cytoskeleton to maintain the subcellular spatial organization
+13,"Troponin T, fast skeletal muscle",muscle,1,
 13,UDP-glucose 4-epimerase,,,First step in galactose metabolism
-12,Vitellogenin-1,egg,1,
 12,Angiotensin-converting enzyme,muscle,0,Vasculature
 12,Carbonic anhydrase 4,muscle,0,"Zinc metalloenzymes that catalyze the reversible hydration of carbon dioxide; occur in muscle, where they contribute 20% of the total CA activity in mouse (https://pubmed.ncbi.nlm.nih.gov/18003750/)"
-12,"Phosphofructokinase, muscle",muscle,1,Glycolysis
-12,Solute carrier family 25 member 5,muscle,0,Antiporter for ADP/ATP exchange between the mitochondrial matrix and cytoplasm
-12,Voltage-dependent anion-selective channel protein 1 (Fragment),muscle,0,Mitochondrial outer membrane protein
 12,collagen alpha-6(VI) chain-like,,,Basal lamina component of epithelial cells
-11,Calcyphosin,muscle,0,Calcium binding protein
-11,Fibrillar collagen NC1 domain-containing protein,tissue,0,Extracellular matrix collagen
+12,"Phosphofructokinase, muscle",muscle,0,Glycolysis
+12,Solute carrier family 25 member 5,muscle,0,Antiporter for ADP/ATP exchange between the mitochondrial matrix and cytoplasm
+12,Vitellogenin-1,egg,1,
+12,Voltage-dependent anion-selective channel protein 1 (Fragment),muscle,0,Mitochondrial outer membrane protein
 11,78 kDa glucose-regulated protein,,,Endoplasmic reticulum-resident chaperone and a critical unfolded protein response regulator
+11,Calcyphosin,muscle,0,Calcium binding protein
 11,Coiled-coil domain containing 150,,,Unclear function
+11,Fibrillar collagen NC1 domain-containing protein,tissue,0,Extracellular matrix collagen
 11,helicase-like transcription factor,,,
 11,NDC1 transmembrane nucleoporin,,,
 11,OCIA domain-containing protein 1,,,Mixed functions: involved in integrin-mediated cancer cell adhesion and colony formation in ovarian cancer
 11,Poly [ADP-ribose] polymerase,,,"Proteins involved in a number of cellular processes such as DNA repair, genomic stability, and programmed cell death"
 11,Translation initiation factor IF-2,,,
 11,zinc finger protein 711 isoform X1,,,Transcriptional regulator required for brain development
-10,"Myosin light chain 1, skeletal muscle isoform",muscle,1,
-10,"Myosin light chain 1, skeletal muscle isoform (Fragment)",muscle,1,
-10,filamin-C-like isoform X3,tissue,0,"Filamin C (FLNC) is one of three filamin proteins (Filamin A (FLNA), Filamin B (FLNB), and FLNC) that cross-link actin filaments"
 10,14-3-3 protein beta/alpha,,,Adapter protein implicated in the regulation of a large spectrum of both general and specialized signaling pathways
+10,filamin-C-like isoform X3,tissue,0,"Filamin C (FLNC) is one of three filamin proteins (Filamin A (FLNA), Filamin B (FLNB), and FLNC) that cross-link actin filaments"
 10,MAGE domain-containing protein,,,"Recent biochemical and biophysical studies indicate that MAGEs assemble with E3 RING ubiquitin ligases to form MAGE-RING ligases (MRLs) and act as regulators of ubiquitination by modulating ligase activity, substrate specification, and subcellular localization"
 10,Mucin-5B,,,
 10,Myeloperoxidase,,,"Leukocyte-derived enzyme, catalyzes ROS formation"
+10,"Myosin light chain 1, skeletal muscle isoform",muscle,1,
+10,"Myosin light chain 1, skeletal muscle isoform (Fragment)",muscle,1,
 10,Nuclear transglutaminase,,,DNA damage repair
 9,Actin-3,muscle,1,
-9,Tropomyosin alpha-1 chain,muscle,1,
-9,"Troponin I, fast skeletal muscle",muscle,1,
-9,Type II alpha-keratin IIA,tissue,0,Found in all epithelia
 9,Chondroitin sulfate proteoglycan 4,,,Vascular role: stimulates endothelial cell motility during microvascular morphogenesis
 9,cytosolic carboxypeptidase 2-like isoform X3,,,Likely digestive
 9,Glutamine amidotransferase type-2 domain-containing protein,,,Amino acid/nitrogen metabolism
@@ -174,108 +171,111 @@ weight,word,category,certainty,notes
 9,nucleoprotein TPR-like isoform X1,,,Nuclear pore complex component
 9,Pancreatic triacylglycerol lipase protein (Fragment),,,Likely digestive
 9,Putative maltase-glucoamylase 2,,,"Likely digestive, predicted to be involved in carbohydrate metabolic process"
-8,butyrophilin subfamily 1 member A1-like isoform X1,dairy,1,Butyrophilin is the major protein associated with fat droplets in the milk
-8,K-casein (Fragment),dairy,1,
-8,alpha-enolase isoform X1,muscle,0,Glycolysis
-8,Ezrin,muscle,0,"Plasma membrane–actin cytoskeleton linker, participate in the formation of specialized domains of the plasma membrane"
-8,"Glycogen phosphorylase, brain form",muscle,0,"Glycogen mobilization, could be relevant for muscle but interesting that this is brain isoform"
-8,Myosin heavy chain 15,muscle,1,
-8,NADH-ubiquinone oxidoreductase chain 5,muscle,0,Core subunit of the mitochondrial membrane respiratory chain NADH dehydrogenase
-8,"Filamin C, gamma a (actin binding protein 280)",tissue,0,"Filamin C (FLNC) is one of three filamin proteins (Filamin A (FLNA), Filamin B (FLNB), and FLNC) that cross-link actin filaments"
-8,"Keratin, type I cytoskeletal 19",tissue,0,
+9,Tropomyosin alpha-1 chain,muscle,1,
+9,"Troponin I, fast skeletal muscle",muscle,1,
+9,Type II alpha-keratin IIA,tissue,0,Found in all epithelia
 8,Adenosine deaminase,,,Involved in purine metabolism. It is needed for the breakdown of adenosine from food and for the turnover of nucleic acids in tissues
+8,alpha-enolase isoform X1,muscle,0,Glycolysis
 8,Alpha-L-fucosidase,,,"Member of family of hydrolases, specifically those glycosidases that hydrolyse O- and S-glycosyl compounds"
+8,butyrophilin subfamily 1 member A1-like isoform X1,dairy,1,Butyrophilin is the major protein associated with fat droplets in the milk
 8,Ependymin related 1,,,Human homolog of glycoprotein found in CSF of many teleost fish
+8,Ezrin,muscle,0,"Plasma membrane–actin cytoskeleton linker, participate in the formation of specialized domains of the plasma membrane"
+8,"Filamin C, gamma a (actin binding protein 280)",tissue,0,"Filamin C (FLNC) is one of three filamin proteins (Filamin A (FLNA), Filamin B (FLNB), and FLNC) that cross-link actin filaments"
+8,"Glycogen phosphorylase, brain form",muscle,0,"Glycogen mobilization, could be relevant for muscle but interesting that this is brain isoform"
 8,Heat shock protein HSP70 (Fragment),,,"ATP-dependent molecular chaperones, involved in many cellular processes including protein folding, prevention of protein aggregation, modulation of protein complexes, and protein transport between cellular compartments"
 8,Histone H3 (Fragment),,,
+8,K-casein (Fragment),dairy,1,
+8,"Keratin, type I cytoskeletal 19",tissue,0,
 8,Lamin L3,,,Building block of karyoskeleton (nuclear skeleton?)
 8,M20_dimer domain-containing protein,,,Domain consists of 4 beta strands and two alpha helices which make up the dimerisation surface of members of the M20 family of peptidases
-7,Beta-lactoglobulin,dairy,1,Major whey protein of cow and sheep's milk
+8,Myosin heavy chain 15,muscle,1,
+8,NADH-ubiquinone oxidoreductase chain 5,muscle,0,Core subunit of the mitochondrial membrane respiratory chain NADH dehydrogenase
 7,AAA domain-containing protein,muscle,0,AAA: ATPases Associated with diverse cellular Activities
-7,Cytochrome b,muscle,0,Mitochondrial complex III protein
-7,Phosphoglycerate kinase,muscle,0,Glycolysis
-7,round spermatid basic protein 1-like isoform X2,muscle,0,Iron binding
-7,Short-chain mitochondrial-like specific acyl (Fragment),muscle,0,
-7,Synaptophysin like 2,muscle,1,Involved in communication between the T-tubular and junctional sarcoplasmic reticulum (SR) membranes
-7,Unc-45-like protein A,muscle,1,Myosin chaperone protein: https://www.nature.com/articles/s41467-019-12667-8
-7,Keratin 14,tissue,0,
-7,Keratin 4,tissue,0,
-7,"Keratin, type II cytoskeletal 6C (Fragment)",tissue,0,
-7,Serpin B6,tissue,0,"Intracellular serine protease inhibitors, localized mainly in the cytoplasm of endothelial cells, some epithelial cells, monocytes, and neutrophils"
 7,ABC transporter G family member 20,,,ABC: ATP-binding cassette
 7,Aspartyl aminopeptidase,,,Likely digestive: release of an N-terminal aspartate or glutamate from a peptide
+7,Beta-lactoglobulin,dairy,1,Major whey protein of cow and sheep's milk
 7,Bifunctional purine biosynthesis protein PURH (Fragment),,,De novo purine biosynthesis
+7,Cytochrome b,muscle,0,Mitochondrial complex III protein
 7,DEAD box helicase DDX5,,,
 7,Dual serine/threonine and tyrosine protein kinase,,,Signal transduction
 7,F-box protein 3,,,"The F-box proteins constitute one of the four subunits of the ubiquitin protein ligase complex called SCFs (SKP1-cullin-F-box), which function in phosphorylation-dependent ubiquitination"
 7,G_PROTEIN_RECEP_F1_2 domain-containing protein,,,Unclear function
+7,Keratin 14,tissue,0,
+7,Keratin 4,tissue,0,
+7,"Keratin, type II cytoskeletal 6C (Fragment)",tissue,0,
 7,leukocyte elastase inhibitor-like,,,A member of the clade B of SERPINS. It is an intracellular protein and acts primarily to protect the cell from proteases released into the cytoplasm during stress
 7,Multifunctional fusion protein,,,Unclear function
 7,Non-specific serine/threonine protein kinase,,,Signal transduction
+7,Phosphoglycerate kinase,muscle,0,Glycolysis
+7,round spermatid basic protein 1-like isoform X2,muscle,0,Iron binding
+7,Serpin B6,tissue,0,"Intracellular serine protease inhibitors, localized mainly in the cytoplasm of endothelial cells, some epithelial cells, monocytes, and neutrophils"
+7,Short-chain mitochondrial-like specific acyl (Fragment),muscle,0,
+7,Synaptophysin like 2,muscle,1,Involved in communication between the T-tubular and junctional sarcoplasmic reticulum (SR) membranes
 7,Triacylglycerol lipase,,,Hydrolysis of TAGs to glycerol and Fas
+7,Unc-45-like protein A,muscle,0,Myosin chaperone protein: https://www.nature.com/articles/s41467-019-12667-8
 7,Uncharacterized protein KIAA0141 (Fragment),,,Unclear function
 7,zf-C3H1 domain-containing protein,,,"Subunit of the trimeric poly(A) tail exosome targeting (PAXT) complex, a complex that directs a subset of long and polyadenylated poly(A) RNAs for exosomal degradation"
-6,Alpha-fetoprotein,egg,1,Produced in the liver of a developing fetus
 6,"Alpha-actinin, sarcomeric-like isoform X1 (Fragment)",muscle,1,
-6,ATP synthase subunit alpha,muscle,0,Mitochondrial
-6,Cytochrome c domain-containing protein,muscle,0,Mitochondrial electron transport
-6,Latrophilin-3,muscle,0,Regulator of synaptic function and maintenance in brain regions that mediate locomotor activity
-6,"Myosin-binding protein C, fast-type",muscle,1,
-6,Phosphoglycerate mutase 1,muscle,0,Glycolysis
-6,Solute carrier family 25 member 11,muscle,0,"Potentially mitochondrial, see https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=732505"
-6,Hyaluronan binding protein 2,tissue,0,Extracellular serine protease which binds hyaluronic acid. It is involved in cell adhesion
+6,Alpha-fetoprotein,egg,1,Produced in the liver of a developing fetus
 6,Aminopeptidase,,,Likely digestive
 6,Apoptosis inhibitor 5,,,
+6,ATP synthase subunit alpha,muscle,0,Mitochondrial
 6,BTB domain-containing protein,,,Wide range of cellular functions
 6,Carbohydrate sulfotransferase,,,Sulfotransferase enzymes that transfer sulfate to carbohydrate groups in glycoproteins and glycolipids
+6,Cytochrome c domain-containing protein,muscle,0,Mitochondrial electron transport
 6,DNA-dependent protein kinase catalytic subunit,,,"Regulates proliferation, telomere length, and genomic stability in human somatic cells"
 6,DUF1081 domain-containing protein,,,DUR: Domain of unknown function
 6,Elongation factor Tu,,,Prokaryotic translation elongation factor
 6,F-box only protein 38,,,"Transcription factor co-activator, may participate in ubiquitination"
 6,Heat shock protein 70 B2,,,"ATP-dependent molecular chaperones, involved in many cellular processes including protein folding, prevention of protein aggregation, modulation of protein complexes, and protein transport between cellular compartments"
 6,Histone domain-containing protein (Fragment),,,
+6,Hyaluronan binding protein 2,tissue,0,Extracellular serine protease which binds hyaluronic acid. It is involved in cell adhesion
+6,Latrophilin-3,muscle,0,Regulator of synaptic function and maintenance in brain regions that mediate locomotor activity
 6,MI domain-containing protein,,,Predicted transcription factor initiation activity
+6,"Myosin-binding protein C, fast-type",muscle,1,
+6,Phosphoglycerate mutase 1,muscle,0,Glycolysis
 6,Phospholipase B-like,,,Catalyses the hydrolytic cleavage of both acylester bonds of glycerophospholipids
 6,protocadherin beta-16-like,,,Unclear function
 6,Serpin family B member 8,,,"Serine protease, regulate a diverse set of intra and extracellular processes"
+6,Solute carrier family 25 member 11,muscle,0,"Potentially mitochondrial, see https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=732505"
 6,Thioredoxin domain containing 16,,,ER-associated glycoprotein
 6,Zinc finger protein 500,,,
-5,Trophoblast Kunitz domain protein 4,dairy,0,Specifically expressed in placenta of ruminant ungulates
-5,Apovitellenin-1,egg,1,Protein component of the very low density lipoprotein (VLDL) of egg-laying females
 5,Actin-related protein 2/3 complex subunit 4,muscle,0,Part of a multiprotein complex that mediates actin polymerization
 5,Actinin alpha 3 (gene/pseudogene),muscle,1,"Actin binding, specifically expressed in skeletal muscle"
+5,Actinin alpha 4,,,Non-muscle alpha actinin isoform concentrated in the cytoplasm
 5,"Adenylate kinase 2, mitochondrial",muscle,0,Mitochondrial
+5,Apovitellenin-1,egg,1,Protein component of the very low density lipoprotein (VLDL) of egg-laying females
+5,Autophagy-related protein 16-1,,,Function characterized in human intestinal Paneth cells
 5,Calponin-homology (CH) domain-containing protein,muscle,0,Superfamily of actin-binding domains found in both cytoskeletal proteins and signal transduction proteins
 5,Clustered mitochondria protein homolog,muscle,0,Mitochondrial
-5,Glucose-6-phosphate isomerase,muscle,0,Glycolysis
-5,Kinesin motor domain-containing protein,muscle,1,
-5,L-lactate dehydrogenase A chain,muscle,0,Lactate dehydrogenase A catalyzes the inter-conversion of pyruvate and L-lactate
-5,Myosin heavy chain,muscle,1,
-5,nebulin,muscle,1,Nebulin is an actin-binding protein which is localized to the thin filament of the sarcomeres in skeletal muscle
-5,Nebulin,muscle,1,Nebulin is an actin-binding protein which is localized to the thin filament of the sarcomeres in skeletal muscle
-5,Transmembrane protein 38A,muscle,0,Predicted to enable potassium channel activity
-5,Tropomyosin alpha-1 chain (Fragment),muscle,1,
-5,Tropomyosin-1 alpha chain,muscle,1,
-5,"Troponin C, skeletal muscle (Fragment)",muscle,1,
 5,Collagen IV NC1 domain-containing protein,tissue,0,
-5,Keratin 17,tissue,0,
-5,Keratin 77,tissue,0,
-5,Protocadherin-18,tissue,0,Potential calcium-dependent cell-adhesion protein.
-5,Vimentin-related 2,tissue,0,Intermediate filament
-5,Actinin alpha 4,,,Non-muscle alpha actinin isoform concentrated in the cytoplasm
-5,Autophagy-related protein 16-1,,,Function characterized in human intestinal Paneth cells
 5,dedicator of cytokinesis protein 3,,,Specifically expressed in the central nervous system (CNS). It encodes a member of the DOCK (dedicator of cytokinesis) family of guanine nucleotide exchange factors (GEFs)
 5,Dishevelled binding antagonist of beta catenin 2,,,"Predicted to enable several functions, including beta-catenin binding activity; delta-catenin binding activity; and protein kinase C binding activity"
 5,F-box only protein 38 isoform X1,,,
+5,Glucose-6-phosphate isomerase,muscle,0,Glycolysis
 5,Heat shock protein 9,,,HSP primarily localized to the mitochondria
 5,"Histidyl-tRNA synthetase, cytoplasmic",,,
 5,Histone domain-containing protein,,,
+5,Keratin 17,tissue,0,
+5,Keratin 77,tissue,0,
+5,Kinesin motor domain-containing protein,muscle,1,
+5,L-lactate dehydrogenase A chain,muscle,0,Lactate dehydrogenase A catalyzes the inter-conversion of pyruvate and L-lactate
 5,Lactaldehyde dehydrogenase,,,
+5,Myosin heavy chain,muscle,1,
 5,N-acetylated alpha-linked acidic dipeptidase 2,,,Likely digestive
+5,nebulin,muscle,1,Nebulin is an actin-binding protein which is localized to the thin filament of the sarcomeres in skeletal muscle
+5,Nebulin,muscle,1,Nebulin is an actin-binding protein which is localized to the thin filament of the sarcomeres in skeletal muscle
 5,Nucleophosmin/nucleoplasmin 3,,,Nuclear chaperone protein
 5,Protein kinase domain-containing protein,,,Signal transduction
+5,Protocadherin-18,tissue,0,Potential calcium-dependent cell-adhesion protein.
 5,Serpin family B member 1,,,
 5,SH3 domain-binding protein 5-like isoform X2,,,Signal transduction
+5,Transmembrane protein 38A,muscle,0,Predicted to enable potassium channel activity
+5,Trophoblast Kunitz domain protein 4,dairy,0,Specifically expressed in placenta of ruminant ungulates
+5,Tropomyosin alpha-1 chain (Fragment),muscle,1,
+5,Tropomyosin-1 alpha chain,muscle,1,
+5,"Troponin C, skeletal muscle (Fragment)",muscle,1,
+5,Vimentin-related 2,tissue,0,Intermediate filament
 5,WD repeat domain 97,,,Potential microtubule binding activity
 5,zinc finger and BTB domain-containing protein 5,,,Transcription factor
 5,Zinc finger FYVE domain-containing protein 19 (Fragment),,,Interaction with endosomal lipids
