@@ -222,6 +222,21 @@ db$scientific_name[db$scientific_name == 'Acer nigrum'] <-
      'Acer saccharum subsp. nigrum'
 ``` 
 
+## Metaproteomic
+
+### Separate by kingdom
+
+```{r}
+ps.protein.plant <- subset_taxa(ps.protein.taxon, 
+                                kingdom == 'Viridiplantae')
+
+ps.protein.animal <- subset_taxa(ps.protein.taxon, 
+                                 kingdom == 'Metazoa')
+
+ps.protein.other <- subset_taxa(ps.protein.taxon, 
+                                !(kingdom %in% c('Viridiplantae', 'Metazoa')))
+```
+
 ## Menu
 
 ### Separate by kingdom
@@ -861,6 +876,15 @@ length(all.animals)
 ```
 
 ```{r}
+# Other
+all.other <- 
+     union(taxa_names(ps.menu.other),
+           taxa_names(ps.protein.other))
+
+length(all.other)
+```
+
+```{r}
 # Make dataframe for plot input
 # Plants
 plant.df <- 
@@ -870,9 +894,9 @@ plant.df <-
             menu = taxon %in% taxa_names(ps.menu.plant))
 
 # Quick checks
-sum(plant.df$dna) # Should be 81
-sum(plant.df$protein) # Should be 75
-sum(plant.df$menu) # Should be 111 (123 for 2 days)
+sum(plant.df$dna) 
+sum(plant.df$protein) 
+sum(plant.df$menu) 
 ```
 
 ```{r}
@@ -885,9 +909,24 @@ animal.df <-
             menu = taxon %in% taxa_names(ps.menu.animal))
 
 # Quick checks
-sum(animal.df$dna) # Should be 11
-sum(animal.df$protein) # Should be 28
-sum(animal.df$menu) # Should be 19 (20 for 2 days)
+sum(animal.df$dna) 
+sum(animal.df$protein) 
+sum(animal.df$menu) 
+```
+
+```{r}
+# Make dataframe for plot input
+# Other
+other.df <- 
+     data.frame(taxon = all.other) %>% 
+     mutate(dna = FALSE,
+            protein = taxon %in% taxa_names(ps.protein.other),
+            menu = taxon %in% taxa_names(ps.menu.other))
+
+# Quick checks
+sum(other.df$dna) 
+sum(other.df$protein) 
+sum(other.df$menu) 
 ```
 
 ```{r}
@@ -917,6 +956,23 @@ pdf(here('results',
     height = 4, width = 4)
 
 euler(animal.df[,c('dna', 'protein', 'menu')]) %>% 
+     plot(
+          fills = c('#fbb04e', '#849db1', '#7e756d'),
+          labels = TRUE,
+          shape = "ellipse", 
+          quantities = TRUE
+          )
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+pdf(here('results',
+         'manuscript',
+         'tbd',
+         paste0(plotID, '_Animal taxa Euler diagram across methods, with counts, 1 day prior menu.pdf')),
+    height = 4, width = 4)
+
+euler(other.df[,c('dna', 'protein', 'menu')]) %>% 
      plot(
           fills = c('#fbb04e', '#849db1', '#7e756d'),
           labels = TRUE,
