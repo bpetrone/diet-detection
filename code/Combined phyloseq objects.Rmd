@@ -25,7 +25,7 @@ menu.dfc <-
      here('data', 
           'processed', 
           'phyloseq',
-          '20210220_ps_menu.rds') %>% 
+          '20220708_ps_menu_DFC.rds') %>% 
      readRDS()
 
 menu.dfc
@@ -36,7 +36,7 @@ menu.908 <-
      here('data', 
           'processed', 
           'phyloseq',
-          '20211115_ps_menu.rds') %>% 
+          '20211115_ps_menu_908.rds') %>% 
      readRDS()
 
 menu.908
