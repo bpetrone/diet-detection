@@ -137,11 +137,12 @@ sample_variables(menu.908)
 ```
 
 ```{r}
-# Correct difference in naming
+# Correct difference in naming and state of variables (908 subj is character, DFC is factor)
 sample_data(menu.dfc) <- 
      menu.dfc@sam_data %>% 
      data.frame() %>% 
-     rename(subj = ID)
+     rename(subj = ID) %>% 
+     mutate(subj = as.character(subj))
 
 sample_data(menu.908) <- 
      menu.908@sam_data %>% 
