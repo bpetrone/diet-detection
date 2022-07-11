@@ -46,6 +46,15 @@ study.color <- c('#4e79a7', # Intervention
 
 ## Taxon name mapping
 
+```{r}
+name.sync <- 
+     here('data',
+          'processed',
+          'Naming discrepancies.xlsx') %>% 
+     readxl::read_excel()
+
+name.sync
+```
 ## Metabarcoding
 ### trnL
 ```{r}
@@ -516,8 +525,7 @@ melt.mp %>%
      # Now group by just food, get across-sample prevalence
      group_by(kingdom, name) %>% 
      summarize(prevalence_across = sum(prevalence_within)) %>% 
-     arrange(desc(prevalence_across)) %>% 
-     filter(kingdom == 'Metazoa')
+     arrange(desc(prevalence_across))
 ```
 
 Interesting: there are still some that trigger questions for me here. For example, goat had previously been down to 4 detections, maybe I am being too permissive?  Check which proteins are listed and maybe flag??
@@ -834,13 +842,97 @@ ps.protein.animal <-
      subset_ps(., samples.animal)
 ```
 
+#### Reference taxa by their shared index
+
+```{r}
+# Metabarcoding
+# trnL
+mb.plant.taxa <- 
+     taxa_names(ps.mb.plant) %>% 
+     data.frame(old = .) %>% 
+     left_join(name.sync, by = c('old' = 'mb_taxa')) %>% 
+     select(old, `taxon index`) %>% 
+     distinct() %>% 
+     pull(`taxon index`)
+
+# 12SV5
+mb.animal.taxa <- 
+     taxa_names(ps.mb.animal) %>% 
+     data.frame(old = .) %>% 
+     left_join(name.sync, by = c('old' = 'mb_taxa')) %>% 
+     select(old, `taxon index`) %>% 
+     distinct() %>% 
+     pull(`taxon index`)
+```
+
+```{r}
+# Metaproteomics
+# Plant
+protein.plant.taxa <- 
+     taxa_names(ps.protein.plant) %>% 
+     data.frame(old = .) %>% 
+     left_join(name.sync, by = c('old' = 'mp_taxa')) %>% 
+     select(old, `taxon index`) %>% 
+     distinct() %>% 
+     pull(`taxon index`)
+
+# Animal
+protein.animal.taxa <- 
+     taxa_names(ps.protein.animal) %>% 
+     data.frame(old = .) %>% 
+     left_join(name.sync, by = c('old' = 'mp_taxa')) %>% 
+     select(old, `taxon index`) %>% 
+     distinct() %>% 
+     pull(`taxon index`)
+
+# Other
+protein.other.taxa <- 
+     taxa_names(ps.protein.other) %>% 
+     data.frame(old = .) %>% 
+     left_join(name.sync, by = c('old' = 'mp_taxa')) %>% 
+     select(old, `taxon index`) %>% 
+     distinct() %>% 
+     pull(`taxon index`)
+```
+
+```{r}
+# Menu
+# Plant
+menu.plant.taxa <- 
+     taxa_names(ps.menu.plant) %>% 
+     data.frame(old = .) %>% 
+     left_join(name.sync, by = c('old' = 'menu_taxa')) %>% 
+     select(old, `taxon index`) %>% 
+     distinct() %>% 
+     pull(`taxon index`)
+
+# Animal
+menu.animal.taxa <- 
+     taxa_names(ps.menu.animal) %>% 
+     data.frame(old = .) %>% 
+     left_join(name.sync, by = c('old' = 'menu_taxa')) %>% 
+     select(old, `taxon index`) %>% 
+     distinct() %>% 
+     pull(`taxon index`)
+
+# Other
+menu.other.taxa <- 
+     taxa_names(ps.menu.other) %>% 
+     data.frame(old = .) %>% 
+     left_join(name.sync, by = c('old' = 'menu_taxa')) %>% 
+     select(old, `taxon index`) %>% 
+     distinct() %>% 
+     pull(`taxon index`)
+```
+
+
 ```{r}
 # Plants
 # Get union of taxa detected in the two analyses
 all.plants <- 
-     union(taxa_names(ps.mb.plant),
-           taxa_names(ps.protein.plant)) %>% 
-     union(taxa_names(ps.menu.plant)) 
+     union(mb.plant.taxa,
+           protein.plant.taxa) %>% 
+     union(menu.plant.taxa) 
 
 length(all.plants)
 ```
@@ -848,9 +940,9 @@ length(all.plants)
 ```{r}
 # Animals
 all.animals <- 
-     union(taxa_names(ps.mb.animal),
-           taxa_names(ps.protein.animal)) %>% 
-     union(taxa_names(ps.menu.animal)) 
+     union(mb.animal.taxa,
+           protein.animal.taxa) %>% 
+     union(menu.animal.taxa) 
 
 length(all.animals)
 ```
@@ -858,8 +950,8 @@ length(all.animals)
 ```{r}
 # Other
 all.other <- 
-     union(taxa_names(ps.menu.other),
-           taxa_names(ps.protein.other))
+     union(menu.other.taxa,
+           protein.other.taxa)
 
 length(all.other)
 ```
@@ -869,9 +961,9 @@ length(all.other)
 # Plants
 plant.df <- 
      data.frame(taxon = all.plants) %>% 
-     mutate(dna = taxon %in% taxa_names(ps.mb.plant),
-            protein = taxon %in% taxa_names(ps.protein.plant),
-            menu = taxon %in% taxa_names(ps.menu.plant))
+     mutate(dna = taxon %in% mb.plant.taxa,
+            protein = taxon %in% protein.plant.taxa,
+            menu = taxon %in% menu.plant.taxa)
 
 # Quick checks
 sum(plant.df$dna) 
@@ -884,9 +976,9 @@ sum(plant.df$menu)
 # Animals
 animal.df <- 
      data.frame(taxon = all.animals) %>% 
-     mutate(dna = taxon %in% taxa_names(ps.mb.animal),
-            protein = taxon %in% taxa_names(ps.protein.animal),
-            menu = taxon %in% taxa_names(ps.menu.animal))
+     mutate(dna = taxon %in% mb.animal.taxa,
+            protein = taxon %in% protein.animal.taxa,
+            menu = taxon %in% menu.animal.taxa)
 
 # Quick checks
 sum(animal.df$dna) 
@@ -900,8 +992,8 @@ sum(animal.df$menu)
 other.df <- 
      data.frame(taxon = all.other) %>% 
      mutate(dna = FALSE,
-            protein = taxon %in% taxa_names(ps.protein.other),
-            menu = taxon %in% taxa_names(ps.menu.other))
+            protein = taxon %in% protein.other.taxa,
+            menu = taxon %in% menu.other.taxa)
 
 # Quick checks
 sum(other.df$dna) 
@@ -913,7 +1005,7 @@ sum(other.df$menu)
 a <- 
      euler(plant.df[,c('dna', 'protein', 'menu')]) %>% 
      plot(
-          fills = c('#fbb04e', '#849db1', '#7e756d'),
+          fills = c('#849db1', '#fbb04e', '#7e756d'),
           labels = TRUE,
           shape = "ellipse", 
           quantities = TRUE
@@ -922,7 +1014,7 @@ a <-
 b <- 
      euler(animal.df[,c('dna', 'protein', 'menu')]) %>% 
      plot(
-          fills = c('#fbb04e', '#849db1', '#7e756d'),
+          fills = c('#849db1', '#fbb04e', '#7e756d'),
           labels = FALSE,
           shape = "ellipse", 
           quantities = TRUE
@@ -931,7 +1023,7 @@ b <-
 c <- 
      euler(other.df[,c('dna', 'protein', 'menu')]) %>% 
      plot(
-          fills = c('#fbb04e', '#849db1', '#7e756d'),
+          fills = c('#849db1', '#fbb04e', '#7e756d'),
           labels = FALSE,
           shape = "ellipse", 
           quantities = TRUE
@@ -940,16 +1032,18 @@ c <-
 
 ```{r}
 # Combined plot
-plot_grid(a, b, c, 
-          labels = c('a', 'b', 'c'), 
+fig3a <- 
+     plot_grid(a, b, c, 
           label_size = 12,
           nrow = 1,
-          rel_widths = c(6, 4, 2)) + 
+          rel_widths = c(6, 3, 1)) + 
      draw_plot_label(label = c('Plant', 'Animal', 'Other'),
-                     x = c(0.21, 0.53, 0.85),
+                     x = c(0.20, 0.56, 0.84),
                      y = c(0, 0.17, 0.32),
                      size = 12) +
-     theme(plot.margin = unit(c(0.5, 0.5, 1, 0.5), "cm")) 
+     theme(plot.margin = unit(c(0, 0.5, 0.5, 1), "cm")) 
+
+fig3a
 ```
 
 ```{r}
@@ -958,10 +1052,29 @@ ggsave(here('results',
             'manuscript',
             'tbd',
             paste0(plotID, 
-                   '_Plant taxa Euler diagram across methods, with counts, menu lag of 1-2 days.pdf')),
+                   '_Plant taxa Euler diagram across methods, with counts, full menu, synced names.pdf')),
        height = 4, width = 8)
 ```
 
+```{r}
+# How many detections by more than two measures?
+plant.totals <- 
+     plant.df %>% 
+     mutate(total = dna + protein + menu) %>% 
+     pull(total)
+
+sum(plant.totals >= 2)/length(plant.totals)
+```
+
+```{r}
+# How many detections by more than two measures?
+animal.totals <- 
+     animal.df %>% 
+     mutate(total = dna + protein + menu) %>% 
+     pull(total)
+
+sum(animal.totals >= 2)/length(animal.totals)
+```
 
 ## Per-sample details
 
@@ -978,24 +1091,13 @@ counts.menu <-
 
 ```{r echo = FALSE}
 # How many food taxa detected daily (metaproteomics)?
-melt.protein <- psmelt(ps.protein)
+melt.protein <- psmelt(ps.protein.taxon)
 counts.protein <- 
      melt.protein %>% 
-     filter(Abundance > 4) %>% 
+     filter(Abundance > 0) %>% 
      group_by(subj, date, kingdom) %>% 
      count(name = 'protein_taxa')
 ```
-
-```{r}
-# Note some NA values here: what are they?
-melt.protein %>% 
-     filter(Abundance > 4) %>% 
-     filter(is.na(kingdom)) %>% 
-     pull(OTU) %>% 
-     unique()
-```
-If one defines the kingdom Plantae to mean the Archaeplastida, the red algae will be part of that kingdom.
-If Plantae are defined more narrowly, to be the Viridiplantae, then the red algae might be considered their own kingdom, or part of the kingdom Protista.
 
 ```{r echo = FALSE}
 # How many food taxa detected daily (metabarcoding)?
@@ -1003,10 +1105,14 @@ melt.mb <- psmelt(
      merge_phyloseq(ps.mb.plant,
                     ps.mb.animal)
 )
+
 counts.mb <- 
-     melt.mb %>% 
-     filter(Abundance > 4) %>% 
-     group_by(subj, date, phylum) %>% 
+     melt.mb %>%      
+     filter(Abundance > 0) %>% 
+     group_by(subj, date, kingdom = phylum) %>%
+     mutate(kingdom = ifelse(kingdom == 'Streptophyta',
+                            yes = 'Viridiplantae',
+                            no = phylum)) %>% 
      count(name = 'dna_taxa')
 ```
 
@@ -1017,7 +1123,6 @@ counts.mb <-
 counts <- 
      counts.protein %>% 
      full_join(counts.mb) %>% 
-     filter(!is.na(kingdom)) %>% 
      mutate(delta1 = date - 1) %>% 
      # Join to menu, lagged 1 day 
      # Full join to add kingdom if necessary
@@ -1051,17 +1156,16 @@ counts.long$kingdom <- factor(counts.long$kingdom,
 ```
 
 ```{r}
-ggplot(counts.long, aes(x = kingdom, y = value, fill = dataset)) +
+fig3b <- 
+     ggplot(counts.long, aes(x = kingdom, y = value, fill = dataset)) +
      geom_boxplot() +
-     labs(title = 'Number of food taxa identified by measure',
-          subtitle = '>4 PSMs per taxon filter',
-          x = 'Kingdom',
+     labs(x = 'Kingdom',
           y = 'Number of taxa', fill = 'Measure') +
-     ylim(0, 65) + # Leave room to add significance
      # scale_y_log10() +
-     scale_fill_manual(values = c('#d7ce9f', '#849db1', '#b66353')) +
-     theme_classic() +
-     theme()
+     scale_fill_manual(values = c('#7e756d', '#fbb04e', '#849db1')) +
+     theme(legend.position = 'none')
+
+fig3b
 ```
 
 ```{r}
@@ -1091,7 +1195,7 @@ viridiplantae <-
 model <- lm(value ~ dataset + sample,
             data = viridiplantae)
 
-analysis <- Anova(model, 
+analysis <- car::Anova(model, 
                   idata = viridiplantae,
                   idesign = ~sample)
 
@@ -1117,9 +1221,9 @@ metazoa <-
 model <- lm(value ~ dataset + sample,
             data = metazoa)
 
-analysis <- Anova(model, 
-                  idata = metazoa,
-                  idesign = ~sample)
+analysis <- car::Anova(model, 
+                       idata = metazoa,
+                       idesign = ~sample)
 
 print(analysis)
 ```
@@ -1131,7 +1235,6 @@ pairwise.t.test(metazoa$value,
                 p.adjust.method = 'BH')
 ```
 
-
 ```{r}
 # Paired t-test (Fungi)
 fungi <- 
@@ -1141,26 +1244,25 @@ t.test(fungi$menu_taxa, fungi$protein_taxa,
        paired = TRUE)
 ```
 
-Patterns of recorded foods by day of week: 
-
-```{r echo = FALSE}
-counts.long %>% 
-     group_by(ID, date, dataset) %>% 
-     summarize(value = sum(value, na.rm = TRUE)) %>% 
-     filter(dataset == 'Recorded menu') %>% 
-     ggplot(aes(x = date, y = value)) +
-     geom_point(aes(color = dataset)) +
-     facet_wrap(~ ID, nrow = 4, scales = 'free_x') + 
-     labs(x = 'Date', y = 'Number of taxa') +
-     theme_bw() +
-     theme(axis.title.x = element_blank(),
-           legend.title = element_blank(),
-           legend.position = 'bottom')
-
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# ggsave(here('results', 
-#             paste0(plotID, 
-#                    '_Number of food taxa in menu by day.pdf')),
-#        height = 7, width = 4)
+```{r}
+# Thinking that A here will be overview graphic
+plot_grid(fig3a, fig3b,
+          labels = c('b', 'c'), 
+          nrow = 2,
+          rel_heights = c(3, 2))
 ```
 
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+ggsave(
+     here(
+          'results',
+          'manuscript',
+          '1',
+          paste0(plotID,
+                 '_Detections by measure.pdf'
+                 )
+          ),
+     height = 6,
+     width = 4)
+```
