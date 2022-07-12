@@ -98,6 +98,7 @@ psms <-
 
 head(psms)
 ```
+
 ```{r}
 ggplot(psms, aes(x = psms)) +
      geom_histogram(binwidth = 5,
