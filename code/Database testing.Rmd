@@ -7,7 +7,7 @@ output:
 
 Here we are evaluating the preliminary data shared by the Kleiner lab at NCSU to determine if their metaproteomic database should be adjusted (e.g. filtering out homologs to human proteins, other ideas?) before continuing with analysis of the DFC samples.
 
-# R setup
+# Setup
 
 ```{r setup, include=FALSE, echo=FALSE}
 require("knitr")
@@ -15,7 +15,6 @@ opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```
 
 ```{r libraries, echo=FALSE}
-library(eulerr) # For Euler plots
 library(here) 
 library(phyloseq) 
 library(RColorBrewer)
@@ -24,17 +23,6 @@ library(tidyverse)
 
 # Read in data
 
-## Shared samples
-
-```{r}
-# Read in and name comparably to phyloseqs (SUBJ_DATE)
-samples <- 
-     here('data', 
-          'metadata', 
-          '20200723_MTA DFC samples shared.csv') %>% 
-     read_csv() 
-```
-
 ## Metaproteomic phyloseq
 
 ```{r}
@@ -42,8 +30,9 @@ ps.protein <-
      here('data', 
           'processed', 
           'phyloseq',
-          # '20210408_ps_mp.rds') # 1PUP analysis
-          '20210912_ps_mp.rds') %>%  # 1UP analysis
+          'combined',
+          'filtered',
+          'ps_mp_taxa.rds') %>% 
      readRDS()
           
 ps.protein
@@ -59,7 +48,8 @@ ps.menu <-
           'processed', 
           'phyloseq',
           'combined',
-          'WORKING_ps_menu.rds') %>% 
+          'filtered',
+          'ps_menu.rds') %>% 
      readRDS()
 
 ps.menu
@@ -67,56 +57,31 @@ ps.menu
 
 ## Metabarcoding phyloseq
 
-Load in version generated in "Pre-process metabarcoding" notebook: 
-
 ```{r}
-ps.mb <- 
+ps.mb.plant <- 
      here('data', 
           'processed', 
           'phyloseq',
           'combined',
-          'ps_mb.rds') %>% 
+          'ps_mb_trnL.rds') %>% 
      readRDS()
 
-ps.mb
+ps.mb.plant
+```
+
+```{r}
+ps.mb.animal <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'ps_mb_12SV5.rds') %>% 
+     readRDS()
+
+ps.mb.plant
 ```
 
 # Pre-process
-
-## Shared samples
-
-```{r}
-# Name comparably to phyloseq objects (SUBJ_DATE)
-samples <- 
-     samples %>% 
-     mutate(sample.date = as.Date(sample.date, format = '%m/%d/%y'),
-            name = paste(subj, sample.date, sep = '_')) %>%
-     pull(name)
-               
-samples %>% 
-     sort()
-```
-
-## Metaproteomic phyloseq
-
-Impose PSM-based filter steps downstream (when determining what counts as a positive) so as not to alter the original object.
-
-## Metabarcoding phyloseq
-
-Impose count-based filter steps downstream (when determining what counts as a positive) so as not to alter the original object.
-
-```{r}
-# Filter to only the samples under consideration here
-# TODO: Decide: do I want to do this??
-ps.mb <- 
-     ps.mb %>% 
-     prune_samples(sample_names(.) %in% samples, .) %>% 
-     prune_taxa(taxa_sums(.) > 0, .)
-
-ps.mb
-```
-
-## Menu
 
 # Exploratory comparison
 
