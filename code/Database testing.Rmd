@@ -77,6 +77,7 @@ ps.mb.plant <-
           'processed', 
           'phyloseq',
           'combined',
+          'filtered',
           'ps_mb_trnL.rds') %>% 
      readRDS()
 
@@ -89,6 +90,7 @@ ps.mb.animal <-
           'processed', 
           'phyloseq',
           'combined',
+          'filtered',
           'ps_mb_12SV5.rds') %>% 
      readRDS()
 
@@ -96,6 +98,14 @@ ps.mb.plant
 ```
 
 # Pre-process
+
+## Remove unnamed taxa
+
+Only present in plant metabarcoding data
+```{r}
+ps.mb.plant <- subset_taxa(ps.mb.plant, !is.na(superkingdom))
+```
+
 
 ## Filter to shared samples
 
@@ -344,10 +354,10 @@ facet <- left_join(facet, taxtab)
 
 ```{r}
 # Extract OTU tables
-asvtab.protein <- otu_table(ps.protein)@.Data
-asvtab.menu.12 <- otu_table(ps.menu.12)@.Data
+asvtab.protein <- otu_table(ps.protein.id)@.Data
+asvtab.menu.12 <- otu_table(ps.menu.id)@.Data
 
-# Synchronize names (not all genera in common between the two)
+# Synchronize names
 dim(asvtab.protein)
 dim(asvtab.menu.12)
 length(union(colnames(asvtab.menu.12), colnames(asvtab.protein)))
@@ -396,16 +406,6 @@ rm(padded)
 ```
 
 ```{r}
-# Alternate: at species level, *only* consider the intersection of the two
-shared <- intersect(colnames(asvtab.menu.12), colnames(asvtab.protein))
-length(shared)
-
-# Subset to these columns only
-asvtab.protein <- asvtab.protein[, shared]
-asvtab.menu.12 <- asvtab.menu.12[, shared]
-```
-
-```{r}
 # Confirm row and column names are equal before proceeding
 all(row.names(asvtab.protein) == row.names(asvtab.menu.12))
 all(colnames(asvtab.protein) == colnames(asvtab.menu.12))
@@ -449,10 +449,10 @@ pred.summary <-
             pos_n = tp + fp) %>% 
      # mutate(certain = ifelse(taxon %in% facet$family,
      # mutate(certain = ifelse(taxon %in% facet$genus,
-     mutate(certain = ifelse(taxon %in% unlist(facet), # At any taxonomic level
-                             yes = 0,
-                             no = 1)) %>% 
-     arrange(desc(certain), desc(f_measure), fn, fp)
+     # mutate(certain = ifelse(taxon %in% unlist(facet), # At any taxonomic level
+     #                         yes = 0,
+     #                         no = 1)) %>% 
+     arrange(desc(f_measure), fn, fp)
 
 pred.summary
 ```
@@ -501,33 +501,34 @@ pred.long <-
      mutate(taxon = factor(taxon, levels = pred.summary$taxon),
             prediction = factor(prediction, levels = c('tp', 'tn', 'fp', 'fn'),
                                 labels = c('True positive', 'True negative',
-                                           'False positive', 'False negative')),
-            kingdom = factor(kingdom,
-                             levels = c('Viridiplantae',
-                                        'Metazoa',
-                                        'Fungi',
-                                        'Other')))
+                                           'False positive', 'False negative')))
+            # kingdom = factor(kingdom,
+            #                  levels = c('Viridiplantae',
+            #                             'Metazoa',
+            #                             'Other')))
 ```
 
 ```{r}
 # Save for comparison to metabarcoding data
 saveRDS(pred.long,
-        here('data', 'processed', 'performance-metrics', 
-             '20210913_Metaproteomic v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter, v3 analysis.rds'))
+        here('data', 
+             'processed', 
+             'performance-metrics', 
+             '20220712_Metaproteomic v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter, v3 analysis.rds'))
 ```
 
 #### Plot
 
 ```{r}
 pred.long %>%
-     filter(certain == 1) %>% 
+     # filter(certain == 1) %>% 
      ggplot(aes(x = taxon, y = count, fill = prediction)) +
      geom_bar(position = 'stack', stat = 'identity') +
      scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
                                   '#D7191C', '#FDAE61')) + # FP, FN
-     facet_grid(cols = vars(kingdom), 
-                scales = 'free',
-                space = 'free') +
+     # facet_grid(cols = vars(kingdom), 
+     #            scales = 'free',
+     #            space = 'free') +
      theme_classic() +
      theme(axis.text.x = element_text(angle = 20, hjust = 1),
            axis.text.y = element_blank(), 
@@ -544,13 +545,13 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 width <- 
      pred.long %>% 
-     filter(certain == 1) %>% 
+     # filter(certain == 1) %>% 
      dim()
 
-# ggsave(here('results', 
+# ggsave(here('results',
 #             'per-food performance',
-#             paste0(plotID, 
-#                    '_By-food (shared taxa) predictions compared to menu, >4 PSMs per taxon filter, no intake filter, v3 analysis, certain.pdf')),
+#             paste0(plotID,
+#                    '_Metaproteomic by-food predictions compared to menu, >4 PSMs per taxon filter, no intake filter, v3 analysis.pdf')),
 #        height = 4, width = width[1]/4 * 0.5,
 #        limitsize = FALSE)
 ```
