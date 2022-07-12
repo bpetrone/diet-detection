@@ -23,6 +23,20 @@ library(tidyverse)
 
 # Read in data
 
+## Synchronized names
+
+## Taxon name mapping
+
+```{r}
+name.sync <- 
+     here('data',
+          'processed',
+          'Naming discrepancies.xlsx') %>% 
+     readxl::read_excel()
+
+name.sync
+```
+
 ## Metaproteomic phyloseq
 
 ```{r}
@@ -83,336 +97,157 @@ ps.mb.plant
 
 # Pre-process
 
-# Exploratory comparison
-
-## Abundances
-
-### PSMs
+## Filter to shared samples
 
 ```{r}
-psms <- 
-     ps.protein@otu_table@.Data %>% 
-     as.vector() %>% 
-     data.frame(psms = .) %>% 
-     filter(psms > 0)
-
-head(psms)
+# ps.mb.plant
+# ps.mb.plant <- 
+#      ps.mb.plant %>% 
+#      prune_samples(sample_sums(.) > 0, .) 
+# 
+# ps.mb.plant
 ```
 
+No similar pruning necessary for animal metabarcoding (all successful) or metaproteomic dataset (failed sample falls off when split kingdom-wise). 
+
 ```{r}
-ggplot(psms, aes(x = psms)) +
-     geom_histogram(binwidth = 5,
-                    boundary = 0) +
-     labs(x = 'PSMs', y = 'Count') +
-     theme_bw()
+# samples.plant <- 
+#      intersect(sample_names(ps.mb.plant),
+#                sample_names(ps.protein))
+# 
+# length(samples.plant)
 ```
 
 ```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# ggsave(here('results', 'QC',
-#             paste0(plotID, '_PSM count histogram, v2 analysis.pdf')),
-#        height = 1)
-```
-
-### Sequence counts
-
-```{r}
-counts <- 
-     ps.mb@otu_table@.Data %>% 
-     as.vector() %>% 
-     data.frame(counts = .) %>% 
-     filter(counts > 0)
-
-head(counts)
+# samples.animal <- 
+#      intersect(sample_names(ps.mb.animal),
+#                sample_names(ps.protein))
+# 
+# length(samples.animal)
 ```
 
 ```{r}
-ggplot(counts, aes(x = counts)) +
-     geom_histogram(binwidth = 5,
-                    boundary = 0) +
-     labs(x = 'Sequence counts', y = 'Count') +
-     theme_bw()
+# subset_ps <- function(ps, samples){
+#      ps %>% 
+#           prune_samples(samples, .) %>% 
+#           prune_taxa(taxa_sums(.) > 0, .)
+# }
+# 
+# # Now, subset each dataset (except menu)
+# ps.mb.plant <- subset_ps(ps.mb.plant, samples.plant)
+# ps.protein.plant <- 
+#      ps.protein %>% 
+#      subset_taxa(kingdom == 'Viridiplantae') %>% 
+#      subset_ps(., samples.plant)
+# 
+# ps.mb.animal <- subset_ps(ps.mb.animal, samples.animal)
+# ps.protein.animal <- 
+#      ps.protein %>% 
+#      subset_taxa(kingdom == 'Metazoa') %>% 
+#      subset_ps(., samples.animal)
+```
+
+## Pair with 1-2 days prior intake
+
+For this broadest level comparison, let's look only at the two days prior to sampling.
+
+```{r}
+# These already exist in sample data:
+sample_variables(ps.protein)
+samdf.protein <- 
+     sample_data(ps.protein) %>% 
+     data.frame() %>% 
+     rownames_to_column(var =)
 ```
 
 ```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# ggsave(here('results', 'QC',
-#             paste0(plotID, '_Sequence count histogram, v3 analysis.pdf')),
-#        height = 1)
+# Can't use merge_samples on phyloseq here because some samples make up >1 merge
+
+# Do manually on ASV table
+asvtab.menu <- otu_table(ps.menu)@.Data
+asvtab.menu.12 <- data.frame()
+
+for (sample in seq(dim(samdf.protein)[1])){
+     # Pull menu day -1
+     one.before <- asvtab.menu[samdf.protein$delta1[sample], ]
+     # Pull menu day -2
+     two.before <- asvtab.menu[samdf.protein$delta2[sample], ]
+     # Merge and place in new, aggregated OTU table
+     asvtab.menu.12 <- rbind(asvtab.menu.12,
+                             one.before + two.before)
+     # Update food names (only has to be done once)
+     if (sample == 1){names(asvtab.menu.12) <- names(one.before + two.before)}
+     # Update sample name
+     row.names(asvtab.menu.12)[sample] <- samdf.protein$row[sample]
+}
+
+# Now rebuild a subsetted phyloseq object
+ps.menu.12 <- phyloseq(otu_table(asvtab.menu.12, taxa_are_rows = FALSE),
+                       sample_data(ps.protein), # Now this matches
+                       tax_table(ps.menu)) # Menu-specific taxonomy
+
+# Remove any taxa that aren't present any longer
+ps.menu.12 <- prune_taxa(taxa_sums(ps.menu.12) > 0, ps.menu.12)
+ps.menu.12
 ```
 
+There are `r ntaxa(ps.menu.12)` recorded in the menu in the 2 days prior to each sample, and `r ntaxa(ps.protein)` detected by metaproteomics.
 
-### Menu
+## Reference taxa by their shared index
+
+Will need to glom by the taxon index, because otherwise phyloseq object would have multiple instances of that taxon. 
+
+So what I'll want to do here is join the taxon indices to the names to the taxonomy, and then glom there and rename in the object.
 
 ```{r}
-grams <- 
-     ps.menu@otu_table@.Data %>% 
-     as.vector() %>% 
-     data.frame(grams = .) %>% 
-     filter(grams > 0)
+# Metaproteomics
+tax_table(ps.protein) <- 
+     name.sync %>% 
+     select(index = `taxon index`, mp_taxa) %>% 
+     right_join(data.frame(ps.protein@tax_table@.Data), 
+               by = c('mp_taxa' = 'name')) %>% 
+     distinct() %>% 
+     column_to_rownames(var = 'mp_taxa') %>% 
+     as.matrix()
 
-head(grams)
-```
-
-```{r}
-ggplot(grams, aes(x = grams)) +
-     geom_histogram(binwidth = 5,
-                    boundary = 0) +
-     labs(x = 'Food mass (g)', y = 'Count') +
-     theme_bw()
-```
-
-```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# ggsave(here('results', 'QC',
-#             paste0(plotID, '_Food mass histogram, v3 analysis.pdf')),
-#        height = 1)
-```
-
-## Detected samples
-
-The full set of samples shared was
-```{r}
-length(samples)
-```
-
-Detected by metaproteomics:
-```{r}
-nsamples(ps.protein)
-```
-
-Detected by metabarcoding:
-```{r}
-sum(samples %in% sample_names(ps.mb))
-```
-However, this includes both plants and animals.  Separating out, see that some are missing:
-```{r}
-detected.mb <- 
-     ps.mb %>% 
-     psmelt %>% 
-     filter(kingdom %in% c('Viridiplantae', 'Metazoa')) %>% 
-     group_by(subj, date, kingdom) %>% 
-     summarize(detected = sum(Abundance) > 0) %>% 
-     mutate(name = paste(subj, date, sep = '_')) %>% 
-     ungroup() %>% 
-     select(name, kingdom, detected) %>% 
-     filter(name %in% samples)
-
-detected.mb
-```
-```{r}
-detected.mb %>% 
-     group_by(kingdom, detected) %>% 
-     count()
-```
-
-## Per-sample details
-
-Overall view:
-```{r echo = FALSE}
-# How many food taxa consumed daily (menu)?
-melt.menu <- psmelt(ps.menu)
-counts.menu <- 
-     melt.menu %>% 
-     filter(Abundance > 0) %>% 
-     group_by(ID, date, kingdom) %>% 
-     count(name = 'menu_taxa')
-```
-
-```{r echo = FALSE}
-# How many food taxa detected daily (metaproteomics)?
-melt.protein <- psmelt(ps.protein)
-counts.protein <- 
-     melt.protein %>% 
-     filter(Abundance > 4) %>% 
-     group_by(subj, date, kingdom) %>% 
-     count(name = 'protein_taxa')
+ps.protein.id <- tax_glom(ps.protein, taxrank = 'index')
+taxa_names(ps.protein.id) <- trimws(tax_table(ps.protein.id)[, 'index'])
 ```
 
 ```{r}
-# Note some NA values here: what are they?
-melt.protein %>% 
-     filter(Abundance > 4) %>% 
-     filter(is.na(kingdom)) %>% 
-     pull(OTU) %>% 
-     unique()
-```
-If one defines the kingdom Plantae to mean the Archaeplastida, the red algae will be part of that kingdom.
-If Plantae are defined more narrowly, to be the Viridiplantae, then the red algae might be considered their own kingdom, or part of the kingdom Protista.
+# Menu
+# Needs name column added
+tax_table(ps.menu.12) <- 
+     MButils::lowest_level(data.frame(ps.menu.12@tax_table@.Data)) %>% 
+     as.matrix()
 
-```{r}
-# Do this for only samples in common
-# Though need to preserve Fungi, which aren't measured by metabarcoding
-# This can be done by doing a full join
-counts <- 
-     counts.protein %>% 
-     full_join(counts.mb) %>% 
-     filter(!is.na(kingdom)) %>% 
-     mutate(delta1 = date - 1) %>% 
-     # Join to menu, lagged 1 day 
-     # Full join to add kingdom if necessary
-     full_join(counts.menu, by = c('kingdom',
-                                   'subj' = 'ID', 
-                                   'delta1' = 'date')) %>% 
-     # Then remove elements that didn't join by the date
-     filter(!is.na(date))
+tax_table(ps.menu.12) <- 
+     name.sync %>% 
+     select(index = `taxon index`, menu_taxa) %>% 
+     right_join(data.frame(ps.menu.12@tax_table@.Data), 
+               by = c('menu_taxa' = 'name')) %>% 
+     distinct() %>% 
+     column_to_rownames(var = 'menu_taxa') %>% 
+     as.matrix()
 
-# Long version for plotting
-counts.long <- pivot_longer(counts, 
-                            cols = ends_with('taxa'),
-                            names_to = 'dataset',
-                            values_to = 'value')
+ps.menu.id <- tax_glom(ps.menu.12, taxrank = 'index')
+taxa_names(ps.menu.id) <- trimws(tax_table(ps.menu.id)[, 'index'])
 ```
 
-```{r}
-# Update names for plotting
-counts.long$dataset <- factor(counts.long$dataset, 
-                                     levels = c('menu_taxa', 
-                                                'protein_taxa',
-                                                'dna_taxa'), 
-                                     labels = c('Recorded menu',
-                                                'Metaproteomics',
-                                                'Metabarcoding'))
-# Refactor for plotting
-counts.long$kingdom <- factor(counts.long$kingdom,
-                              levels = c('Viridiplantae',
-                                         'Metazoa', 
-                                         'Fungi'))
-```
-
-```{r}
-ggplot(counts.long, aes(x = kingdom, y = value, fill = dataset)) +
-     geom_boxplot() +
-     labs(title = 'Number of food taxa identified by measure',
-          subtitle = '>4 PSMs per taxon filter',
-          x = 'Kingdom',
-          y = 'Number of taxa', fill = 'Measure') +
-     ylim(0, 65) + # Leave room to add significance
-     # scale_y_log10() +
-     scale_fill_manual(values = c('#d7ce9f', '#849db1', '#b66353')) +
-     theme_classic() +
-     theme()
-```
-
-```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-ggsave(
-     here(
-          'results',
-          'QC',
-          paste0(plotID,
-                 '_Number of food taxa by measure, shared samples only.pdf'
-                 )
-          ),
-     height = 3,
-     width = 6)
-```
-
-Statistics on above plot: 
-
-```{r}
-# Repeated measures ANOVA (Viridiplantae)
-# Get only plant detection events, make unique sample ID
-viridiplantae <- 
-     counts.long %>% 
-     mutate(sample = paste(subj, date, sep = '_')) %>% 
-     filter(kingdom == 'Viridiplantae') 
-
-model <- lm(value ~ dataset + sample,
-            data = viridiplantae)
-
-analysis <- Anova(model, 
-                  idata = viridiplantae,
-                  idesign = ~sample)
-
-print(analysis)
-```
-
-```{r}
-# Post-hoc testing
-
-# Unadjusted p values
-pairwise.t.test(viridiplantae$value,
-                viridiplantae$dataset,
-                p.adjust.method = 'BH')
-```
-
-```{r}
-# Repeated measures ANOVA (Metazoa)
-metazoa <- 
-     counts.long %>% 
-     mutate(sample = paste(subj, date, sep = '_')) %>% 
-     filter(kingdom == 'Metazoa') 
-
-model <- lm(value ~ dataset + sample,
-            data = metazoa)
-
-analysis <- Anova(model, 
-                  idata = metazoa,
-                  idesign = ~sample)
-
-print(analysis)
-```
-
-```{r}
-# Unadjusted p values
-pairwise.t.test(metazoa$value,
-                metazoa$dataset,
-                p.adjust.method = 'BH')
-```
-
-
-```{r}
-# Paired t-test (Fungi)
-fungi <- 
-     filter(counts, kingdom == 'Fungi')
-
-t.test(fungi$menu_taxa, fungi$protein_taxa,
-       paired = TRUE)
-```
-
-Patterns of recorded foods by day of week: 
-
-```{r echo = FALSE}
-counts.long %>% 
-     group_by(ID, date, dataset) %>% 
-     summarize(value = sum(value, na.rm = TRUE)) %>% 
-     filter(dataset == 'Recorded menu') %>% 
-     ggplot(aes(x = date, y = value)) +
-     geom_point(aes(color = dataset)) +
-     facet_wrap(~ ID, nrow = 4, scales = 'free_x') + 
-     labs(x = 'Date', y = 'Number of taxa') +
-     theme_bw() +
-     theme(axis.title.x = element_blank(),
-           legend.title = element_blank(),
-           legend.position = 'bottom')
-
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-# ggsave(here('results', 
-#             paste0(plotID, 
-#                    '_Number of food taxa in menu by day.pdf')),
-#        height = 7, width = 4)
-```
+# Analyze 
 
 ## Metaproteomics x menu
 
-### Overall dataset
-
-What species are in metaproteomic dataset that are never recorded in menu data (on any day?)
-
 ```{r}
-fp <- setdiff(taxa_names(ps.protein), taxa_names(ps.menu))
+fp <- setdiff(taxa_names(ps.protein.id), taxa_names(ps.menu.id))
 length(fp)
 ```
 
 ```{r}
-fp
+name.sync %>% 
+     filter(`taxon index` %in% as.numeric(fp)) %>% 
+     select(mp_taxa, menu_taxa)
 ```
-
-This comparison is a bit tricky because some food taxa names aren't fully specified in our transcription of the menu.  Examples:
-* 
-
-What kingdom do these originate from?  Do we have more false-positive animals than plants, for example?
 
 ```{r}
 # Pull these rows from the taxonomy table
@@ -432,6 +267,7 @@ fp.taxonomy %>%
      data.frame() %>% 
      filter(kingdom == 'Viridiplantae')
 ```
+
 #### Flag foods for separate facet
 ```{r}
 # Note that this was done for V3, which I assume is more permissive, so should work for V2? But also want to double-check.
@@ -502,84 +338,6 @@ taxtab <-
      distinct()
 
 facet <- left_join(facet, taxtab)
-```
-
-Try visualizing with metacoder?
-
-### Pairing with 1-2 days prior intake
-
-For this broadest level comparison, let's look only at the two days prior to sampling.
-
-```{r echo = FALSE}
-# Pull sample data for stool samples
-samdf.protein <- 
-     sample_data(ps.protein) %>% 
-     as('data.frame') %>% 
-     rownames_to_column(var = 'row')
-
-# Label each stool sample with its two preceding days
-for (delta in 1:2){
-     varname <- paste0('delta', delta)
-     samdf.protein <- mutate(samdf.protein, 
-                             !!varname := paste(subj, date - delta, 
-                                                sep = '_'))
-}
-
-# Replace in phyloseq object
-sample_data(ps.protein) <- column_to_rownames(samdf.protein, var = 'row')
-```
-
-```{r}
-# Can't use merge_samples on phyloseq here because some samples make up >1 merge
-
-# Do manually on ASV table
-asvtab.menu <- otu_table(ps.menu)@.Data
-asvtab.menu.12 <- data.frame()
-
-for (sample in seq(dim(samdf.protein)[1])){
-     # Pull menu day -1
-     one.before <- asvtab.menu[samdf.protein$delta1[sample], ]
-     # Pull menu day -2
-     two.before <- asvtab.menu[samdf.protein$delta2[sample], ]
-     # Merge and place in new, aggregated OTU table
-     asvtab.menu.12 <- rbind(asvtab.menu.12,
-                             one.before + two.before)
-     # Update food names (only has to be done once)
-     if (sample == 1){names(asvtab.menu.12) <- names(one.before + two.before)}
-     # Update sample name
-     row.names(asvtab.menu.12)[sample] <- samdf.protein$row[sample]
-}
-
-# Now rebuild a subsetted phyloseq object
-ps.menu.12 <- phyloseq(otu_table(asvtab.menu.12, taxa_are_rows = FALSE),
-                       sample_data(ps.protein), # Now this matches
-                       tax_table(ps.menu)) # Menu-specific taxonomy
-
-# Remove any taxa that aren't present any longer
-ps.menu.12 <- prune_taxa(taxa_sums(ps.menu.12) > 0, ps.menu.12)
-ps.menu.12
-```
-
-There are `r ntaxa(ps.menu.12)` recorded in the menu in the 2 days prior to each sample, and `r ntaxa(ps.protein)` detected by metaproteomics.
-
-Overlap between the two? Good-- this is pretty similar in overall number to the full dataset (not filtering by menu day-- that gave 69 intersecting taxon names). 
-
-#### Glom
-
-```{r}
-# ps.menu.12 <- tax_glom(ps.menu.12, 'genus')
-# taxa_names(ps.menu.12) <- tax_table(ps.menu.12)[, 'genus']
-# 
-# ps.protein <- tax_glom(ps.protein, 'genus')
-# taxa_names(ps.protein) <- tax_table(ps.protein)[, 'genus']
-```
-
-```{r}
-# ps.menu.12 <- tax_glom(ps.menu.12, 'family')
-# taxa_names(ps.menu.12) <- tax_table(ps.menu.12)[, 'family']
-# 
-# ps.protein <- tax_glom(ps.protein, 'family')
-# taxa_names(ps.protein) <- tax_table(ps.protein)[, 'family']
 ```
 
 ### Paired samples, per-food
