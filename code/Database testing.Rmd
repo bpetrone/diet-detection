@@ -208,7 +208,7 @@ Will need to glom by the taxon index, because otherwise phyloseq object would ha
 
 So what I'll want to do here is join the taxon indices to the names to the taxonomy, and then glom there and rename in the object.
 
-Note that metabarcoding is a bit sloppy because I'll want different reference days for plant and animal markers (because fewer samples amplified with trnL than with 12SV5). Sort this out when calculating TP, TN, etc.
+For metabarcoding, I want different reference days for plant and animal markers (because fewer samples amplified with trnL than with 12SV5). Sort this by keeping markers separate when calculating TP, TN, etc.
 
 ```{r}
 # Metabarcoding
@@ -239,10 +239,6 @@ tax_table(ps.mb.animal) <-
 
 ps.mb.animal.id <- tax_glom(ps.mb.animal, taxrank = 'common_name')
 taxa_names(ps.mb.animal.id) <- tax_table(ps.mb.animal.id)[, 'common_name']
-
-# Merge
-ps.mb.id <- merge_phyloseq(ps.mb.plant.id,
-                           ps.mb.animal.id)
 ```
 
 ```{r}
@@ -292,13 +288,8 @@ length(fp)
 ```
 
 ```{r}
-name.sync %>% 
-     filter(`taxon index` %in% as.numeric(fp)) %>% 
-     select(mp_taxa, menu_taxa)
-```
-
-```{r}
 # Pull these rows from the taxonomy table
+taxtab.protein <- ps.protein.id@tax_table@.Data
 fp.taxonomy <- taxtab.protein[fp, ]
 fp.taxonomy %>% 
      data.frame() %>% 
@@ -306,7 +297,6 @@ fp.taxonomy %>%
      count() %>% 
      arrange(desc(n))
 ```
-
 Interesting-- at least in this high-level view, it's mostly plants. 
 
 ```{r}
@@ -315,8 +305,8 @@ fp.taxonomy %>%
      data.frame() %>% 
      filter(kingdom == 'Viridiplantae')
 ```
-
 #### Flag foods for separate facet
+
 ```{r}
 # Note that this was done for V3, which I assume is more permissive, so should work for V2? But also want to double-check.
 fruits <- 
@@ -473,7 +463,7 @@ pred <- select(pred, prediction, everything())
 # Reformat to long for visualization
 pred.long <- pivot_longer(pred,
                           cols = -prediction,
-                          names_to = 'taxon',
+                          names_to = 'common_name',
                           values_to = 'count')
 
 # Factor data for visualization
@@ -489,7 +479,7 @@ pred.summary <-
      # mutate(certain = ifelse(taxon %in% facet$genus,
      # mutate(certain = ifelse(taxon %in% unlist(facet), # At any taxonomic level
      #                         yes = 0,
-     #                         no = 1)) %>% 
+     #                         no = 1)) %>%
      arrange(desc(f_measure), fn, fp)
 
 pred.summary
@@ -499,51 +489,46 @@ pred.summary
 # Make overall taxonomy matrix (combined menu and metaproteomics)
 taxtab <- 
      bind_rows(
-          data.frame(ps.menu.12@tax_table),
-          data.frame(ps.protein@tax_table)
-          ) 
+          data.frame(ps.menu.id@tax_table),
+          data.frame(ps.protein.id@tax_table)
+          ) %>% 
+     distinct() %>% 
+     select(kingdom, common_name) %>% 
+     mutate(kingdom = ifelse(kingdom %in% c('Metazoa',
+                                            'Viridiplantae'),
+                             yes = kingdom,
+                             no = 'Other'))
 
-# Join level desired based on glom, above
-taxtab <- 
-     taxtab %>% 
-     # select(kingdom, family) %>%
-     # select(kingdom, genus) %>% 
-     rownames_to_column(var = 'taxon') %>% 
-     mutate(taxon = gsub('\\.+\\d+', '', taxon)) %>% 
-     select(kingdom, taxon) %>% 
-     distinct()
-
-pred.summary <- left_join(pred.summary, 
-                       taxtab,
-                       # by = c('taxon' = 'family'))
-                       # by = c('taxon' = 'genus'))
-                       by = 'taxon')
-
-# Recode NA kingdom as "Other"
-pred.summary$kingdom[is.na(pred.summary$kingdom)] <- 'Other'
+pred.summary <- left_join(pred.summary, taxtab)
 ```
 
 ```{r}
 # Incorporate into object
 pred.long <- 
      pred.summary %>% 
-     select(certain, taxon, kingdom) %>% 
+     select(common_name, kingdom) %>% 
      right_join(pred.long) %>% 
-     select(certain, kingdom, taxon, everything())
+     select(kingdom, common_name, everything())
 ```
 
 ```{r}
 # Now that joins complete, add factor levels
 pred.long <- 
      pred.long %>% 
-     mutate(taxon = factor(taxon, levels = pred.summary$taxon),
-            prediction = factor(prediction, levels = c('tp', 'tn', 'fp', 'fn'),
-                                labels = c('True positive', 'True negative',
-                                           'False positive', 'False negative')))
-            # kingdom = factor(kingdom,
-            #                  levels = c('Viridiplantae',
-            #                             'Metazoa',
-            #                             'Other')))
+     mutate(common_name = factor(common_name, 
+                                 levels = pred.summary$common_name),
+            prediction = factor(prediction, levels = c('tp',
+                                                       'tn',
+                                                       'fp',
+                                                       'fn'),
+                                labels = c('True positive',
+                                           'True negative',
+                                           'False positive',
+                                           'False negative')),
+            kingdom = factor(kingdom,
+                             levels = c('Viridiplantae',
+                                        'Metazoa',
+                                        'Other')))
 ```
 
 ```{r}
@@ -559,14 +544,13 @@ saveRDS(pred.long,
 
 ```{r}
 pred.long %>%
-     # filter(certain == 1) %>% 
-     ggplot(aes(x = taxon, y = count, fill = prediction)) +
+     ggplot(aes(x = common_name, y = count, fill = prediction)) +
      geom_bar(position = 'stack', stat = 'identity') +
      scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
                                   '#D7191C', '#FDAE61')) + # FP, FN
-     # facet_grid(cols = vars(kingdom), 
-     #            scales = 'free',
-     #            space = 'free') +
+     facet_grid(cols = vars(kingdom),
+                scales = 'free',
+                space = 'free') +
      theme_classic() +
      theme(axis.text.x = element_text(angle = 20, hjust = 1),
            axis.text.y = element_blank(), 
@@ -650,37 +634,77 @@ width <-
 
 ## Metabarcoding x menu
 
-## Paired samples, per-food
+### Paired samples, per-food
 
 ```{r}
 # Extract OTU tables
-asvtab.mb <- otu_table(ps.mb.id)@.Data
-asvtab.menu.12 <- otu_table(ps.menu.id)@.Data
+asvtab.mb.plant <- 
+     ps.mb.plant.id %>% 
+     prune_samples(sample_sums(.) > 0, .) %>% 
+     otu_table()
+
+asvtab.mb.animal <- otu_table(ps.mb.animal.id)@.Data
+
+asvtab.menu.plant <- 
+     ps.menu.id %>% 
+     subset_taxa(kingdom == 'Viridiplantae') %>% 
+     otu_table()
+
+asvtab.menu.animal <- 
+     ps.menu.id %>% 
+     subset_taxa(kingdom == 'Metazoa') %>% 
+     otu_table()
+
+asvtab.menu.other <- 
+      ps.menu.id %>% 
+     subset_taxa(!(kingdom %in% c('Metazoa', 'Viridiplantae'))) %>% 
+     otu_table()
+```
+
+```{r}
+# Subset to shared menu days
+# Can use full menu object for 12SV5 (all samples)
+
+# Need to subset for trnL
+asvtab.menu.plant <- asvtab.menu.plant[sample_names(asvtab.mb.plant), ]
 ```
 
 ```{r}
 # Using pad_columns() helper function defined above
-padded <- pad_columns(asvtab.mb, asvtab.menu.12)
-asvtab.mb <- padded[[1]]
-asvtab.menu.12 <- padded[[2]]
+# 12SV5
+padded <- pad_columns(asvtab.mb.animal, asvtab.menu.animal)
+asvtab.mb.animal <- padded[[1]]
+asvtab.menu.animal <- padded[[2]]
+
+# trnL
+padded <- pad_columns(asvtab.mb.plant, asvtab.menu.plant)
+asvtab.mb.plant <- padded[[1]]
+asvtab.menu.plant <- padded[[2]]
 
 rm(padded)
 ```
 
 ```{r}
 # Confirm row and column names are equal before proceeding
-all(row.names(asvtab.mb) == row.names(asvtab.menu.12))
-all(colnames(asvtab.mb) == colnames(asvtab.menu.12))
-
-# Correct row names (sample ordering)
-asvtab.mb <- asvtab.mb[row.names(asvtab.menu.12), ]
-all(row.names(asvtab.mb) == row.names(asvtab.menu.12))
+# trnL
+all(row.names(asvtab.mb.plant) == row.names(asvtab.menu.plant))
+all(colnames(asvtab.mb.plant) == colnames(asvtab.menu.plant))
 ```
 
 ```{r}
-# Label predictions (this may be best to do separately for plants, animals to include only those amplified samples)
-dna.pos <- asvtab.mb > 0 # Already filtered, above
-menu.pos <- asvtab.menu.12 > 0
+# 12SV5
+all(row.names(asvtab.mb.animal) == row.names(asvtab.menu.animal))
+all(colnames(asvtab.mb.animal) == colnames(asvtab.menu.animal))
+
+# Correct row names (sample ordering)
+asvtab.mb.animal <- asvtab.mb.animal[row.names(asvtab.menu.animal), ]
+all(row.names(asvtab.mb.animal) == row.names(asvtab.menu.animal))
+```
+
+```{r}
+# Label predictions (trnL)
+dna.pos <- asvtab.mb.plant > 0 # Already filtered, above
+menu.pos <- asvtab.menu.plant > 0
 
 tp <- dna.pos & menu.pos
 tn <- !dna.pos & !menu.pos
@@ -698,10 +722,30 @@ pred <- select(pred, prediction, everything())
 ```
 
 ```{r}
+# Label predictions (12SV5)
+dna.pos <- asvtab.mb.animal > 0 # Already filtered, above
+menu.pos <- asvtab.menu.animal > 0
+
+tp <- dna.pos & menu.pos
+tn <- !dna.pos & !menu.pos
+fp <- dna.pos & !menu.pos
+fn <- !dna.pos & menu.pos
+
+pred <- 
+     bind_rows(colSums(tp),
+               colSums(tn),
+               colSums(fp),
+               colSums(fn)) %>% 
+     bind_cols(pred) # Now add to predictions from above
+
+pred <- select(pred, prediction, everything())
+```
+
+```{r}
 # Reformat to long for visualization
 pred.long <- pivot_longer(pred,
                           cols = -prediction,
-                          names_to = 'taxon',
+                          names_to = 'common_name',
                           values_to = 'count')
 
 # Factor data for visualization
@@ -724,47 +768,44 @@ pred.summary
 ```
 ```{r}
 # Join to taxonomy to get kingdom-level info
-# Make overall taxonomy matrix (combined menu and metaproteomics)
+# Make overall taxonomy matrix (combined menu and metabarcoding)
 taxtab <- 
      bind_rows(
-          data.frame(ps.menu.12@tax_table),
-          data.frame(ps.mb@tax_table)
+          data.frame(ps.menu.id@tax_table),
+          data.frame(merge_phyloseq(ps.mb.plant.id,
+                                    ps.mb.animal.id)@tax_table)
           ) 
 
-# Join level desired based on glom, above
+# Join level (have to do phylum because of shift between 12SV5, trnL labels)
 taxtab <- 
      taxtab %>% 
-     select(kingdom, family) %>%
-     # select(kingdom, genus) %>%
-     # rownames_to_column(var = 'taxon') %>% 
-     # mutate(taxon = gsub('\\.+\\d+', '', taxon)) %>% 
-     # select(kingdom, taxon) %>% 
+     select(phylum, common_name) %>%
+     mutate(kingdom = case_when(
+          phylum == 'Streptophyta' ~ 'Viridiplantae',
+          phylum %in% c('Chordata', 'Mollusca', 'Arthropoda', 'Metazoa') ~ 'Metazoa',
+          TRUE ~ 'Other')
+     ) %>% 
+     select(kingdom, common_name) %>% 
      distinct()
 
 pred.summary <- left_join(pred.summary, 
-                       taxtab,
-                       by = c('taxon' = 'family'))
-                       # by = c('taxon' = 'genus'))
-                       # by = 'taxon')
-
-# Recode NA kingdom as "Other"
-pred.summary$kingdom[is.na(pred.summary$kingdom)] <- 'Other'
+                          taxtab)
 ```
 
 ```{r}
 # Incorporate into object
 pred.long <- 
      pred.summary %>% 
-     select(certain, taxon, kingdom) %>% 
+     select(common_name, kingdom) %>% 
      right_join(pred.long) %>% 
-     select(certain, kingdom, taxon, everything())
+     select(kingdom, common_name, everything())
 ```
 
 ```{r}
 # Now that joins complete, add factor levels
 pred.long <- 
      pred.long %>% 
-     mutate(taxon = factor(taxon, levels = pred.summary$taxon),
+     mutate(taxon = factor(common_name, levels = pred.summary$common_name),
             prediction = factor(prediction, levels = c('tp', 
                                                        'tn', 
                                                        'fp', 
@@ -772,12 +813,11 @@ pred.long <-
                                 labels = c('True positive', 
                                            'True negative',
                                            'False positive',
-                                           'False negative')))
-            # kingdom = factor(kingdom,
-            #                  levels = c('Viridiplantae',
-            #                             'Metazoa',
-            #                             'Fungi',
-            #                             'Other')))
+                                           'False negative')),
+            kingdom = factor(kingdom,
+                             levels = c('Viridiplantae',
+                                        'Metazoa',
+                                        'Other')))
 ```
 
 ```{r}
@@ -795,12 +835,12 @@ saveRDS(pred.long,
 pred.long %>%
      # filter(certain == 1) %>% 
      ggplot(aes(x = taxon, y = count, fill = prediction)) +
-     geom_bar(position = 'stack', stat = 'identity') +
+     geom_bar(position = 'fill', stat = 'identity') +
      scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
                                   '#D7191C', '#FDAE61')) + # FP, FN
-     # facet_grid(cols = vars(kingdom), 
-     #            scales = 'free',
-     #            space = 'free') +
+     facet_grid(cols = vars(kingdom),
+                scales = 'free',
+                space = 'free') +
      theme_classic() +
      theme(axis.text.x = element_text(angle = 20, hjust = 1),
            axis.text.y = element_blank(), 
