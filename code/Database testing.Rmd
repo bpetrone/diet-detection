@@ -219,7 +219,8 @@ tax_table(ps.mb.plant) <-
      right_join(data.frame(ps.mb.plant@tax_table@.Data),
                by = c('mb_taxa' = 'name')) %>%
      distinct() %>% 
-     column_to_rownames(var = 'mb_taxa') %>% 
+     select(superkingdom:phylum, common_name, mb_taxa) %>% 
+     column_to_rownames(var = 'mb_taxa') %>%
      as.matrix()
 
 ps.mb.plant.id <- tax_glom(ps.mb.plant, taxrank = 'common_name')
@@ -232,6 +233,7 @@ tax_table(ps.mb.animal) <-
      right_join(data.frame(ps.mb.animal@tax_table@.Data), 
                by = c('mb_taxa' = 'name')) %>% 
      distinct() %>% 
+     select(kingdom:phylum, common_name, mb_taxa) %>%
      column_to_rownames(var = 'mb_taxa') %>% 
      as.matrix()
 
@@ -248,9 +250,10 @@ ps.mb.id <- merge_phyloseq(ps.mb.plant.id,
 tax_table(ps.protein) <- 
      name.sync %>% 
      select(common_name, mp_taxa) %>% 
-     right_join(data.frame(ps.protein@tax_table@.Data), 
-               by = c('mp_taxa' = 'name')) %>% 
+     right_join(data.frame(ps.protein@tax_table@.Data),
+               by = c('mp_taxa' = 'name')) %>%
      distinct() %>% 
+     select(superkingdom:phylum, common_name, mp_taxa) %>% 
      column_to_rownames(var = 'mp_taxa') %>% 
      as.matrix()
 
@@ -271,6 +274,7 @@ tax_table(ps.menu.12) <-
      right_join(data.frame(ps.menu.12@tax_table@.Data), 
                by = c('menu_taxa' = 'name')) %>% 
      distinct() %>% 
+     select(superkingdom:phylum, common_name, menu_taxa) %>%
      column_to_rownames(var = 'menu_taxa') %>% 
      as.matrix()
 
