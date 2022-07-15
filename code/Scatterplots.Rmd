@@ -13,7 +13,24 @@ opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```{r libraries, echo=FALSE}
 library(here) 
 library(phyloseq) 
-library(tidyverse) 
+library(tidyverse)
+```
+
+```{r}
+# Plotting themes
+theme_set(theme_bw() +
+               theme(
+                    axis.text = element_text(size = 12),
+                    axis.title.x = element_text(size = 14,
+                                                face = 'bold'),
+                    axis.title.y = element_text(size = 14,
+                                                face = 'bold'),
+                    legend.title = element_text(size = 12,
+                                                face = 'bold'),
+                    strip.text = element_text(size = 12,
+                                              face = 'bold')
+               )
+)
 ```
 
 # Read in data
@@ -28,31 +45,22 @@ pred.mb <-
           'processed',
           'performance-metrics',
           # '20210913_Metabarcoding v. menu predictions by family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
-          '20210913_Metabarcoding v. menu predictions by genus, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
+          # '20210913_Metabarcoding v. menu predictions by genus, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
+          '20220712_Metabarcoding v. menu predictions by family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
      readRDS()
 ```
 
 ## Metaproteomic performance metrics
 
 ```{r}
-# Protein unique peptides
-pred.mp.pup <- 
-     here('data', 
-          'processed', 
-          'performance-metrics',
-          # '20210913_Metaproteomic v. menu predictions by food family, 1-2d prior, >4 counts per taxon filter, no intake filter, v2 analysis.rds') %>%
-          '20210913_Metaproteomic v. menu predictions by food genus, 1-2d prior, >4 counts per taxon filter, no intake filter, v2 analysis.rds') %>% 
-     readRDS()
-```
-
-```{r}
 # Unique peptides
-pred.mp.up <- 
+pred.mp <- 
      here('data', 
           'processed',
           'performance-metrics',
           # '20210912_Metaproteomic v. menu predictions by food family, 1-2d prior, >4 counts per taxon filter, v3 analysis.rds') %>%
-          '20210912_Metaproteomic v. menu predictions by food genus, 1-2d prior, >4 counts per taxon filter, no intake filter, v3 analysis.rds') %>% 
+          # '20210912_Metaproteomic v. menu predictions by food genus, 1-2d prior, >4 counts per taxon filter, no intake filter, v3 analysis.rds') %>% 
+          '20220712_Metaproteomic v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter, v3 analysis.rds') %>% 
      readRDS()
 ```
 
@@ -61,23 +69,21 @@ pred.mp.up <-
 ```{r}
 # Annotate each dataset prior to joining
 pred.mb$detection <- 'DNA'
-pred.mp.pup$detection <- 'Protein (1PUP)'
-pred.mp.up$detection <- 'Protein (1UP)'
+pred.mp$detection <- 'Protein (1UP)'
 
 # Get shared variables
-vs <- 
-     intersect(names(pred.mb), names(pred.mp.up)) %>% 
-     intersect(names(pred.mp.pup))
+vs <- intersect(names(pred.mb), names(pred.mp))
 
 # Just concatenate end to end for now
 pred <- 
      bind_rows(select(pred.mb, one_of(vs)),
-               select(pred.mp.pup, one_of(vs)),
-               select(pred.mp.up, one_of(vs))) 
+               select(pred.mp, one_of(vs)))
 
 pred
 ```
-## Summarize sensitivity, specificity
+## Additional stats
+
+Calculate sensitivity, specificity, F measure.
 
 ```{r}
 # Need to shift data to wide form
@@ -91,40 +97,71 @@ pred.summary <-
      rename(TP = `True positive`, TN = `True negative`,
             FP = `False positive`, FN = `False negative`) %>% 
      mutate(sensitivity = TP/(TP + FN), 
-            specificity = TP/(TP + FP))
+            specificity = TP/(TP + FP),
+            f_measure = (2 * sensitivity * specificity)/(sensitivity + specificity))
 
 pred.summary
 ```
+
 ```{r}
-# Now split apart by data type, so I can join back together
-pred.summary.mb <- 
-     filter(pred.summary, detection == 'DNA') %>% 
-     rename(sensitivity_DNA = sensitivity,
-            specificity_DNA = specificity) %>% 
-     select(-(detection:FN))
-
-pred.summary.pup <- 
-     filter(pred.summary, detection == 'Protein (1PUP)') %>% 
-     rename(sensitivity_pup = sensitivity,
-            specificity_pup = specificity) %>% 
-     select(-(detection:FN))
-
-pred.summary.up <- 
-     filter(pred.summary, detection == 'Protein (1UP)') %>% 
-     rename(sensitivity_up = sensitivity,
-            specificity_up = specificity) %>% 
-     select(-(detection:FN))
-
-# Full join on taxon name
+# Pivot longer
 pred.summary <- 
-     full_join(pred.summary.mb, pred.summary.pup) %>% 
-     full_join(pred.summary.up)
+     pred.summary %>% 
+     select(-c(sensitivity, specificity, f_measure)) %>% 
+     pivot_longer(cols = c(TP, TN, FP, FN),
+                  names_to = 'stat',
+                  values_to = 'value') %>% 
+     pivot_wider(names_from = detection,
+                 values_from = value) %>% 
+     mutate(stat = factor(stat,
+                          levels = c('TP', 'TN', 'FP', 'FN'),
+                          labels = c('True positive',
+                                     'True negative',
+                                     'False positive',
+                                     'False negative')))
 
 pred.summary
 ```
+
 # Visualize 
 
-## Metaproteomics alone
+## Across measures
+
+Need to fix NAs-- can be done by padding columns across all measures? 
+
+```{r}
+ggplot(pred.summary, aes(x = DNA, y = `Protein (1UP)`)) +
+     geom_point(alpha = 0.5) +
+     coord_equal() +
+     facet_wrap(~stat)
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'performance metrics', 
+            paste0(plotID, '_Metaproteomic x metabarcoding detactions.pdf')),
+       height = 4, width = 4)
+```
+
+```{r}
+ggplot(pred.summary, aes(x = DNA, y = `Protein (1UP)`)) +
+     geom_text(aes(label = common_name)) +
+     facet_wrap(~stat)
+```
+```{r}
+# Calculate correlation
+pred.summary %>% 
+     group_by(stat) %>%
+     summarize(rho = cor.test(DNA, `Protein (1UP)`,
+                              method = 'spearman')$estimate,
+               p = cor.test(DNA, `Protein (1UP)`,
+                            method = 'spearman')$p.value) 
+```
+
+Interesting!  They're all positive. 
+
+## Within measure
 
 ```{r}
 ggplot(pred.summary.pup, aes(x = 1 - specificity_pup,
