@@ -1,0 +1,114 @@
+---
+title: "Visualize menu data"
+output: html_notebook
+---
+
+## Setup
+
+```{r setup}
+require(knitr)
+knitr::opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r}
+library(here)
+library(phyloseq)
+library(tidyverse)
+```
+
+## Read in data
+
+```{r}
+# Tax-glommed
+ps.protein <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mp_taxa.rds') %>%
+     readRDS()
+
+ps.protein
+```
+
+```{r}
+ps.menu <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_menu.rds') %>% 
+     readRDS()
+
+ps.menu
+```
+
+## Pre-process
+
+### List samples
+
+ML48 (10/17/19) omitted due to low spectra counts and poor extraction.
+
+```{r}
+samdf.protein <- data.frame(ps.protein@sam_data)
+samdf.protein
+```
+```{r}
+# Add missing sample
+row <- 
+     data.frame(subj = 'ML48',
+                date = as.Date('2019-10-17'),
+                study = 'Intervention',
+                time = NA
+     ) %>% 
+     mutate(delta1 = paste(subj, date-1, sep = '_'),
+            delta2 = paste(subj, date-2, sep = '_'))
+
+row
+```
+```{r}
+samdf.protein <- 
+     bind_rows(samdf.protein, row) %>% 
+     rownames_to_column(var = 'row')
+```
+
+### 1-2 days' prior
+
+```{r}
+# Can't use merge_samples on phyloseq here because some samples make up >1 merge
+
+# Do manually on ASV table
+asvtab.menu <- otu_table(ps.menu)@.Data
+asvtab.menu.12 <- data.frame()
+
+for (sample in seq(dim(samdf.protein)[1])){
+     # Pull menu day -1
+     one.before <- asvtab.menu[samdf.protein$delta1[sample], ]
+     # Pull menu day -2
+     two.before <- asvtab.menu[samdf.protein$delta2[sample], ]
+     # Merge and place in new, aggregated OTU table
+     asvtab.menu.12 <- rbind(asvtab.menu.12,
+                             one.before + two.before)
+     # Update food names (only has to be done once)
+     if (sample == 1){names(asvtab.menu.12) <- names(one.before + two.before)}
+     # Update sample name
+     row.names(asvtab.menu.12)[sample] <- samdf.protein$row[sample]
+}
+
+# Now rebuild a subsetted phyloseq object
+ps.menu.12 <- phyloseq(otu_table(asvtab.menu.12, taxa_are_rows = FALSE),
+                       sample_data(ps.protein), # Now this matches
+                       tax_table(ps.menu)) # Menu-specific taxonomy
+
+# Remove any taxa that aren't present any longer
+ps.menu.12 <- prune_taxa(taxa_sums(ps.menu.12) > 0, ps.menu.12)
+ps.menu.12
+```
+
+## Visualize
+```{r}
+
+```
+
