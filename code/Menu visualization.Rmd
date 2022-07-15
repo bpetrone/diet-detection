@@ -11,6 +11,8 @@ knitr::opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```
 
 ```{r}
+library(cowplot)
+library(ggdendro)
 library(here)
 library(phyloseq)
 library(tidyverse)
@@ -108,7 +110,103 @@ ps.menu.12
 ```
 
 ## Visualize
-```{r}
 
+First pass
+```{r}
+melt <- psmelt(ps.menu.12)
+```
+
+```{r}
+ggplot(melt, aes(x = OTU, y = Sample, fill = Abundance>0)) +
+     geom_tile() +
+     scale_fill_manual(values = c('white', '#7e756d')) +
+     theme(axis.text.y = element_blank(),
+           axis.ticks.y = element_blank())
+```
+
+## Add dendrogram
+
+### Samples
+```{r}
+# Run clustering
+menu.dat <- as.matrix(ps.menu.12@otu_table@.Data)
+# Make data binary:
+menu.dat[menu.dat > 0] <- 1
+menu.dendro <- 
+     dist(menu.dat) %>% 
+     hclust() %>% 
+     as.dendrogram()
+
+# Create dendro
+dendro.plot.y <- ggdendrogram(data = menu.dendro, rotate = TRUE)
+
+# Preview the plot
+print(dendro.plot.y)
+```
+
+```{r}
+# Re-order samples to match
+menu.order <- order.dendrogram(menu.dendro)
+menu.order
+
+melt <- 
+     mutate(melt,
+            Sample = factor(Sample,
+                            levels = row.names(menu.dat[menu.order, ])))
+```
+
+### Foods 
+
+```{r}
+# Run clustering
+menu.dat <- as.matrix(ps.menu.12@otu_table@.Data)
+# Make data binary:
+menu.dat[menu.dat > 0] <- 1
+menu.dendro <- 
+     menu.dat %>% 
+     t() %>% 
+     dist() %>% 
+     hclust() %>% 
+     as.dendrogram()
+
+# Create dendro
+dendro.plot.x <- ggdendrogram(data = menu.dendro, rotate = FALSE)
+
+# Preview the plot
+print(dendro.plot.x)
+```
+```{r}
+# Re-order samples to match
+menu.order <- order.dendrogram(menu.dendro)
+menu.order
+
+melt <- 
+     mutate(melt,
+            OTU = factor(OTU,
+                         levels = colnames(menu.dat[, menu.order])))
+```
+
+## Joint plot
+
+```{r}
+# Now, update original heatmap with these new levels
+heatmap <- 
+     ggplot(melt, aes(x = OTU, y = Sample, fill = Abundance>0)) +
+     geom_tile() +
+     scale_fill_manual(values = c('white', '#7e756d')) +
+     coord_equal() +
+     theme(axis.text.y = element_blank(),
+           axis.ticks.y = element_blank(),
+           axis.text.x = element_text(angle = 20, 
+                                      hjust = 1),
+           legend.position = 'none') 
+
+heatmap
+```
+
+```{r}
+plot_grid(dendro.plot.y,
+          heatmap,
+          aligh = 'v')
 ```
 
