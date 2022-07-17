@@ -6,7 +6,6 @@
 
 /results
 /docs
-/data/metadata
-/data/raw
-/data/processed/*.xlsx
-/data/processed/phyloseq
+/data
+!/data/processed/Animal-based proteins (annotated).csv
+!/data/processed/Naming discrepancies.xlsx
