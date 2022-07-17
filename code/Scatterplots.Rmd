@@ -81,9 +81,10 @@ pred <-
 
 pred
 ```
+
 ## Additional stats
 
-Calculate sensitivity, specificity, F measure.
+Calculate F measure.
 
 ```{r}
 # Need to shift data to wide form
@@ -91,23 +92,23 @@ pred <- pivot_wider(pred, names_from = prediction, values_from = count)
 pred
 ```
 ```{r}
-# Calculate sensitivity, specificity
+# Calculate recall (sensitivity), precision
 pred.summary <- 
      pred %>% 
      rename(TP = `True positive`, TN = `True negative`,
             FP = `False positive`, FN = `False negative`) %>% 
-     mutate(sensitivity = TP/(TP + FN), 
-            specificity = TP/(TP + FP),
-            f_measure = (2 * sensitivity * specificity)/(sensitivity + specificity))
+     mutate(recall = TP/(TP + FN), 
+            precision = TP/(TP + FP),
+            f_measure = (2 * recall * precision)/(recall + precision))
 
 pred.summary
 ```
 
 ```{r}
 # Pivot longer
-pred.summary <- 
+pred.summary.long <- 
      pred.summary %>% 
-     select(-c(sensitivity, specificity, f_measure)) %>% 
+     select(-c(recall, precision, f_measure)) %>% 
      pivot_longer(cols = c(TP, TN, FP, FN),
                   names_to = 'stat',
                   values_to = 'value') %>% 
@@ -120,9 +121,8 @@ pred.summary <-
                                      'False positive',
                                      'False negative')))
 
-pred.summary
+pred.summary.long
 ```
-
 # Visualize 
 
 ## Across measures
@@ -162,6 +162,8 @@ pred.summary %>%
 Interesting!  They're all positive. 
 
 ## Within measure
+
+
 
 ```{r}
 ggplot(pred.summary.pup, aes(x = 1 - specificity_pup,
