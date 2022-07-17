@@ -21,10 +21,10 @@ library(tidyverse)
 theme_set(theme_bw() +
                theme(
                     axis.text = element_text(size = 12),
-                    axis.title.x = element_text(size = 14,
-                                                face = 'bold'),
-                    axis.title.y = element_text(size = 14,
-                                                face = 'bold'),
+                    axis.title.x = ggtext::element_markdown(size = 14,
+                                                            face = 'bold'),
+                    axis.title.y = ggtext::element_markdown(size = 14,
+                                                            face = 'bold'),
                     legend.title = element_text(size = 12,
                                                 face = 'bold'),
                     strip.text = element_text(size = 12,
@@ -163,37 +163,30 @@ Interesting!  They're all positive.
 
 ## Within measure
 
-
+Note that F measure data isn't complete (when recall or precision is NA due to no detections in the denominator: either no actual positives, or no detected positives).
 
 ```{r}
-ggplot(pred.summary.pup, aes(x = 1 - specificity_pup,
-                            y = sensitivity_pup)) +
-     geom_point(size = 2, alpha = 0.6) +
-     coord_equal() +
-     labs(x = '1 - Specificity', y = 'Sensitivity') +
-     theme_bw()
+pred.summary %>% 
+     select(-c(recall, precision, TP:FN)) %>% 
+     ggplot(aes(x = f_measure)) +
+     geom_histogram(binwidth = 0.1,
+                    boundary = 0) +
+     scale_y_continuous(breaks = seq(0, 15, by = 3)) +
+     scale_x_continuous(labels = c('0', '0.25', '0.5', '0.75', '1')) +
+     facet_grid(detection ~ kingdom) +
+     labs(x = 'F measure', y = 'Foods (*n*)') 
+     # theme(axis.text.x = element_text(angle = 20, hjust =))
+```
 
+```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results', 'performance metrics', 
+ggsave(here('results', 
+            'performance metrics', 
             paste0(plotID, '_Metaproteomic ROC analogue.png')),
-       height = 5, width = 5)
+       height = 4)
 ```
 
-```{r}
-ggplot(pred.summary.mb, aes(x = 1 - specificity_DNA,
-                            y = sensitivity_DNA)) +
-     geom_point(size = 2, alpha = 0.6) +
-     coord_equal() +
-     labs(x = '1 - Specificity', y = 'Sensitivity') +
-     theme_bw()
-
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-
-ggsave(here('results', 'performance metrics', 
-            paste0(plotID, '_Metabarcoding ROC analogue.png')),
-       height = 5, width = 5)
-```
 ## Combined
 
 ```{r}
