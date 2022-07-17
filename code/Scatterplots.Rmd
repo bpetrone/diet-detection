@@ -166,9 +166,7 @@ Interesting!  They're all positive.
 Note that F measure data isn't complete (when recall or precision is NA due to no detections in the denominator: either no actual positives, or no detected positives).
 
 ```{r}
-pred.summary %>% 
-     select(-c(recall, precision, TP:FN)) %>% 
-     ggplot(aes(x = f_measure)) +
+ggplot(pred.summary, aes(x = f_measure)) +
      geom_histogram(binwidth = 0.1,
                     boundary = 0) +
      scale_y_continuous(breaks = seq(0, 15, by = 3)) +
@@ -177,14 +175,30 @@ pred.summary %>%
      labs(x = 'F measure', y = 'Foods (*n*)') 
      # theme(axis.text.x = element_text(angle = 20, hjust =))
 ```
-
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 ggsave(here('results', 
             'performance metrics', 
-            paste0(plotID, '_Metaproteomic ROC analogue.png')),
+            paste0(plotID, '_F measure histograms.pdf')),
        height = 4)
+```
+
+```{r}
+# Wilcoxon signed rank
+pred.summary %>% 
+     # Format for test
+     select(-c(recall, precision, TP:FN)) %>% 
+     pivot_wider(names_from = detection, 
+                 values_from = f_measure) %>% 
+     # Recode NAs
+     mutate(across(.cols = c(DNA, `Protein (1UP)`),
+                   .fns = ~ ifelse(.x == 'NaN',
+                                   yes = NA,
+                                   no = .x))) %>% 
+     wilcox.test(Pair(DNA, `Protein (1UP)`) ~ 1, 
+                 data = .,
+                 conf.int = TRUE)
 ```
 
 ## Combined
