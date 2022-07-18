@@ -175,25 +175,39 @@ Missing sample neds to be added after split by kingdom, otherwise it won't be pr
 ### Tidy
 
 ```{r}
-head(sample_names(mp))
+head(sample_names(mp.pup))
+head(sample_names(mp.up))
 ```
 
 ```{r}
-sample_variables(mp)
+sample_variables(mp.pup)
+sample_variables(mp.up)
 ```
 
 ```{r}
 # Add study in line with other datasets
-sample_data(mp)$study <- 
-     ifelse(sample_data(mp)$subj == '908',
+sample_data(mp.pup)$study <- 
+     ifelse(sample_data(mp.pup)$subj == '908',
+            yes = 'Habitual Diet',
+            no = 'Intervention')
+
+sample_data(mp.up)$study <- 
+     ifelse(sample_data(mp.up)$subj == '908',
             yes = 'Habitual Diet',
             no = 'Intervention')
 ```
 
 ```{r}
 # Add sample time
-sample_data(mp) <- 
-     mp@sam_data %>% 
+sample_data(mp.pup) <- 
+     mp.pup@sam_data %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'row') %>% 
+     left_join(times) %>% 
+     column_to_rownames(var = 'row')
+
+sample_data(mp.up) <- 
+     mp.up@sam_data %>% 
      data.frame() %>% 
      rownames_to_column(var = 'row') %>% 
      left_join(times) %>% 
@@ -310,7 +324,7 @@ sample_data(mb.908.plant)$study <- 'Habitual Diet'
 
 We sequenced all DFC samples, but only applied metaproteomics to a subset from consecutive days.
 ```{r}
-length(intersect(sample_names(mp), 
+length(intersect(sample_names(mp.up), 
                  c(sample_names(mb.dfc.plant), sample_names(mb.908.plant))))
 
 nsamples(mb.dfc.plant) + nsamples(mb.908.plant)
@@ -319,12 +333,12 @@ nsamples(mb.dfc.plant) + nsamples(mb.908.plant)
 ```{r}
 # Prune only needs to be done for DFC (using all 5 908 samples)
 mb.dfc.plant <- 
-     prune_samples(sample_names(mp),
+     prune_samples(sample_names(mp.up),
                    mb.dfc.plant) %>% 
      prune_taxa(taxa_sums(.) > 0, .)
 
 mb.dfc.animal <- 
-     prune_samples(sample_names(mp),
+     prune_samples(sample_names(mp.up),
                    mb.dfc.animal) %>% 
      prune_taxa(taxa_sums(.) > 0, .)
 
@@ -546,12 +560,19 @@ saveRDS(mb.animal,
 )
 
 # Metaproteomic
-saveRDS(mp,
+saveRDS(mp.pup,
         here('data',
              'processed',
              'phyloseq',
              'combined',
-             # 'ps_mp.rds')
-             'ps_mp (all proteins).rds')
+             'ps_mp_1PUP.rds')
+)
+
+saveRDS(mp.up,
+        here('data',
+             'processed',
+             'phyloseq',
+             'combined',
+             'ps_mp_1UP.rds')
 )
 ```
