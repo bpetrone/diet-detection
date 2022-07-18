@@ -20,6 +20,8 @@ library(tidyverse)
 
 ## Read in data
 
+### Menu data
+
 ```{r}
 # Tax-glommed
 ps.protein <- 
@@ -47,6 +49,18 @@ ps.menu <-
 ps.menu
 ```
 
+### Common names
+
+```{r}
+name.sync <- 
+     here('data',
+          'processed',
+          'Naming discrepancies.xlsx') %>% 
+     readxl::read_excel()
+
+name.sync
+```
+
 ## Pre-process
 
 ### List samples
@@ -68,6 +82,10 @@ row <-
      mutate(delta1 = paste(subj, date-1, sep = '_'),
             delta2 = paste(subj, date-2, sep = '_'))
 
+row.names(row) <- paste(row$subj, 
+                        row$date,
+                        sep = '_')
+
 row
 ```
 ```{r}
@@ -76,44 +94,82 @@ samdf.protein <-
      rownames_to_column(var = 'row')
 ```
 
+### Rename taxa
+
+```{r}
+# Menu
+# Needs name column added
+tax_table(ps.menu) <- 
+     MButils::lowest_level(data.frame(ps.menu@tax_table@.Data)) %>% 
+     as.matrix()
+
+tax_table(ps.menu) <- 
+     name.sync %>% 
+     # common_names column (vs "common_name") contains the disaggregated
+     # common names, even within metabarcoding groups
+     select(common_names, menu_taxa) %>% 
+     right_join(data.frame(ps.menu@tax_table@.Data), 
+               by = c('menu_taxa' = 'name')) %>% 
+     distinct() %>% 
+     select(superkingdom:phylum, common_names, menu_taxa) %>%
+     column_to_rownames(var = 'menu_taxa') %>% 
+     as.matrix()
+
+ps.menu <- tax_glom(ps.menu, taxrank = 'common_names')
+taxa_names(ps.menu) <- tax_table(ps.menu)[, 'common_names']
+```
+
 ### 1-2 days' prior
+
+Maybe 1 day prior to sampling would be better, so foods are not shared between rows? i.e., if samples are from consecutive days, will happen that comparison menu for day 1 [*day 0* and day -1] will overlap with menu for day 2 [day 1 and *day 0*], making them seem more similar.  Here, we care more about similarity between individual menu days.
+
+```{r}
+# 1 day prior
+ps.menu.subset <- 
+     ps.menu %>% 
+     prune_samples(samdf.protein$delta1, .) %>% 
+     prune_taxa(taxa_sums(.) > 0, .)
+
+ps.menu.subset
+```
 
 ```{r}
 # Can't use merge_samples on phyloseq here because some samples make up >1 merge
 
 # Do manually on ASV table
-asvtab.menu <- otu_table(ps.menu)@.Data
-asvtab.menu.12 <- data.frame()
-
-for (sample in seq(dim(samdf.protein)[1])){
-     # Pull menu day -1
-     one.before <- asvtab.menu[samdf.protein$delta1[sample], ]
-     # Pull menu day -2
-     two.before <- asvtab.menu[samdf.protein$delta2[sample], ]
-     # Merge and place in new, aggregated OTU table
-     asvtab.menu.12 <- rbind(asvtab.menu.12,
-                             one.before + two.before)
-     # Update food names (only has to be done once)
-     if (sample == 1){names(asvtab.menu.12) <- names(one.before + two.before)}
-     # Update sample name
-     row.names(asvtab.menu.12)[sample] <- samdf.protein$row[sample]
-}
-
-# Now rebuild a subsetted phyloseq object
-ps.menu.12 <- phyloseq(otu_table(asvtab.menu.12, taxa_are_rows = FALSE),
-                       sample_data(ps.protein), # Now this matches
-                       tax_table(ps.menu)) # Menu-specific taxonomy
-
-# Remove any taxa that aren't present any longer
-ps.menu.12 <- prune_taxa(taxa_sums(ps.menu.12) > 0, ps.menu.12)
-ps.menu.12
+# asvtab.menu <- otu_table(ps.menu)@.Data
+# asvtab.menu.12 <- data.frame()
+# 
+# for (sample in seq(dim(samdf.protein)[1])){
+#      # Pull menu day -1
+#      one.before <- asvtab.menu[samdf.protein$delta1[sample], ]
+#      # Pull menu day -2
+#      two.before <- asvtab.menu[samdf.protein$delta2[sample], ]
+#      # Merge and place in new, aggregated OTU table
+#      asvtab.menu.12 <- rbind(asvtab.menu.12,
+#                              one.before + two.before)
+#      # Update food names (only has to be done once)
+#      if (sample == 1){names(asvtab.menu.12) <- names(one.before + two.before)}
+#      # Update sample name
+#      row.names(asvtab.menu.12)[sample] <- samdf.protein$row[sample]
+# }
+# 
+# # Now rebuild a subsetted phyloseq object
+# ps.menu.subset <- phyloseq(otu_table(asvtab.menu.12, taxa_are_rows = FALSE),
+#                        sample_data(ps.protein), # Now this matches
+#                        tax_table(ps.menu)) # Menu-specific taxonomy
+# 
+# # Remove any taxa that aren't present any longer
+# ps.menu.subset <- prune_taxa(taxa_sums(ps.menu.subset) > 0, ps.menu.subset)
+# ps.menu.subset
 ```
 
 ## Visualize
 
 First pass
+
 ```{r}
-melt <- psmelt(ps.menu.12)
+melt <- psmelt(ps.menu.subset)
 ```
 
 ```{r}
@@ -129,7 +185,7 @@ ggplot(melt, aes(x = OTU, y = Sample, fill = Abundance>0)) +
 ### Samples
 ```{r}
 # Run clustering
-menu.dat <- as.matrix(ps.menu.12@otu_table@.Data)
+menu.dat <- as.matrix(ps.menu.subset@otu_table@.Data)
 # Make data binary:
 menu.dat[menu.dat > 0] <- 1
 menu.dendro <- 
@@ -159,7 +215,7 @@ melt <-
 
 ```{r}
 # Run clustering
-menu.dat <- as.matrix(ps.menu.12@otu_table@.Data)
+menu.dat <- as.matrix(ps.menu.subset@otu_table@.Data)
 # Make data binary:
 menu.dat[menu.dat > 0] <- 1
 menu.dendro <- 
@@ -170,7 +226,7 @@ menu.dendro <-
      as.dendrogram()
 
 # Create dendro
-dendro.plot.x <- ggdendrogram(data = menu.dendro, rotate = FALSE)
+dendro.plot.x <- ggdendrogram(data = menu.dendro, rotate = FALSE) 
 
 # Preview the plot
 print(dendro.plot.x)
@@ -183,7 +239,7 @@ menu.order
 melt <- 
      mutate(melt,
             OTU = factor(OTU,
-                         levels = colnames(menu.dat[, menu.order])))
+                         levels = colnames(menu.dat[, rev(menu.order)])))
 ```
 
 ## Joint plot
@@ -191,22 +247,30 @@ melt <-
 ```{r}
 # Now, update original heatmap with these new levels
 heatmap <- 
-     ggplot(melt, aes(x = OTU, y = Sample, fill = Abundance>0)) +
+     ggplot(melt, aes(x = Sample, y = OTU, fill = Abundance>0)) +
      geom_tile() +
      scale_fill_manual(values = c('white', '#7e756d')) +
      coord_equal() +
-     theme(axis.text.y = element_blank(),
-           axis.ticks.y = element_blank(),
-           axis.text.x = element_text(angle = 20, 
-                                      hjust = 1),
+     theme(axis.text.x = element_blank(),
+           axis.ticks.x = element_blank(),
            legend.position = 'none') 
 
 heatmap
 ```
 
 ```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'manuscript', 
+            '1',
+            paste0(plotID, '_Menu visualization.pdf')),
+       height = 8)
+```
+
+```{r}
 plot_grid(dendro.plot.y,
           heatmap,
-          aligh = 'v')
+          aligh = 'h')
 ```
 
