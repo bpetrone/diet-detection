@@ -371,9 +371,9 @@ proteins.pup %>%
 Using a combination of OS (embedded in Description column) and prefix assigned in database.
 
 ```{r }
-head(proteins.df$Description)
+head(proteins.pup$Description)
 cat('\n')
-head(proteins.df$Accession)
+head(proteins.pup$Accession)
 ```
 
 ```{r }
@@ -386,36 +386,44 @@ helper <- function(str, ex){
 }
 
 # Extract prefix before '_'
-proteins.df <- mutate(proteins.df, prefix = helper(Accession, '(\\w+)_.*'))
+proteins.pup <- mutate(proteins.pup, prefix = helper(Accession, '(\\w+)_.*'))
+proteins.up <- mutate(proteins.up, prefix = helper(Accession, '(\\w+)_.*'))
 ```
 
 ```{r }
 # How many missing entries?
-sum(is.na(proteins.df$prefix))
+sum(is.na(proteins.pup$prefix))
+sum(is.na(proteins.up$prefix))
 ```
 
 ```{r }
 # Extract OS from Description column
-proteins.df <- 
-     mutate(proteins.df, 
+proteins.pup <- mutate(proteins.pup, 
+            OS = helper(Description, 'OS=(.*)\\sOX='))
+
+proteins.up <- mutate(proteins.up, 
             OS = helper(Description, 'OS=(.*)\\sOX='))
 ```
 
 ```{r }
-filter(proteins.df,
+filter(proteins.up,
        is.na(prefix)) %>% 
      pull(OS) %>% 
      unique() %>% 
      sort()
 ```
 
-In some cases, the OS is more specific than it should be to match back to database. There is one prefix typo: Piper nigrum should be Pni, not Pne
+This covers all the >=1 protein unique peptide cases as well. In some cases, the OS is more specific than it should be to match back to database. There is one prefix typo: Piper nigrum should be Pni, not Pne
 ```{r }
 # Manual correction to match database 
 
-proteins.df$OS[proteins.df$OS == 'Vigna radiata var. radiata'] <- 'Vigna radiata'
-proteins.df$OS[proteins.df$OS == 'Mentha piperita'] <- 'Mentha x piperita'
-proteins.df$prefix[proteins.df$OS == 'Piper nigrum'] <- 'Pni'
+proteins.pup$OS[proteins.pup$OS == 'Vigna radiata var. radiata'] <- 'Vigna radiata'
+proteins.pup$OS[proteins.pup$OS == 'Mentha piperita'] <- 'Mentha x piperita'
+proteins.pup$prefix[proteins.pup$OS == 'Piper nigrum'] <- 'Pni'
+
+proteins.up$OS[proteins.up$OS == 'Vigna radiata var. radiata'] <- 'Vigna radiata'
+proteins.up$OS[proteins.up$OS == 'Mentha piperita'] <- 'Mentha x piperita'
+proteins.up$prefix[proteins.up$OS == 'Piper nigrum'] <- 'Pni'
 ```
 
 On first pass through, dimensions after join didn't check out-- turns out there are some prefixes with duplicated entries. They are:
@@ -426,12 +434,12 @@ On first pass through, dimensions after join didn't check out-- turns out there 
 - *Sso*: Salsola soda (saltwort) and Smallanthus sonchifolius (yacon)
 - *Vvi*: Vaccinium vitis-idaea (lingonberry) and Vitis vinifera (grape)
 
-```{r }
+```{r}
 # Label with prefix unless unavailable; otherwise label by OS
 
 # Join by prefix
-join.prefix <- 
-     proteins.df %>% 
+join.prefix.pup <- 
+     proteins.pup %>% 
      # Remove rows without a prefix label
      filter(!is.na(prefix)) %>% 
      # Remove any duplicated prefixes based on initial results
@@ -442,7 +450,7 @@ join.prefix <-
                by = c('prefix' = 'PreFix Used'))
 
 # How many should there be?
-proteins.df %>% 
+proteins.pup %>% 
      # Get missed rows in last join
      filter(!is.na(prefix)) %>% 
      # Remove any duplicated prefixes based on initial results
@@ -450,13 +458,40 @@ proteins.df %>%
      dim()
 
 # How many are there?
-dim(join.prefix)
+dim(join.prefix.pup)
+```
+
+```{r}
+# Label with prefix unless unavailable; otherwise label by OS
+
+# Join by prefix
+join.prefix.up <- 
+     proteins.up %>% 
+     # Remove rows without a prefix label
+     filter(!is.na(prefix)) %>% 
+     # Remove any duplicated prefixes based on initial results
+     filter(!(prefix %in% c('Pgr', 'Shi', 'Scer', 'Sso', 'Vvi'))) %>%
+     left_join(select(db, 
+                      scientific_name:category, 
+                      `PreFix Used`), 
+               by = c('prefix' = 'PreFix Used'))
+
+# How many should there be?
+proteins.up %>% 
+     # Get missed rows in last join
+     filter(!is.na(prefix)) %>% 
+     # Remove any duplicated prefixes based on initial results
+     filter(!(prefix %in% c('Pgr', 'Shi', 'Scer', 'Sso', 'Vvi'))) %>% 
+     dim()
+
+# How many are there?
+dim(join.prefix.up)
 ```
 
 ```{r }
 # Now, find those entries not joined by prefix, and join by OS instead
-join.os <- 
-     proteins.df %>% 
+join.os.pup <- 
+     proteins.pup %>% 
      # Get missed rows in last join
      filter(is.na(prefix) | prefix %in% c('Pgr',
                                           'Shi',
@@ -468,8 +503,27 @@ join.os <-
      rename(scientific_name = OS)
 
 # Check dimensions are appropriate
-cat('Combined dimensions of OS and prefix entries:', dim(join.os)[1] + dim(join.prefix)[1], '\n')
-cat('Dimensions of input:', dim(proteins.df)[1])
+cat('Combined dimensions of OS and prefix entries:', dim(join.os.pup)[1] + dim(join.prefix.pup)[1], '\n')
+cat('Dimensions of input:', dim(proteins.pup)[1])
+```
+
+```{r}
+# Now, find those entries not joined by prefix, and join by OS instead
+join.os.up <- 
+     proteins.up %>% 
+     # Get missed rows in last join
+     filter(is.na(prefix) | prefix %in% c('Pgr',
+                                          'Shi',
+                                          'Scer', 
+                                          'Sso', 
+                                          'Vvi')) %>% 
+     left_join(select(db, scientific_name:category),
+               by = c('OS' = 'scientific_name')) %>% 
+     rename(scientific_name = OS)
+
+# Check dimensions are appropriate
+cat('Combined dimensions of OS and prefix entries:', dim(join.os.up)[1] + dim(join.prefix.up)[1], '\n')
+cat('Dimensions of input:', dim(proteins.up)[1])
 ```
 
 Note that these dimensions may work even with some common name and category entries being empty if the food wasn't in the reference (think this is happening most commonly for fish queried at the family level, and returned at the species level).  
@@ -478,34 +532,62 @@ Note that these dimensions may work even with some common name and category entr
 # Bind together OS- and prefix-based joins to return to the full dataset
 
 # Drop prefix columns 
-join.prefix <- select(join.prefix, -c(prefix, OS))
-join.os <- select(join.os, -prefix)
+join.prefix.pup <- select(join.prefix.pup, -c(prefix, OS))
+join.os.pup <- select(join.os.pup, -prefix)
 
 # Check all columns the same
-all(names(join.prefix) == names(join.os))
+all(names(join.prefix.pup) == names(join.os.pup))
 
 # Join
-proteins.df <- bind_rows(join.os, 
-                         join.prefix)
-dim(proteins.df) # How many entries?
-any(is.na(proteins.df$scientific_name)) # Any missing entries?
+proteins.pup <- bind_rows(join.os.pup, 
+                         join.prefix.pup)
+dim(proteins.pup) # How many entries?
+any(is.na(proteins.pup$scientific_name)) # Any missing entries?
+```
+
+```{r}
+# Bind together OS- and prefix-based joins to return to the full dataset
+
+# Drop prefix columns 
+join.prefix.up <- select(join.prefix.up, -c(prefix, OS))
+join.os.up <- select(join.os.up, -prefix)
+
+# Check all columns the same
+all(names(join.prefix.up) == names(join.os.up))
+
+# Join
+proteins.up <- bind_rows(join.os.up, 
+                         join.prefix.up)
+dim(proteins.up) # How many entries?
+any(is.na(proteins.up$scientific_name)) # Any missing entries?
 ```
 
 ```{r}
 # Make final corrections from naming discrepancies spreadsheet to synchronize names
 
-proteins.df$scientific_name[proteins.df$scientific_name == 'Anguilliformes'] <- 'Anguilla japonica'
+proteins.pup$scientific_name[proteins.pup$scientific_name == 'Anguilliformes'] <- 'Anguilla japonica'
 
-proteins.df$scientific_name[proteins.df$scientific_name == 'Beta vulgaris'] <- 'Beta vulgaris subsp. vulgaris'
+proteins.pup$scientific_name[proteins.pup$scientific_name == 'Beta vulgaris'] <- 'Beta vulgaris subsp. vulgaris'
 
-proteins.df$scientific_name[proteins.df$scientific_name == 'Coffea canephora'] <- 'Coffea'
+proteins.pup$scientific_name[proteins.pup$scientific_name == 'Coffea canephora'] <- 'Coffea'
+
+proteins.up$scientific_name[proteins.up$scientific_name == 'Anguilliformes'] <- 'Anguilla japonica'
+
+proteins.up$scientific_name[proteins.up$scientific_name == 'Beta vulgaris'] <- 'Beta vulgaris subsp. vulgaris'
+
+proteins.up$scientific_name[proteins.up$scientific_name == 'Coffea canephora'] <- 'Coffea'
 ```
 
 ### Save
 ```{r}
 # Save processed data (use for biomarkers, before summarizing PSMs within each organism)
 
-saveRDS(proteins.df,
+saveRDS(proteins.pup,
+        here('data',
+             'processed',
+             '5FDR_1PUP_both datasets.rds'))
+
+saveRDS(proteins.up,
         here('data',
              'processed',
              '5FDR_1UP_both datasets.rds'))
@@ -516,8 +598,9 @@ saveRDS(proteins.df,
 ## Sample data
 
 ```{r }
+# The same for both filtering steps (1UP and 1PUP)
 samdf <-
-     proteins.df %>%
+     proteins.pup %>%
      mutate(sample = paste(subj, date, sep = '_')) %>%
      select(subj, date, sample) %>%
      distinct() %>% # Remove duplicated rows
@@ -526,43 +609,47 @@ samdf <-
 
 ## OTU table
 
-```{r }
-# Species
-psm.counts.wide <-
-     proteins.df %>%
-     mutate(sample = paste(subj, 
-                           date, 
+```{r}
+# Proteins
+psm.counts.pup <-
+     proteins.pup %>%
+     mutate(sample = paste(subj,
+                           date,
                            sep = '_')) %>% # Create unique label
-     # Need to group & summarize, because may be multiple peptides/food
-     group_by(sample, scientific_name) %>%
+     group_by(sample, Accession) %>%
      summarize(abundance = sum(`# PSMs`)) %>%
-     pivot_wider(names_from = scientific_name,
+     pivot_wider(names_from = Accession,
                  values_from = abundance, # Total # PSMs
                  values_fill = 0) %>% # If no entry, log as 0
      column_to_rownames(var = 'sample')
 ```
 
 ```{r}
-# Proteins
-# psm.counts.wide <-
-#      proteins.df %>%
-#      mutate(sample = paste(subj,
-#                            date,
-#                            sep = '_')) %>% # Create unique label
-#      group_by(sample, Accession) %>%
-#      summarize(abundance = sum(`# PSMs`)) %>%
-#      pivot_wider(names_from = Accession,
-#                  values_from = abundance, # Total # PSMs
-#                  values_fill = 0) %>% # If no entry, log as 0
-#      column_to_rownames(var = 'sample')
+psm.counts.up <-
+     proteins.up %>%
+     mutate(sample = paste(subj,
+                           date,
+                           sep = '_')) %>% # Create unique label
+     group_by(sample, Accession) %>%
+     summarize(abundance = sum(`# PSMs`)) %>%
+     pivot_wider(names_from = Accession,
+                 values_from = abundance, # Total # PSMs
+                 values_fill = 0) %>% # If no entry, log as 0
+     column_to_rownames(var = 'sample')
 ```
 
 ## Taxonomy table
 
 Regardless of whether I go on to use taxids as names, I do need to query to build the taxonomy table for the phyloseq object.
-```{r }
+
+```{r}
+# Building table for 1UP will include all 1PUP taxa
+all(proteins.pup$scientific_name %in% proteins.up$scientific_name)
+```
+
+```{r}
 binomial.only <-
-     proteins.df %>%
+     proteins.up %>%
      select(scientific_name) %>%
      distinct()
 
@@ -648,32 +735,51 @@ taxtab.protein <-
 
 ```{r}
 # If preserving protein ID: join to accession
-# taxtab.protein <-
-#      proteins.df %>%
-#      select(Accession, name = scientific_name) %>%
-#      distinct() %>%
-#      left_join(rownames_to_column(taxtab.protein, var = 'name')) %>%
-#      select(-name) %>%
-#      column_to_rownames(var = 'Accession')
+all(proteins.pup$Accession %in% proteins.up$Accession)
+
+taxtab.protein <-
+     proteins.up %>%
+     select(Accession, name = scientific_name) %>%
+     distinct() %>%
+     left_join(rownames_to_column(taxtab.protein, var = 'name')) %>%
+     select(-name) %>%
+     column_to_rownames(var = 'Accession')
 ```
 
 ```{r }
 # Check everything matches
-setdiff(names(psm.counts.wide), row.names(taxtab.protein))
-setdiff(row.names(taxtab.protein), names(psm.counts.wide))
+all(colnames(psm.counts.pup) %in% row.names(taxtab.protein))
+all(colnames(psm.counts.up) %in% row.names(taxtab.protein))
 ```
 
 ```{r }
 # Make phyloseq object
-ps.protein <- phyloseq(otu_table(psm.counts.wide, taxa_are_rows = FALSE),
+ps.protein.pup <- phyloseq(otu_table(psm.counts.pup, 
+                                     taxa_are_rows = FALSE),
                        sample_data(samdf),
                        tax_table(as.matrix(taxtab.protein)))
 
-ps.protein
+ps.protein.pup
 
-saveRDS(ps.protein,
+saveRDS(ps.protein.pup,
         here('data',
              'processed',
              'phyloseq',
-             '20220607_ps_mp.rds'))
+             '1PUP_ps_mp.rds'))
 ```
+
+```{r}
+ps.protein.up <- phyloseq(otu_table(psm.counts.up, 
+                                     taxa_are_rows = FALSE),
+                       sample_data(samdf),
+                       tax_table(as.matrix(taxtab.protein)))
+
+ps.protein.up
+
+saveRDS(ps.protein.up,
+        here('data',
+             'processed',
+             'phyloseq',
+             '1UP_ps_mp.rds'))
+```
+
