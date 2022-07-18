@@ -213,59 +213,24 @@ healthydonor <-
 ### Join datasets
 
 ```{r}
-weightloss$study <- 'Weight Loss'
-healthydonor$study <- 'Healthy Donor'
+weightloss$study <- 'Intervention'
+healthydonor$study <- 'Habitual diet'
 
 proteins.df <- bind_rows(weightloss,
                          healthydonor)
+
+rm(weightloss,
+   healthydonor)
 ```
 
-### Filter to 1UP 
+### Filter
 
-This is only relevant to 908, which isn't pre-filtered to this threshold. 
-
-```{r}
-str(proteins.df)
-```
-
-```{r}
-dim(proteins.df)
-```
-
-```{r}
-# Only proteins with >=1 unique peptide
-proteins.df <- 
-     filter(proteins.df,
-            `# Unique Peptides` > 0)
-
-dim(proteins.df) # Removes ~30K proteins
-```
-
-### Remove non-dietary proteins
-
-#### Host, microbe matches
-
-Some of these slipped past original filter in the Weight Loss dataset if they had an identification made to multiple species (e.g. human *and* pig).  On inspection, these seem to be things we'd want to remove, like histones and ubiquitin.  They are not yet filtered from the 908 data.
-
-```{r}
-proteins.df %>% 
-     filter(grepl(Accession,
-                  pattern = 'Human_|Microbiota_')) %>% 
-     pull(subj) %>% 
-     unique()
-```
-
-```{r}
-proteins.df %>% 
-     filter(grepl(Accession,
-                  pattern = 'Human_|Microbiota_') & subj == 'PC74') %>% 
-     pull(Description) %>% 
-     head(2)
-```
+#### Remove host, microbe matches
 
 ```{r}
 # Filter to only dietary proteins
 # Do this by accession: Dietary proteins have 3+-digit code, others are "Human_" or "Microbiota_"
+dim(proteins.df)
 proteins.df <- 
      filter(proteins.df, 
             !grepl(Accession,
@@ -312,17 +277,47 @@ proteins.df %>%
 ```{r}
 # Remove:
 dim(proteins.df)
-
-proteins.df <- 
-     proteins.df %>% 
-     # Need !inhibitor, because otherwise this pulls plants that have alpha-
-     # amylase inhibitors
-     filter(!(grepl(pattern = 'Alpha-amylase', Description) & 
-                 !grepl(pattern = 'inhibitor', Description))) %>% 
-     filter(!grepl(pattern = '[Tt]rypsin', Description)) %>% 
-     filter(!grepl(pattern = 'intestinal', Description))
+# 
+# proteins.df <- 
+#      proteins.df %>% 
+#      # Need !inhibitor, because otherwise this pulls plants that have alpha-
+#      # amylase inhibitors
+#      filter(!(grepl(pattern = 'Alpha-amylase', Description) & 
+#                  !grepl(pattern = 'inhibitor', Description))) %>% 
+#      filter(!grepl(pattern = '[Tt]rypsin', Description)) %>% 
+#      filter(!grepl(pattern = 'intestinal', Description))
 
 dim(proteins.df)
+```
+
+#### 1UP
+
+```{r}
+# Only proteins with >=1 unique peptide
+dim(proteins.df)
+proteins.up <- 
+     filter(proteins.df,
+            `# Unique Peptides` > 0)
+
+dim(proteins.up)
+```
+
+#### 1PUP
+
+```{r}
+# Only proteins with >=1 protein unique peptide
+dim(proteins.df)
+proteins.pup <- 
+     filter(proteins.df,
+            `# Protein Unique Peptides` > 0)
+
+dim(proteins.pup)
+```
+
+```{r}
+# Quick QC:
+table(proteins.up$`Found in Sample`)
+table(proteins.pup$`Found in Sample`)
 ```
 
 ### Master proteins
@@ -332,71 +327,43 @@ Unique peptides: unique to *protein group*
 Protein unique peptides: unique to *protein*
 
 ```{r}
-table(proteins.df$Master)
+table(proteins.up$Master)
+table(proteins.pup$Master)
 ```
 
-```{r}
-table(proteins.df$Master) %>% 
-     data.frame() %>% 
-     mutate(analysis = 'UP') %>%
-     ggplot(aes(x = analysis, y = Freq, fill = Var1)) +
-     geom_bar(position = 'stack', stat = 'identity') +
-     scale_fill_manual(values =c('darkgreen', 'palegreen3', 'gray60')) +
-     labs(y = 'Count') +
-     theme_bw() +
-     theme(axis.title.x = element_blank(),
-           legend.title = element_blank())
-```
-```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-ggsave(here('results', 
-            'QC',
-            paste0(plotID, '_Master protein breakdown, V3 analysis.pdf')),
-       height = 4, width = 4)
-```
+Filter to only those proteins that are master proteins of their respective group:
 
 ```{r}
-proteins.df %>% 
-     filter(Master == 'Master Protein' & `# Protein Unique Peptides` == 0) %>% 
-     dim()
-```
-
-A substantial portion:
-
-```{r}
-5364/15058
-```
-
-Revisit this once I've assigned scientific name, to see what species they map to. But for now, filter to only those proteins that are master proteins of their respective group:
-
-```{r}
-proteins.df <- 
-     filter(proteins.df, 
+proteins.pup <- 
+     filter(proteins.pup, 
             Master == 'Master Protein')
 
-dim(proteins.df)
+proteins.up <- 
+     filter(proteins.up, 
+            Master == 'Master Protein')
 ```
 
 ### Multiple labels
 
 ```{r}
-proteins.df %>% 
+proteins.up %>% 
      filter(grepl('\n', Accession)) %>% 
      select(Accession, Description, `# PSMs`)
 ```
 Note that these aren't correctly handled by my code below, which just pulls the first accession number.
 
-I think the best thing to do here would be to group them and re-label with the last common ancestor.  However, the total number of PSMs here is 524, which is ~0.8% of the overall dataset, so-- skipping this for now.  Can return to and refine. 
+I think the best thing to do here would be to group them and re-label with the last common ancestor.  However, the total number of PSMs here is such a small proportion of the overall dataset, so-- skipping this for now.  Can return to and refine. 
 
 ```{r}
-proteins.df %>% 
+proteins.up %>% 
      filter(grepl('\n', Accession)) %>% 
      pull(`# PSMs`) %>% 
-     sum()
-```
+     sum()/sum(proteins.up$`# PSMs`)
 
-```{r}
-804/sum(proteins.df$`# PSMs`)
+proteins.pup %>% 
+     filter(grepl('\n', Accession)) %>% 
+     pull(`# PSMs`) %>% 
+     sum()/sum(proteins.pup$`# PSMs`)
 ```
 
 ### Relabel with food species
