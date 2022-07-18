@@ -7,6 +7,7 @@ This notebook makes a phyloseq object from the output of the metaproteomic analy
      - 1: First version of database
      - 2: Second version of database, 1 PUP filter, all proteins
      - 3: Second version of database, 1 UP filter, dietary proteins
+     - raw: Directly exported from Proteome Explorer
 
 # R setup
 
@@ -39,14 +40,12 @@ head(db)
 
 ### Weight Loss
 
-This is pre-filtered by Ali to only proteins with >=1 unique peptide.
-
 ```{r }
 # List files
 fs <-
      here('data', 
           'raw',
-          '3_DB2.1_5FDR_1UniquePeptide_Weight Loss') %>%
+          'raw_All5FDRProteins_Excel_Files_DB2.1Search_Including Outlier') %>%
      list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
@@ -69,16 +68,19 @@ weightloss <- bind_rows(dfs, .id = 'id')
 rm(fs, dfs)
 ```
 
-### Healthy Donor
+```{r}
+weightloss <- filter(weightloss,
+                     id != '15_ML48_17Oct19_AB006_DB2.1_5FDR.xlsx')
+```
 
-This is *not* pre-filtered by Ali to only proteins with >=1 unique peptide.  Will need to do this filtering here.
+### Healthy Donor
 
 ```{r }
 # List files
 fs <-
      here('data', 
           'raw',
-          '2_All5FDRProteins_Excel_Files_DB2.1Search_Healthy donor') %>%
+          'raw_All5FDRProteins_Excel_Files_DB2.1Search_Healthy donor') %>%
      list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
@@ -95,14 +97,8 @@ dfs <-
                  }
             )
 
-# Rename by SUBJ_DATE
-names(dfs) <- 
-     basename(fs) %>% 
-     gsub(pattern = '^HH\\d_SubjectID', replacement = '') %>% 
-     gsub(pattern = '_(Monday|Tuesday|Wednesday|Thursday|Friday).*$', 
-          replacement = '')
-
 # Bind together
+names(dfs) <- basename(fs)
 healthydonor <- bind_rows(dfs, .id = 'id')
 rm(fs, dfs)
 ```
