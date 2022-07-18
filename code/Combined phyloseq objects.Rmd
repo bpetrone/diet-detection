@@ -25,7 +25,7 @@ menu.dfc <-
      here('data', 
           'processed', 
           'phyloseq',
-          '20220708_ps_menu_DFC.rds') %>% 
+          'ps_menu_DFC.rds') %>% 
      readRDS()
 
 menu.dfc
@@ -36,7 +36,7 @@ menu.908 <-
      here('data', 
           'processed', 
           'phyloseq',
-          '20211115_ps_menu_908.rds') %>% 
+          'ps_menu_908.rds') %>% 
      readRDS()
 
 menu.908
@@ -53,7 +53,7 @@ mb.dfc.animal <-
      here('data',
           'processed',
           'phyloseq',
-          '20220520_ps_12SV5_DFC.rds') %>% 
+          'ps_12SV5_DFC.rds') %>% 
      readRDS()
 
 # trnL
@@ -61,7 +61,7 @@ mb.dfc.plant <-
      here('data',
           'processed',
           'phyloseq',
-          '20220520_ps_trnL_DFC.rds') %>% 
+          'ps_trnL_DFC.rds') %>% 
      readRDS()
      
 mb.dfc.plant
@@ -75,7 +75,7 @@ mb.908.animal <-
      here('data',
           'processed',
           'phyloseq',
-          '20220520_ps_12SV5_908.rds') %>% 
+          'ps_12SV5_908.rds') %>% 
      readRDS()
 
 # trnL
@@ -83,7 +83,7 @@ mb.908.plant <-
      here('data',
           'processed',
           'phyloseq',
-          '20220520_ps_trnL_908.rds') %>% 
+          'ps_trnL_908.rds') %>% 
      readRDS()
 
 mb.908.animal
@@ -94,15 +94,26 @@ mb.908.plant
 
 ```{r}
 # 1UP analysis, master proteins only, both datasets
-mp <- 
+mp.up <- 
      here('data',
           'processed',
           'phyloseq',
-          # '20220607_ps_mp.rds') %>% # Grouped by species
-          '20220607_ps_mp (all proteins).rds') %>%  # Unique accessions within species preserved
+          'ps_mp_1UP.rds') %>%  # Unique accessions within species preserved
      readRDS()
 
-mp
+mp.up
+```
+
+```{r}
+# 1PUP analysis, master proteins only, both datasets
+mp.pup <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'ps_mp_1PUP.rds') %>%  # Unique accessions within species preserved
+     readRDS()
+
+mp.pup
 ```
 
 ## Metadata
