@@ -48,33 +48,42 @@ ps.mb.animal
 
 ## Metaproteomics
 
-Two versions of this dataset: one with an entry for each protein accession, and another for each species.
-
-However, can go from one to the other, right?  Can always group accession information by taxon and sum up PSMs. 
+Two versions of this dataset: one filtered to proteins with >1 PUP, and another to those with >1 UP.
 
 ```{r}
-ps.protein <- 
+ps.protein.pup <- 
      here('data',
           'processed',
           'phyloseq',
           'combined',
-          'ps_mp (all proteins).rds') %>%
+          'ps_mp_1PUP.rds') %>%
      readRDS()
 
-ps.protein
+ps.protein.pup
+```
+
+```{r}
+ps.protein.up <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'ps_mp_1UP.rds') %>%
+     readRDS()
+
+ps.protein.up
 ```
 
 #### Detailed data
 
 ```{r}
 # Protein detail
-proteins.df <- 
+# 1UP
+proteins.up <- 
      here('data',
           'processed',
           '5FDR_1UP_both datasets.rds') %>% 
      readRDS()
-
-proteins.df
 ```
 
 ```{r}
@@ -246,7 +255,7 @@ taxa_names(ps.mb.animal) <- tax_table(ps.mb.animal)[, 'name']
 ```{r echo = FALSE}
 # Pull sample data for stool samples
 samdf.protein <- 
-     sample_data(ps.protein) %>% 
+     sample_data(ps.protein.up) %>% 
      as('data.frame') %>% 
      rownames_to_column(var = 'row')
 
@@ -258,8 +267,9 @@ for (delta in 1:2){
                                                 sep = '_'))
 }
 
-# Replace in phyloseq object
-sample_data(ps.protein) <- column_to_rownames(samdf.protein, var = 'row')
+# Replace in phyloseq objects
+sample_data(ps.protein.pup) <- column_to_rownames(samdf.protein, var = 'row')
+sample_data(ps.protein.up) <- column_to_rownames(samdf.protein, var = 'row')
 ```
 
 ### Protein categories
@@ -269,7 +279,7 @@ I manually labeled entries with >=5 PSMs. Categories are:
 - tissue
 - egg
 - dairy
-- none (== 'other')
+- other (NA)
 
 ```{r}
 proteins.animal <-
@@ -287,11 +297,6 @@ I manually labeled these based on searches of protein names.  How does the group
 proteins.animal %>% 
      group_by(category, certainty) %>% 
      count()
-```
-
-```{r}
-# Make "other" label "certain"
-proteins.animal$certainty[proteins.animal$category == 'other'] <- 1
 ```
 
 #### Automated labels (<-5 PSMs)
@@ -373,19 +378,23 @@ This is 9.4% of peptides, and 39% of PSMs.
 
 #### Filter
 
-PSM counts are named with accession-- need to connect this to protein name, and then subset. 
+PSM counts are named with accession-- need to connect this to protein name, and then subset. Can safely do this using the 1UP object, which contains all the accessions present in the 1PUP object:
 
 ```{r}
-head(taxa_names(ps.protein))
+all(taxa_names(ps.protein.pup) %in% taxa_names(ps.protein.up))
+```
+
+```{r}
+head(taxa_names(ps.protein.up))
 ```
 
 Join to taxonomy, because I want to preserve all plants while subset animals
 ```{r}
-taxtab.protein <- data.frame(ps.protein@tax_table@.Data)
-proteins.df <- 
+taxtab.protein <- data.frame(ps.protein.up@tax_table@.Data)
+proteins.up <- 
      taxtab.protein %>% 
      rownames_to_column(var = 'Accession') %>% 
-     left_join(proteins.df, .) 
+     left_join(proteins.up, .) 
 ```
 
 ```{r}
@@ -398,43 +407,67 @@ head(meat.dairy.egg)
 ```
 
 ```{r}
-cat('Starting entries:', nrow(proteins.df), '\n')
+cat('Starting entries:', nrow(proteins.up), '\n')
 
-proteins.df <- 
-     proteins.df %>% 
+proteins.up <- 
+     proteins.up %>% 
      mutate(protein = gsub(Description,
                            pattern = ' OS=.*$',
                            replacement = '')) %>% 
      filter(protein %in% meat.dairy.egg | kingdom != 'Metazoa')
 
-cat('Filtered entries:', nrow(proteins.df))
+cat('Filtered entries:', nrow(proteins.up))
 ```
 
 Now, can subset phyloseq object based on accessions.
 ```{r}
-ps.protein
+ps.protein.up
 
-ps.protein <- prune_taxa(proteins.df$Accession, ps.protein)
-ps.protein
+ps.protein.up <- prune_taxa(proteins.up$Accession, ps.protein.up)
+ps.protein.up
+```
+
+```{r}
+ps.protein.pup
+
+ps.protein.pup <- prune_taxa(proteins.up$Accession, ps.protein.pup)
+ps.protein.pup
 ```
 
 ### Group by taxon
 
 ```{r}
 # Relabel with lowest taxonomic level
-tax_table(ps.protein) <- 
-     ps.protein@tax_table@.Data %>% 
+tax_table(ps.protein.up) <- 
+     ps.protein.up@tax_table@.Data %>% 
      data.frame() %>% 
      MButils::lowest_level() %>% 
      as.matrix()
 
-ps.protein.taxon <- tax_glom(ps.protein,
-                                    taxrank = 'name')
+ps.protein.up.taxon <- tax_glom(ps.protein.up,
+                                taxrank = 'name')
 
-taxa_names(ps.protein.taxon) <- 
-     ps.protein.taxon@tax_table@.Data[, 'name']
+taxa_names(ps.protein.up.taxon) <- 
+     ps.protein.up.taxon@tax_table@.Data[, 'name']
 
-ps.protein.taxon
+ps.protein.up.taxon
+```
+
+```{r}
+# Relabel with lowest taxonomic level
+tax_table(ps.protein.pup) <- 
+     ps.protein.pup@tax_table@.Data %>% 
+     data.frame() %>% 
+     MButils::lowest_level() %>% 
+     as.matrix()
+
+ps.protein.pup.taxon <- tax_glom(ps.protein.pup,
+                                taxrank = 'name')
+
+taxa_names(ps.protein.pup.taxon) <- 
+     ps.protein.pup.taxon@tax_table@.Data[, 'name']
+
+ps.protein.pup.taxon
 ```
 
 ### Filter to >=5 counts
@@ -443,27 +476,55 @@ Note that I'm applying this filter to the taxon-level analysis only.
 
 ```{r}
 # Impose >= 5 PSM/taxon filter
-asvtab.protein.taxon <- otu_table(ps.protein.taxon)@.Data
-sum(asvtab.protein.taxon)
+asvtab.pup <- otu_table(ps.protein.pup.taxon)@.Data
+sum(asvtab.pup)
 
-asvtab.protein.taxon[asvtab.protein.taxon < 5] <- 0
-sum(asvtab.protein.taxon)
+asvtab.pup[asvtab.pup < 5] <- 0
+sum(asvtab.pup)
 
 # Replace in phyloseq object
-otu_table(ps.protein.taxon) <- otu_table(asvtab.protein.taxon,
-                                                taxa_are_rows = FALSE)
+otu_table(ps.protein.pup.taxon) <- otu_table(asvtab.pup,
+                                            taxa_are_rows = FALSE)
+```
+
+```{r}
+# Impose >= 5 PSM/taxon filter
+asvtab.up <- otu_table(ps.protein.up.taxon)@.Data
+sum(asvtab.up)
+
+asvtab.up[asvtab.up < 5] <- 0
+sum(asvtab.up)
+
+# Replace in phyloseq object
+otu_table(ps.protein.up.taxon) <- otu_table(asvtab.up,
+                                            taxa_are_rows = FALSE)
 ```
 
 ```{r}
 # Does this remove any taxa? 
-ntaxa(ps.protein.taxon)
+ntaxa(ps.protein.pup.taxon)
 
-ps.protein.taxon <- 
-     ps.protein.taxon %>% 
+ps.protein.pup.taxon <- 
+     ps.protein.pup.taxon %>% 
      prune_taxa(taxa_sums(.) > 0, .) 
 
-ntaxa(ps.protein.taxon)
+ntaxa(ps.protein.pup.taxon)
 ```
+
+45 for 1UP object; and
+
+```{r}
+# Does this remove any taxa? 
+ntaxa(ps.protein.up.taxon)
+
+ps.protein.up.taxon <- 
+     ps.protein.up.taxon %>% 
+     prune_taxa(taxa_sums(.) > 0, .) 
+
+ntaxa(ps.protein.up.taxon)
+```
+
+42 for 1UP object.
 
 ### Add missing sample
 
@@ -532,25 +593,41 @@ saveRDS(ps.mb.animal,
 ## Metaproteomics
 
 ```{r}
-# Tax-glommed
-saveRDS(ps.protein.taxon,
+# Tax-glommed (1PUP and 1UP)
+saveRDS(ps.protein.pup.taxon,
         here('data',
              'processed',
              'phyloseq',
              'combined',
              'filtered',
-             'ps_mp_taxa.rds'))
+             'ps_mp_1PUP_taxa.rds'))
+
+saveRDS(ps.protein.up.taxon,
+        here('data',
+             'processed',
+             'phyloseq',
+             'combined',
+             'filtered',
+             'ps_mp_1UP_taxa.rds'))
 ```
 
 ```{r}
-# By proteins
-saveRDS(ps.protein,
+# By proteins (1PUP and 1UP)
+saveRDS(ps.protein.pup,
         here('data',
              'processed',
              'phyloseq',
              'combined',
              'filtered',
-             'ps_mp_proteins.rds'))
+             'ps_mp_1PUP.rds'))
+
+saveRDS(ps.protein.up,
+        here('data',
+             'processed',
+             'phyloseq',
+             'combined',
+             'filtered',
+             'ps_mp_1UP.rds'))
 ```
 
 ## Menu
