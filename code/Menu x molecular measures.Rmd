@@ -46,15 +46,14 @@ ps.protein <-
           'phyloseq',
           'combined',
           'filtered',
-          'ps_mp_taxa.rds') %>% 
+          'ps_mp_1PUP_taxa.rds') %>% # >=1 protein unique peptide
+          # 'ps_mp_1UP_taxa.rds') %>% # >=1 unique peptide
      readRDS()
           
 ps.protein
 ```
 
 ## DFC menu data phyloseq
-
-Load in version generated in "Pre-process menu" notebook: 
 
 ```{r}
 ps.menu <- 
@@ -537,7 +536,7 @@ saveRDS(pred.long,
         here('data', 
              'processed', 
              'performance-metrics', 
-             '20220712_Metaproteomic v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter, v3 analysis.rds'))
+             'Metaproteomic 1PUP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds'))
 ```
 
 #### Plot
@@ -561,7 +560,6 @@ pred.long %>%
            legend.title = element_blank(), 
            plot.margin = margin(0, 0.5, 0.5, 0.5, 'in')) 
 ```
-
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
@@ -573,7 +571,7 @@ width <-
 # ggsave(here('results',
 #             'per-food performance',
 #             paste0(plotID,
-#                    '_Metaproteomic by-food predictions compared to menu, >4 PSMs per taxon filter, no intake filter, v3 analysis.pdf')),
+#                    '_Metaproteomic by-food predictions compared to menu, >4 PSMs per taxon filter, no intake filter, 1PUP analysis.pdf')),
 #        height = 4, width = width[1]/4 * 0.5,
 #        limitsize = FALSE)
 ```
