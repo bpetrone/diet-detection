@@ -541,6 +541,8 @@ saveRDS(pred.long,
 
 #### Plot
 
+##### Bar
+
 ```{r}
 pred.long %>%
      ggplot(aes(x = common_name, y = count, fill = prediction)) +
@@ -629,6 +631,42 @@ width <-
 #                    '_By-food (shared taxa) predictions compared to menu, >4 PSMs per taxon filter, no intake filter, v2 analysis, uncertain.pdf')),
 #        height = 4, width = width[1]/4 * 0.7)
 ```
+
+##### ROC
+
+Think I need to filter out cases where the denominator of either FPR or FNR is NA in advance.
+
+```{r}
+drop.na <- 
+     pred.long %>% 
+     pivot_wider(names_from = prediction,
+                 values_from = count) %>% 
+     group_by(common_name) %>% 
+     filter((tp == 0 & fn == 0) | (fp == 0 & tn == 0)) %>% 
+     pull(common_name)
+```
+
+```{r}
+protein.roc <- 
+     protein.pos[, !(colnames(protein.pos) %in% drop.na)] %>% 
+     apply(2, as.numeric)
+
+menu.roc <- 
+     menu.pos[, colnames(protein.roc)] %>% 
+     apply(2, as.numeric)
+```
+
+```{r}
+x <- prediction(predictions = protein.roc, labels = menu.roc)
+y <- performance(x, 'tpr', 'fpr')
+
+plot(y)
+```
+
+```{r}
+
+```
+
 
 ## Metabarcoding x menu
 
@@ -827,7 +865,9 @@ saveRDS(pred.long,
              '20220712_Metabarcoding v. menu predictions by family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds'))
 ```
 
-#### Plot
+### Plot
+
+#### Bar
 
 ```{r}
 pred.long %>%
@@ -918,4 +958,35 @@ width <-
 #             paste0(plotID, 
 #                    '_Metabarcoding by-food family predictions compared to menu, >4 PSMs per taxon filter, no intake filter, uncertain.pdf')),
 #        height = 4, width = width[1]/4 * 0.7)
+```
+
+#### ROC
+
+Think I need to filter out cases where the denominator of either FPR or FNR is NA in advance.
+
+```{r}
+drop.na <- 
+     pred.long %>% 
+     pivot_wider(names_from = prediction,
+                 values_from = count) %>% 
+     group_by(common_name) %>% 
+     filter((tp == 0 & fn == 0) | (fp == 0 & tn == 0)) %>% 
+     pull(common_name)
+```
+
+```{r}
+dna.roc <- 
+     dna.pos[, !(colnames(dna.pos) %in% drop.na)] %>% 
+     apply(2, as.numeric)
+
+menu.roc <- 
+     menu.pos[, colnames(dna.roc)] %>% 
+     apply(2, as.numeric)
+```
+
+```{r}
+x <- prediction(predictions = dna.roc, labels = menu.roc)
+y <- performance(x, 'tpr', 'fpr')
+
+plot(y)
 ```
