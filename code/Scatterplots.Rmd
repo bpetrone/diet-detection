@@ -38,14 +38,11 @@ theme_set(theme_bw() +
 ## Metabarcoding performance metrics
 
 ```{r}
-# trnL only
 # 1-2 days' prior menu, >4 counts per taxon
 pred.mb <- 
      here('data', 
           'processed',
           'performance-metrics',
-          # '20210913_Metabarcoding v. menu predictions by family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
-          # '20210913_Metabarcoding v. menu predictions by genus, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
           '20220712_Metabarcoding v. menu predictions by family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
      readRDS()
 ```
@@ -58,9 +55,7 @@ pred.mp <-
      here('data', 
           'processed',
           'performance-metrics',
-          # '20210912_Metaproteomic v. menu predictions by food family, 1-2d prior, >4 counts per taxon filter, v3 analysis.rds') %>%
-          # '20210912_Metaproteomic v. menu predictions by food genus, 1-2d prior, >4 counts per taxon filter, no intake filter, v3 analysis.rds') %>% 
-          '20220712_Metaproteomic v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter, v3 analysis.rds') %>% 
+          'Metaproteomic 1PUP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
      readRDS()
 ```
 
@@ -69,7 +64,7 @@ pred.mp <-
 ```{r}
 # Annotate each dataset prior to joining
 pred.mb$detection <- 'DNA'
-pred.mp$detection <- 'Protein (1UP)'
+pred.mp$detection <- 'Protein (1PUP)'
 
 # Get shared variables
 vs <- intersect(names(pred.mb), names(pred.mp))
@@ -127,10 +122,12 @@ pred.summary.long
 
 ## Across measures
 
+### Correlation by detection type
+
 Need to fix NAs-- can be done by padding columns across all measures? 
 
 ```{r}
-ggplot(pred.summary, aes(x = DNA, y = `Protein (1UP)`)) +
+ggplot(pred.summary.long, aes(x = DNA, y = `Protein (1PUP)`)) +
      geom_point(alpha = 0.5) +
      coord_equal() +
      facet_wrap(~stat)
@@ -140,7 +137,7 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 ggsave(here('results', 
             'performance metrics', 
-            paste0(plotID, '_Metaproteomic x metabarcoding detactions.pdf')),
+            paste0(plotID, '_Metaproteomic (1PUP) x metabarcoding detactions.pdf')),
        height = 4, width = 4)
 ```
 
@@ -151,15 +148,122 @@ ggplot(pred.summary, aes(x = DNA, y = `Protein (1UP)`)) +
 ```
 ```{r}
 # Calculate correlation
-pred.summary %>% 
+pred.summary.long %>% 
      group_by(stat) %>%
-     summarize(rho = cor.test(DNA, `Protein (1UP)`,
+     summarize(rho = cor.test(DNA, `Protein (1PUP)`,
                               method = 'spearman')$estimate,
-               p = cor.test(DNA, `Protein (1UP)`,
+               p = cor.test(DNA, `Protein (1PUP)`,
                             method = 'spearman')$p.value) 
 ```
 
 Interesting!  They're all positive. 
+
+### Expected prevalence
+
+Thinking I'll do this as a Fisher exact test or a Chi squared test. 
+
+```{r}
+fisher.df <- 
+     pred.summary %>% 
+     mutate(pos = TP + FP,
+            neg = TN + FN) %>% 
+     select(common_name,
+            detection, 
+            pos,
+            neg) 
+
+fisher.df
+```
+```{r}
+# Consider only those entries that are detected by both measures
+fisher.df <-
+     fisher.df %>% 
+     group_by(common_name) %>% 
+     filter(length(pos) == 2) %>% 
+     ungroup()
+```
+
+```{r}
+# Make dataframe for storing results
+fisher.results <- 
+     data.frame(common_name = NULL,
+                p = NULL)
+
+for (taxon in unique(fisher.df$common_name)){
+     tab <- 
+          fisher.df %>% 
+          filter(common_name == taxon) %>% 
+          select(detection, pos, neg) %>% 
+          column_to_rownames(var = 'detection')
+     
+     row <- 
+          data.frame(
+               common_name = taxon,
+               p = fisher.test(tab)$p.value
+          )
+     
+     fisher.results <- bind_rows(fisher.results,
+                                 row)
+}
+```
+
+```{r}
+# Correct p values
+fisher.results <- 
+     fisher.results %>% 
+     # Adjust
+     mutate(p.adj = p.adjust(p, method = 'BH')) %>%
+     # Add kingdom
+     left_join(distinct(select(pred.summary, kingdom, common_name))) 
+```
+
+```{r}
+fisher.results
+```
+```{r}
+# What proportion of tested foods are significant?
+fisher.results %>% 
+     group_by(p.adj <= 0.05) %>% 
+     count() %>% 
+     ungroup() %>% 
+     mutate(proportion = n/sum(n))
+```
+```{r}
+ggplot(fisher.results, aes(x = p.adj)) +
+     geom_histogram(binwidth = 0.05,
+                    boundary = 0) +
+     facet_wrap(~kingdom) +
+     labs(x = 'Fisher exact test *p*', y = 'Count')
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'performance metrics', 
+            paste0(plotID, '_Fisher exact test p value distribution.pdf')),
+       height = 2.5)
+```
+
+
+```{r}
+t <- with(fisher.results, table(p.adj <= 0.05, kingdom))[, 
+                                                         c('Viridiplantae',
+                                                           'Metazoa')]
+
+t
+```
+
+```{r}
+fisher.test(t)
+```
+
+
+## ROC
+
+```{r}
+
+```
+
 
 ## Within measure
 
