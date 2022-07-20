@@ -20,86 +20,75 @@ library(tidyverse)
 
 # Read in data
 
-## Shared samples
+## Taxon name mapping
 
 ```{r}
-# Read in and name comparably to phyloseqs (SUBJ_DATE)
-samples <- 
-     here('data', 'metadata', '20200723_MTA DFC samples shared.csv') %>% 
-     read_csv() %>% 
-     mutate(sample.date = as.Date(sample.date, format = '%m/%d/%y'),
-            name = paste(subj, sample.date, sep = '_')) %>%
-     pull(name)
-               
-samples %>% sort()
+name.sync <- 
+     here('data',
+          'processed',
+          'Naming discrepancies.xlsx') %>% 
+     readxl::read_excel()
+
+name.sync
 ```
 
 ## Metaproteomic phyloseq
 
 ```{r}
-ps.protein <- readRDS(here('data', 'processed', 'phyloseq',
-                           '20210727_ps_mp.rds'))
+ps.protein <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mp_1PUP_taxa.rds') %>% # >=1 protein unique peptide
+          # 'ps_mp_1UP_taxa.rds') %>% # >=1 unique peptide
+     readRDS()
+          
 ps.protein
 ```
 
-## DFC menu data phyloseq
+## Menu data phyloseq
 
 ```{r}
-ps.menu <- readRDS(here('data', 'processed', 'phyloseq',
-                        '20210220_ps_menu.rds'))
+ps.menu <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_menu.rds') %>% 
+     readRDS()
+
 ps.menu
 ```
 
 ## Metabarcoding phyloseq
 
 ```{r}
-# Combined 12SV5 and trnL, made in combined MiniSeq notebook in DFC project folder
-ps.mb <- 
-     readRDS(here('data', 'processed', 'phyloseq',
-                  '20210727_ps_mb.rds'))
-     
-ps.mb
+ps.mb.plant <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mb_trnL.rds') %>% 
+     readRDS()
+
+ps.mb.plant
 ```
 
 ```{r}
-# Filter to only the samples under consideration here
-ps.mb <- 
-     ps.mb %>% 
-     prune_samples(sample_names(.) %in% samples, .) %>% 
-     prune_taxa(taxa_sums(.) > 0, .)
+ps.mb.animal <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mb_12SV5.rds') %>% 
+     readRDS()
 
-ps.mb
-```
-
-```{r}
-# Subset to only those taxa identified to some position in the plant phylogeny
-unlabeled <- 
-     data.frame(ps.mb@tax_table) %>% 
-     filter(is.na(superkingdom)) %>% 
-     row.names()
-
-asvtab.mb <- ps.mb@otu_table
-
-cat('Percent of reads not assigned to a taxon:', 
-    sum(asvtab.mb[, unlabeled])/sum(asvtab.mb) * 100)
-
-ps.mb <- subset_taxa(ps.mb, !is.na(superkingdom))
-```
-
-```{r}
-# Update metabarcoding taxon names
-taxtab.mb <- data.frame(ps.mb@tax_table)
-
-# Merge Rosaceae so as not to duplicate taxa names
-rosaceae <- 
-     taxtab.mb %>% 
-     filter(is.na(genus) & family == 'Rosaceae') %>% 
-     row.names()
-
-ps.mb <- merge_taxa(ps.mb, rosaceae)
-taxtab.mb <- data.frame(ps.mb@tax_table) # New taxonomy table
-
-taxa_names(ps.mb) <- MButils::lowest_level(taxtab.mb)$name
+ps.mb.plant
 ```
 
 # Reformat for plotting
