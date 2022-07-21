@@ -46,14 +46,14 @@ ps.protein <-
           'phyloseq',
           'combined',
           'filtered',
-          'ps_mp_1PUP_taxa.rds') %>% # >=1 protein unique peptide
-          # 'ps_mp_1UP_taxa.rds') %>% # >=1 unique peptide
+          # 'ps_mp_1PUP_taxa.rds') %>% # >=1 protein unique peptide
+          'ps_mp_1UP_taxa.rds') %>% # >=1 unique peptide
      readRDS()
           
 ps.protein
 ```
 
-## DFC menu data phyloseq
+## Menu data phyloseq
 
 ```{r}
 ps.menu <- 
@@ -536,7 +536,7 @@ saveRDS(pred.long,
         here('data', 
              'processed', 
              'performance-metrics', 
-             'Metaproteomic 1PUP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds'))
+             'Metaproteomic 1UP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds'))
 ```
 
 #### Plot
@@ -662,11 +662,6 @@ y <- performance(x, 'tpr', 'fpr')
 
 plot(y)
 ```
-
-```{r}
-
-```
-
 
 ## Metabarcoding x menu
 
@@ -862,7 +857,7 @@ saveRDS(pred.long,
         here('data', 
              'processed',
              'performance-metrics', 
-             '20220712_Metabarcoding v. menu predictions by family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds'))
+             'Metabarcoding v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds'))
 ```
 
 ### Plot
