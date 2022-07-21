@@ -12,7 +12,7 @@ opts_knit$set(root.dir = file.path(getwd(), '..'))
 
 ```{r libraries, echo=FALSE}
 library(here) 
-library(phyloseq) 
+library(phyloseq)
 library(tidyverse)
 ```
 
@@ -43,19 +43,27 @@ pred.mb <-
      here('data', 
           'processed',
           'performance-metrics',
-          '20220712_Metabarcoding v. menu predictions by family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
+          'Metabarcoding v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
      readRDS()
 ```
 
 ## Metaproteomic performance metrics
 
 ```{r}
-# Unique peptides
-pred.mp <- 
+# 1PUP
+pred.mp.pup <- 
      here('data', 
           'processed',
           'performance-metrics',
           'Metaproteomic 1PUP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
+     readRDS()
+
+# 1UP
+pred.mp.up <- 
+     here('data', 
+          'processed',
+          'performance-metrics',
+          'Metaproteomic 1UP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
      readRDS()
 ```
 
@@ -64,19 +72,24 @@ pred.mp <-
 ```{r}
 # Annotate each dataset prior to joining
 pred.mb$detection <- 'DNA'
-pred.mp$detection <- 'Protein (1PUP)'
+pred.mp.pup$detection <- 'Protein (1PUP)'
+pred.mp.up$detection <- 'Protein (1UP)'
+```
 
+```{r}
 # Get shared variables
-vs <- intersect(names(pred.mb), names(pred.mp))
+vs <- 
+     intersect(names(pred.mb), names(pred.mp.pup)) %>% 
+     intersect(names(pred.mp.up))
 
 # Just concatenate end to end for now
 pred <- 
      bind_rows(select(pred.mb, one_of(vs)),
-               select(pred.mp, one_of(vs)))
+               select(pred.mp.pup, one_of(vs)),
+               select(pred.mp.up, one_of(vs)))
 
 pred
 ```
-
 ## Additional stats
 
 Calculate F measure.
@@ -93,6 +106,7 @@ pred.summary <-
      rename(TP = `True positive`, TN = `True negative`,
             FP = `False positive`, FN = `False negative`) %>% 
      mutate(recall = TP/(TP + FN), 
+            specificity = TN/(TN + FP),
             precision = TP/(TP + FP),
             f_measure = (2 * recall * precision)/(recall + precision))
 
@@ -103,12 +117,13 @@ pred.summary
 # Pivot longer
 pred.summary.long <- 
      pred.summary %>% 
-     select(-c(recall, precision, f_measure)) %>% 
+     select(-c(recall, precision, specificity, f_measure)) %>% 
      pivot_longer(cols = c(TP, TN, FP, FN),
                   names_to = 'stat',
                   values_to = 'value') %>% 
      pivot_wider(names_from = detection,
-                 values_from = value) %>% 
+                 values_from = value,
+                 values_fill = 0) %>% 
      mutate(stat = factor(stat,
                           levels = c('TP', 'TN', 'FP', 'FN'),
                           labels = c('True positive',
@@ -120,7 +135,116 @@ pred.summary.long
 ```
 # Visualize 
 
+## Between 1UP & 1PUP
+
+```{r}
+# Are there foods for which all entries are 0 (i.e., detected by DNA, but not by protein?)  Would want to remove these so as not to inflate the correlation 
+drop <-
+     pred.summary.long %>% 
+     select(-DNA) %>% 
+     group_by(common_name) %>% 
+     filter(all(`Protein (1PUP)` == 0) & all(`Protein (1UP)` == 0)) %>% 
+     pull(common_name) %>% 
+     unique()
+
+drop
+```
+
+```{r}
+pred.summary.long %>% 
+     filter(!(common_name %in% drop)) %>% 
+     ggplot(aes(x = `Protein (1UP)`, 
+                y = `Protein (1PUP)`)) +
+     geom_point(alpha = 0.5) +
+     coord_equal() +
+     facet_wrap(~stat)
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'performance metrics', 
+            paste0(plotID, '_Metaproteomic (1PUP) x metaproteomic (1UP) detactions.pdf')),
+       height = 4, width = 4)
+```
+
+So we get an relative gain in positive detections for 1UP, or a relative gain in negative detections for 1PUP. 
+
+```{r}
+pred.summary %>% 
+     filter(detection != 'DNA') %>% 
+     ggplot(aes(x = 1-specificity, y = recall)) +
+     geom_point(alpha = 0.5) +
+     facet_wrap(~detection) +
+     coord_equal()
+```
+
+```{r}
+pred.summary %>% 
+     filter(detection != 'DNA') %>% 
+     ggplot(aes(x = f_measure)) +
+     geom_histogram(binwidth = 0.05,
+                    boundary = 1) +
+     facet_wrap(~detection) 
+```
+
+```{r}
+plot(ecdf(pred.summary[pred.summary$detection=="Protein (1PUP)",]$f_measure),
+     col="green")
+lines(ecdf(pred.summary[pred.summary$detection=="Protein (1UP)",]$f_measure),
+      col="blue")
+```
+
 ## Across measures
+
+I'm going to say it's better to lean towards positive detections, and work with 1UP.
+
+```{r}
+pred.summary <-
+     pred.summary %>%
+     mutate(detection = case_when(detection == 'Protein (1UP)' ~ '1UP',
+                                  detection == 'Protein (1PUP)' ~ '1PUP',
+                                  TRUE ~ 'DNA')) %>% 
+     select(-c(TP:FN, f_measure)) %>% 
+     pivot_wider(names_from = detection,
+                 values_from = recall:precision,
+                 names_sep = '_') 
+```
+
+### Sensitivity, specificity
+
+```{r}
+ggplot(pred.summary, aes(x = recall_DNA, y = recall_1PUP)) +
+     geom_point(alpha = 0.5) +
+     coord_equal()
+```
+
+```{r}
+ggplot(pred.summary, aes(x = specificity_DNA, y = specificity_1PUP)) +
+     geom_point(alpha = 0.5) +
+     coord_equal()
+```
+
+```{r}
+cor.test(pred.summary$recall_1UP,
+         pred.summary$recall_DNA,
+         method = 'spearman')
+```
+
+```{r}
+cor.test(pred.summary$precision_1UP,
+         pred.summary$precision_DNA,
+         method = 'spearman')
+```
+
+
+### Recall, precision
+
+```{r}
+ggplot(pred.summary, aes(x = precision_DNA, y = precision_1UP)) +
+     geom_point(alpha = 0.5) +
+     coord_equal()
+```
 
 ### Correlation by detection type
 
@@ -256,14 +380,6 @@ t
 ```{r}
 fisher.test(t)
 ```
-
-
-## ROC
-
-```{r}
-
-```
-
 
 ## Within measure
 
