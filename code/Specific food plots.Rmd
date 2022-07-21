@@ -91,49 +91,105 @@ ps.mb.animal <-
 ps.mb.plant
 ```
 
-# Reformat for plotting
+# Pre-process
 
 ```{r}
-melt.menu <- 
-     psmelt(ps.menu) %>% 
-     rename(subj = ID)
-melt.mb <- psmelt(ps.mb)
+melt.menu <- psmelt(ps.menu) 
+melt.mb.plant <- psmelt(ps.mb.plant)
+melt.mb.animal <- psmelt(ps.mb.animal)
 melt.mp <- psmelt(ps.protein)
 ```
 
+Add common name and group by dataset:
+
 ```{r}
-taxon.mb <- 'Acer'
-taxon.mp <- 'Acer saccharum'
-taxon.menu <- 'Acer'
+melt.menu <- 
+     melt.menu %>% 
+     left_join(select(name.sync,
+                      menu_taxa, common_name, taxon_index),
+               by = c('OTU' = 'menu_taxa'))
+
+melt.mb.animal <- 
+     melt.mb.animal %>% 
+     left_join(select(name.sync,
+                      mb_taxa, common_name, taxon_index),
+               by = c('OTU' = 'mb_taxa'))
+
+melt.mb.plant <- 
+     melt.mb.plant %>% 
+     left_join(select(name.sync,
+                      mb_taxa, common_name, taxon_index),
+               by = c('OTU' = 'mb_taxa'))
+
+melt.mp <- 
+     melt.mp %>% 
+     left_join(select(name.sync,
+                      mp_taxa, common_name, taxon_index),
+               by = c('OTU' = 'mp_taxa'))
 ```
 
 ```{r}
-vs <- c('subj', 'date', 'OTU', 'Abundance') # Shared variables to pull from each phyloseq
-
-filter_melt <- function(melt, taxon, type){
-     # melt: melt object
-     # taxon: one of taxon.mp, taxon.mb, or taxon.menu, above
-     # type: the data type of the object (menu, metabarcoding, metaproteomics)
-     melt %>% 
-          select(one_of(vs)) %>% 
-          filter(OTU == taxon & Abundance > 0) %>% 
-          mutate(method = type) 
-          
-}
+# Add dataset info to each melted object
+melt.menu$detection <-  'Menu'
+melt.mb.plant$detection <- 'DNA'
+melt.mb.animal$detection <- 'DNA'
+melt.mp$detection <- 'Protein'
 ```
 
 ```{r}
-filter_melt(melt.menu, 'Serranidae', 'Menu')
+melts <- list(melt.menu,
+              melt.mb.animal,
+              melt.mb.plant,
+              melt.mp)
 ```
+
 ```{r}
-filter_melt(melt.mp, 'Acer saccharum', 'Metaproteomics')
+vs <- c('study',
+        'subj', 
+        'date',
+        'detection', 
+        'taxon_index',
+        'common_name', 
+        'Abundance') # Shared variables to pull from each phyloseq
+
+lapply(melts, ncol)
+melts <- lapply(melts, function(x){select(x, one_of(vs))})
+lapply(melts, ncol)
+```
+
+```{r}
+melt <- bind_rows(melts)
+dim(melt)
+rm(melts)
+```
+
+```{r}
+melt$detection <- factor(melt$detection, 
+                         levels = c('Menu',
+                                    'DNA',
+                                    'Protein'))
 ```
 
 
+# Plot
+
 ```{r}
-df %>% 
-     filter(taxon_mb == taxon.mb)
-ggplot(aex(x = date, y = Abundance)) +
-     facet_wrap(~method)
+taxon <- 'apple, pear'
+
+melt %>% 
+     filter(common_name == taxon & subj == 'PC74') %>% 
+     ggplot(aes(x = date, y = Abundance, fill = detection)) +
+     geom_bar(stat = 'identity') +
+     facet_wrap(~detection,  
+                scales = 'free_y',
+                nrow = 3) +
+     theme(legend.position = 'none')
+```
+```{r}
+melt %>% 
+     filter(common_name == taxon, subj == '908') %>% 
+     ggplot(aes(x = date, y = detection, fill = Abundance > 0)) +
+     geom_tile() +
+     coord_equal()
 ```
 
