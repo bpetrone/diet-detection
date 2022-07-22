@@ -30,7 +30,7 @@ ps.protein <-
           'phyloseq',
           'combined',
           'filtered',
-          'ps_mp_taxa.rds') %>%
+          'ps_mp_1UP_taxa.rds') %>%
      readRDS()
 
 ps.protein
@@ -133,37 +133,6 @@ ps.menu.subset <-
 ps.menu.subset
 ```
 
-```{r}
-# Can't use merge_samples on phyloseq here because some samples make up >1 merge
-
-# Do manually on ASV table
-# asvtab.menu <- otu_table(ps.menu)@.Data
-# asvtab.menu.12 <- data.frame()
-# 
-# for (sample in seq(dim(samdf.protein)[1])){
-#      # Pull menu day -1
-#      one.before <- asvtab.menu[samdf.protein$delta1[sample], ]
-#      # Pull menu day -2
-#      two.before <- asvtab.menu[samdf.protein$delta2[sample], ]
-#      # Merge and place in new, aggregated OTU table
-#      asvtab.menu.12 <- rbind(asvtab.menu.12,
-#                              one.before + two.before)
-#      # Update food names (only has to be done once)
-#      if (sample == 1){names(asvtab.menu.12) <- names(one.before + two.before)}
-#      # Update sample name
-#      row.names(asvtab.menu.12)[sample] <- samdf.protein$row[sample]
-# }
-# 
-# # Now rebuild a subsetted phyloseq object
-# ps.menu.subset <- phyloseq(otu_table(asvtab.menu.12, taxa_are_rows = FALSE),
-#                        sample_data(ps.protein), # Now this matches
-#                        tax_table(ps.menu)) # Menu-specific taxonomy
-# 
-# # Remove any taxa that aren't present any longer
-# ps.menu.subset <- prune_taxa(taxa_sums(ps.menu.subset) > 0, ps.menu.subset)
-# ps.menu.subset
-```
-
 ## Visualize
 
 First pass
@@ -218,6 +187,9 @@ melt <-
 menu.dat <- as.matrix(ps.menu.subset@otu_table@.Data)
 # Make data binary:
 menu.dat[menu.dat > 0] <- 1
+```
+```{r}
+# Build dendrogram
 menu.dendro <- 
      menu.dat %>% 
      t() %>% 
@@ -225,12 +197,29 @@ menu.dendro <-
      hclust() %>% 
      as.dendrogram()
 
-# Create dendro
-dendro.plot.x <- ggdendrogram(data = menu.dendro, rotate = FALSE) 
-
-# Preview the plot
-print(dendro.plot.x)
+menu.dendro.data <- dendro_data(menu.dendro, type = 'rectangle')
+str(menu.dendro.data)
 ```
+
+```{r}
+# Add taxonomic kingdom
+kingdoms <- 
+     melt %>% 
+     select(common_names, kingdom) %>% 
+     distinct()
+
+menu.dendro.data$labels %>% 
+     left_join(select(melt, )
+```
+
+
+```{r}
+ggplot(menu.dendro.data$segments) + 
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend))+
+  # geom_text(data = menu.dendro.data$labels, aes(x, y, label = label),
+  #           hjust = 1, angle = 90, size = 3) 
+```
+
 ```{r}
 # Re-order samples to match
 menu.order <- order.dendrogram(menu.dendro)
