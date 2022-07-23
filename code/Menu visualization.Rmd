@@ -18,6 +18,23 @@ library(phyloseq)
 library(tidyverse)
 ```
 
+```{r}
+# Plotting themes
+theme_set(theme_bw() +
+               theme(
+                    axis.text = element_text(size = 12),
+                    axis.title.x = ggtext::element_markdown(size = 14,
+                                                            face = 'bold'),
+                    axis.title.y = ggtext::element_markdown(size = 14,
+                                                            face = 'bold'),
+                    legend.title = element_text(size = 12,
+                                                face = 'bold'),
+                    strip.text = element_text(size = 12,
+                                              face = 'bold')
+               )
+)
+```
+
 ## Read in data
 
 ### Menu data
@@ -205,17 +222,25 @@ str(menu.dendro.data)
 # Add taxonomic kingdom
 kingdoms <- 
      melt %>% 
-     select(common_names, kingdom) %>% 
-     distinct()
+     select(label = OTU, kingdom) %>% 
+     distinct() %>% 
+     mutate(kingdom = ifelse(kingdom == 'Fungi' | is.na(kingdom),
+                             yes = 'Other',
+                             no = kingdom))
 
-menu.dendro.data$labels %>% 
-     left_join(select(melt, )
+menu.dendro.data$labels <- left_join(menu.dendro.data$labels, kingdoms)
 ```
 
-
 ```{r}
-ggplot(menu.dendro.data$segments) + 
-  geom_segment(aes(x = x, y = y, xend = xend, yend = yend))+
+menu.plot <- 
+     ggplot(menu.dendro.data$segments) + 
+     geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) +
+     geom_tile(data = menu.dendro.data$labels,
+               aes(x, y, fill = kingdom),
+               height = 0.2) +
+     scale_fill_manual(values = c('#b66353',
+                                  '#d7ce9f',
+                                  '#638b66'))
   # geom_text(data = menu.dendro.data$labels, aes(x, y, label = label),
   #           hjust = 1, angle = 90, size = 3) 
 ```
@@ -240,8 +265,8 @@ heatmap <-
      geom_tile() +
      scale_fill_manual(values = c('white', '#7e756d')) +
      coord_equal() +
-     theme(axis.text.x = element_blank(),
-           axis.ticks.x = element_blank(),
+     theme(axis.text = element_blank(),
+           axis.ticks = element_blank(),
            legend.position = 'none') 
 
 heatmap
@@ -258,7 +283,7 @@ ggsave(here('results',
 ```
 
 ```{r}
-plot_grid(dendro.plot.y,
+plot_grid(menu.plot,
           heatmap,
           aligh = 'h')
 ```
