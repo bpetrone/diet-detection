@@ -19,6 +19,18 @@ library(tidyverse)
 ```
 
 ```{r}
+colors.detection <- 
+     c('#849db1', 
+       '#fbb04e',
+       '#7e756d')
+
+names(colors.detection) <- 
+     c('DNA',
+       'Protein',
+       'Menu')
+```
+
+```{r}
 # Plotting themes
 theme_set(theme_bw() +
                theme(
@@ -207,5 +219,14 @@ melt %>%
                 scales = 'free',
                 space = 'free_x') +
      theme(legend.position = 'none')
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'performance metrics', 
+            paste0(plotID, '_Metaproteomic (1PUP) x metaproteomic (1UP) detactions.pdf')),
+       height = 4, width = 4)
 ```
 
