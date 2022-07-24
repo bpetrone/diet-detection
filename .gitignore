@@ -4,8 +4,11 @@
 .Rproj.user
 .DS_Store
 
-/results
-/docs
-/data
-!/data/processed/Animal-based proteins (manual annotation).csv
-!/data/processed/Naming discrepancies.xlsx
+results/
+docs/
+
+data/
+!data/processed/
+data/processed/*
+!data/processed/Animal-based*.csv
+!data/processed/Naming\ discrepancies.xlsx
