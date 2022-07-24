@@ -258,7 +258,7 @@ weight,word,category,certainty,notes
 5,Histone domain-containing protein,,,
 5,Keratin 17,tissue,0,
 5,Keratin 77,tissue,0,
-5,Kinesin motor domain-containing protein,muscle,1,
+5,Kinesin motor domain-containing protein,,,Detected in many plants
 5,L-lactate dehydrogenase A chain,muscle,0,Lactate dehydrogenase A catalyzes the inter-conversion of pyruvate and L-lactate
 5,Lactaldehyde dehydrogenase,,,
 5,Myosin heavy chain,muscle,1,
