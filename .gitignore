@@ -10,5 +10,5 @@ docs/
 /data/*
 !/data/processed/
 /data/processed/*
-#!/data/processed/Animal-based\ proteins\ \(manual\ annotation\).csv
+!/data/processed/Animal-based\ proteins\ \(manual\ annotation\).csv
 !data/processed/Animal-based\ proteins\ \(full\ annotation\).csv
