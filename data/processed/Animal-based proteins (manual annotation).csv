@@ -82,7 +82,7 @@ weight,word,category,certainty,notes
 25,"Troponin C, skeletal muscle",muscle,1,
 24,Ferritin,muscle,0,Skeletal muscle iron stores
 24,Reticulon,,,"Present in endoplasmic reticulum, abundant cellular roles"
-24,Serum albumin,egg,1,
+24,Serum albumin,tissue,0,
 23,Peptidase A1 domain-containing protein,,,Potentially digestive
 23,ZP domain-containing protein,egg,0,Think could have other roles: follow up on domain
 22,Actinin alpha 2,muscle,1,
