@@ -7,5 +7,5 @@
 /results
 /docs
 /data
-!/data/processed/Animal-based proteins (annotated).csv
+!/data/processed/Animal-based proteins (manual annotation).csv
 !/data/processed/Naming discrepancies.xlsx
