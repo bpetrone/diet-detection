@@ -12,9 +12,7 @@ opts_knit$set(root.dir = file.path(getwd(), '..'))
 
 ```{r libraries, echo=FALSE}
 library(here) 
-library(MButils)
 library(phyloseq) 
-library(RColorBrewer)
 library(tidyverse) 
 ```
 
@@ -60,6 +58,17 @@ name.sync <-
 
 name.sync
 ```
+## Sample dates
+
+```{r}
+samples <- 
+     here('data',
+          'metadata',
+          'Sample collection times.csv') %>% 
+     read_csv()
+
+samples
+```
 
 ## Metaproteomic phyloseq
 
@@ -70,8 +79,8 @@ ps.protein <-
           'phyloseq',
           'combined',
           'filtered',
-          'ps_mp_1PUP_taxa.rds') %>% # >=1 protein unique peptide
-          # 'ps_mp_1UP_taxa.rds') %>% # >=1 unique peptide
+          # 'ps_mp_1PUP_taxa.rds') %>% # >=1 protein unique peptide
+          'ps_mp_1UP_taxa.rds') %>% # >=1 unique peptide
      readRDS()
           
 ps.protein
@@ -121,6 +130,30 @@ ps.mb.plant
 ```
 
 # Pre-process
+
+## Samples
+
+```{r}
+samples$date <- as.Date(samples$date,
+                        format = '%m/%d/%y')
+```
+
+```{r}
+# Add detection for each so shading is done by facet, below
+detection <- c('Menu', 'DNA', 'Protein')
+subj <- unique(samples$subj)
+
+samples <-
+     expand.grid(detection = detection, 
+                 subj = subj) %>% 
+     right_join(samples) %>% 
+     arrange(study, subj, date) %>% 
+     select(subj:time, detection)
+
+samples
+```
+
+## Dietary data
 
 ```{r}
 melt.menu <- psmelt(ps.menu) 
@@ -201,32 +234,79 @@ melt$detection <- factor(melt$detection,
 
 # Plot
 
-## Wheat
-
-## Cattle
-
-## Chicken
+## Select taxa
 
 ```{r}
-taxon <- 'chicken'
-
-melt %>% 
-     filter(common_name == taxon) %>% 
-     ggplot(aes(x = date, y = Abundance, fill = detection)) +
-     geom_bar(stat = 'identity') +
-     facet_grid(cols = vars(subj),
-                rows = vars(detection),
-                scales = 'free',
-                space = 'free_x') +
-     theme(legend.position = 'none')
+taxa <- c('chicken', 'cattle', 'grains')
 ```
+
+### All detections
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results', 
-            'performance metrics', 
-            paste0(plotID, '_Metaproteomic (1PUP) x metaproteomic (1UP) detactions.pdf')),
-       height = 4, width = 4)
+for (taxon in taxa){
+     melt.filt <- filter(melt, common_name == taxon)
+     
+     ggplot(melt.filt, aes(x = date)) +
+          geom_tile(data = samples, aes(x = date, 
+                                        y = 0),
+                    fill = 'gray90',
+                    height = Inf) +
+          geom_bar(aes(y = Abundance, fill = detection), stat = 'identity') +
+          facet_grid(cols = vars(subj),
+                     rows = vars(detection),
+                     scales = 'free',
+                     space = 'free_x') +
+          scale_fill_manual(values = colors.detection) +
+          labs(x = 'Date', y = 'Food abundance') +
+          theme(axis.text.x = element_blank(),
+                legend.position = 'none',
+                panel.grid = element_blank())
+     
+     ggsave(here('results', 
+                 'biomarkers', 
+                 paste0(plotID, 
+                        '_',
+                        taxon,
+                        ' detection by measure and sample.pdf')),
+            height = 4)
+}
 ```
 
+### Protein only
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+samples.filt <- filter(samples, detection != 'DNA')
+
+for (taxon in taxa){
+     melt.filt <- 
+          filter(melt, common_name == taxon & detection != 'DNA')
+     
+     ggplot(melt.filt, aes(x = date)) +
+          geom_tile(data = samples.filt, aes(x = date, 
+                                             y = 0),
+                    fill = 'gray90',
+                    height = Inf) +
+          geom_bar(aes(y = Abundance, fill = detection), stat = 'identity') +
+          facet_grid(cols = vars(subj),
+                     rows = vars(detection),
+                     scales = 'free',
+                     space = 'free_x') +
+          scale_fill_manual(values = colors.detection) +
+          labs(x = 'Date', y = 'Food abundance') +
+          theme(axis.text.x = element_blank(),
+                legend.position = 'none',
+                panel.grid = element_blank())
+     
+     ggsave(here('results', 
+                 'biomarkers', 
+                 paste0(plotID, 
+                        '_',
+                        taxon,
+                        ' detection by measure and sample.pdf')),
+            height = 4)
+}
+```
