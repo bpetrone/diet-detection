@@ -91,7 +91,7 @@ proteins.up <-
 proteins.animal <- 
      here('data',
           'processed',
-          'Animal-based proteins (annotated).csv') %>% 
+          'Animal-based proteins (manual annotation).csv') %>% 
      read_csv()
 ```
 
@@ -375,6 +375,14 @@ proteins.animal %>%
      mutate(pct = psms/sum(psms))
 ```
 This is 9.4% of peptides, and 39% of PSMs.
+
+```{r}
+# Save this full labeled set
+write_csv(proteins.animal,
+          here('data',
+               'processed',
+               'Animal-based proteins (full annotation).csv'))
+```
 
 #### Filter
 
