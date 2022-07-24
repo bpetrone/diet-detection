@@ -1,0 +1,1451 @@
+weight,word,category,certainty,notes
+4074,Uncharacterized protein,other,NA,NA
+1018,Ovalbumin,egg,1,NA
+719,Glyceraldehyde-3-phosphate dehydrogenase,other,0,"binding partner of actin, tubulin, p22 (mt organization), skeletal muscle calmodulin dependent protein kinase"
+690,Myosin motor domain-containing protein,muscle,1,NA
+606,Titin (Fragment),muscle,1,passive elasticity of muscle
+514,Myosin-1B,muscle,1,NA
+513,Titin,muscle,1,NA
+389,Carboxypeptidase A1,other,NA,"digestive, but also responsible for protein maturation intracellularly"
+353,Four and a half LIM domains 1,muscle,1,highly expressed in skeletal and cardiac muscle
+351,Selenium binding protein 1,other,NA,NA
+309,Nucleophosmin,other,NA,nucleolar protein in nuclei of proliferating cells
+299,Myosin-7,muscle,1,NA
+284,Myosin-2,muscle,1,NA
+280,Ig-like domain-containing protein,other,NA,NA
+227,Methanethiol oxidase,other,NA,"Catalyzes the oxidation of methanethiol, an organosulfur compound known to be produced in substantial amounts by gut bacteria.  Interestingly another selenium-binding protein"
+221,Actin (Fragment),muscle,1,NA
+204,"myosin heavy chain, fast skeletal muscle-like",muscle,1,NA
+190,Myosin-4,muscle,1,NA
+176,MYH3 protein,muscle,1,A conventional myosin
+175,Lysozyme C,other,NA,Bacteriolytic function
+169,SERPIN domain-containing protein,other,0,Note that ovalbumins are serpins that lack protease inhibitory activity
+167,Ovalbumin-related protein Y,egg,1,NA
+164,Histone H4,other,NA,NA
+150,Transthyretin,other,NA,"Also called ""prealbumin"" but only because it ran faster on gel in early experiments-- transfer protein in plasma and CSF for thyroxine and retinol"
+149,Calcium-transporting ATPase,other,0,NA
+134,Myosin heavy chain 4,muscle,1,NA
+128,Fibrinogen C-terminal domain-containing protein,other,NA,A type II trans-membrane endocytic receptor that is expressed apically on enterocytes
+124,Avidin,egg,1,NA
+123,Fructose-bisphosphate aldolase,other,0,"Glycolysis, likely high in skeletal muscle"
+113,Glycoprotein 2,other,NA,Expressed on gut epithelial cells
+111,Ovotransferrin,egg,1,NA
+108,Filamin C,muscle,1,Functions at Z-discs and subsarcolemmal regions in skeletal muscle
+107,Alpha actin,muscle,1,NA
+107,Uncharacterized protein (Fragment),other,NA,NA
+106,Creatine kinase M-type,other,0,"Play a central role in energy transduction in tissues with large, fluctuating energy demands, such as skeletal muscle, heart, brain and spermatozoa"
+102,"Alpha-1,4 glucan phosphorylase",other,NA,Carbohydrate metabolism (could be either host or microbial)
+98,Dipeptidyl peptidase 4,other,NA,Circulating or transmembrane serine exopeptidase that cleaves X-proline or X-alanine dipeptides from the N-terminus of polypeptides
+90,Beta-enolase,other,0,Predominantly expressed in skeletal muscle
+90,Myosin heavy chain-2,muscle,1,NA
+85,Annexin,other,0,"Characterized by their calcium dependent ability to bind to negatively charged phospholipids (i.e. membrane walls), play roles in scaffolding"
+84,Alpha-actinin-2,muscle,1,NA
+81,"Troponin T, fast skeletal muscle isoforms",muscle,1,NA
+77,Protein TENP,egg,1,"Constitutes 0.1-0.5% of the egg white proteome, see https://pubmed.ncbi.nlm.nih.gov/24418699/"
+72,Alpha-S1-casein,dairy,1,NA
+71,Myosin heavy chain 7,muscle,1,NA
+67,Triosephosphate isomerase,other,0,"Glycolysis, likely high in skeletal muscle"
+65,"Myosin light chain 1/3, skeletal muscle isoform",muscle,1,NA
+62,Troponin I,muscle,1,NA
+58,Beta-casein,dairy,1,NA
+57,Myosin_tail_1 domain-containing protein,muscle,1,NA
+56,"SPG11 vesicle trafficking associated, spatacsin",other,0,Cortical projection neuron transport
+55,Vitellogenin domain-containing protein (Fragment),egg,1,NA
+54,Sarcoplasmic/endoplasmic reticulum calcium ATPase 1,other,0,NA
+54,Vitellogenin-2,egg,1,NA
+53,Ubiquitin,other,NA,NA
+52,Actin beta like 2,muscle,1,NA
+50,Solute carrier family 25 member 4,other,0,Gated pore that translocates ADP from the cytoplasm into the mitochondrial matrix and ATP from the mitochondrial matrix into the cytoplasm
+48,Heat shock protein cognate 5,other,0,Has ATP-binding activity-- could be abundant in muscle
+48,Myosin heavy chain 2,muscle,1,NA
+48,Slow-tonic S2 myosin heavy chain,muscle,1,NA
+46,"myosin heavy chain, fast skeletal muscle-like isoform X4",muscle,1,NA
+46,"Myosin regulatory light chain 2, skeletal muscle isoform",muscle,1,NA
+40,IF rod domain-containing protein,other,0,Cytoskeletal component
+40,Ubiquitin/ribosomal fusion protein,other,NA,Covalent modification of proteinaceous substrates recycled by ubiquitin-proteasome system
+39,ATP synthase subunit beta (Fragment),other,0,Mitochondrial
+38,"Phosphate carrier protein, mitochondrial",other,0,Mitochondrial
+37,Myosin heavy chain 13,muscle,1,NA
+34,L-lactate dehydrogenase (Fragment),other,0,Glycoloysis
+34,Progastricsin,other,NA,"Pepsinogen precursor of the enzyme gastricsin, produced in stomach"
+32,Membrane metalloendopeptidase,other,NA,Extracellular and transmembrane peptide cleavage
+31,Formin 1,other,0,Adherens junction protein
+30,Fast myosin heavy chain (Fragment),muscle,1,NA
+29,Pyruvate kinase,other,0,Last step of glycolysis
+29,Zgc:86709,muscle,1,"Alpha actin, cardiac muscle 2"
+27,"Creatine kinase U-type, mitochondrial",other,0,NA
+27,Enteropeptidase,other,NA,"Produced by duodenal cells, involved in digestion"
+26,Heart-and neural crest derivatives-expressed protein 2,other,0,"Angiogenesis, cardiac morphogenesis, branchial arches"
+26,Heat shock protein,other,0,Has some muscle function among many (note that ubiquitin also an HSP)
+25,Myosin motor domain-containing protein (Fragment),muscle,1,NA
+25,Skeletal muscle actin 3,muscle,1,NA
+25,"Troponin C, skeletal muscle",muscle,1,NA
+24,Ferritin,other,0,Skeletal muscle iron stores
+24,Reticulon,other,NA,"Present in endoplasmic reticulum, abundant cellular roles"
+24,Serum albumin,other,0,NA
+23,Peptidase A1 domain-containing protein,other,NA,Potentially digestive
+23,ZP domain-containing protein,other,0,Think could have other roles: follow up on domain
+22,Actinin alpha 2,muscle,1,NA
+22,Alpha-S2-casein,dairy,1,NA
+22,Myoglobin,muscle,1,NA
+21,Collagen type I alpha 1 chain,other,0,NA
+21,Cytoplasmic actin 1 (Fragment),muscle,1,NA
+21,"Glycogen phosphorylase, muscle form",other,0,NA
+21,Keratin 79,other,0,Hair canal migratory keratinocyte protein
+21,"Myosin, heavy chain 6, cardiac muscle, alpha",muscle,1,NA
+21,Neuronal acetylcholine receptor subunit non-alpha-2,other,0,Neuromuscular junction protein
+21,Nucleoside diphosphate kinase,other,0,NDPK activities maintain an equilibrium between the concentrations of different nucleoside triphosphates
+21,X-prolyl aminopeptidase 2,other,NA,"Aminopeptidase P is a hydrolase specific for N-terminal imido bonds, which are common to several collagen degradation products, neuropeptides, vasoactive peptides, and cytokines"
+21,Zymogen granule protein 16,other,NA,Predicted to act upstream of or within defense response to Gram-positive bacterium and suppression of symbiont entry into host
+20,GLOBIN domain-containing protein,other,0,"Hemoglobin, myoglobin (though could also be host-derived)"
+20,Kappa-casein,dairy,1,NA
+20,Muscle-type creatine kinase (Fragment),other,0,NA
+20,Myosin light chain 1,muscle,1,NA
+20,Projectin,muscle,1,An invertebrate connectin (titin)
+19,Alpha-enolase,other,0,"Glycolysis, likely high in skeletal muscle"
+19,Calsequestrin,other,0,Calcium-binding protein that acts as a calcium buffer within the sarcoplasmic reticulum
+19,creatine kinase B-type-like,other,0,NA
+19,Ovotransferrin (Fragment),egg,1,NA
+19,Slow muscle myosin S1 heavy chain (Fragment),muscle,1,NA
+19,titin-like isoform X20,muscle,1,NA
+18,ADP/ATP translocase 2,other,0,NA
+18,myosin-7-like,muscle,1,NA
+17,"Creatine kinase, mitochondrial 2",other,0,NA
+17,L-lactate dehydrogenase,other,0,"Glycolysis, likely high in skeletal muscle"
+17,Myosin essential light chain isoform 1,muscle,1,NA
+16,Gp_dh_C domain-containing protein,other,0,"Glycolysis: Glyceraldehyde 3-phosphate dehydrogenase, C-terminal domain"
+16,"Troponin T, slow skeletal muscle",muscle,1,NA
+15,calcium release-activated calcium channel protein 1-like isoform X1,other,0,NA
+15,cGMP-dependent protein kinase,other,0,"Commonly regulate calcium homeostasis, calcium sensitivity of cellular proteins, platelet activation and adhesion, smooth muscle contraction, cardiac function, gene expression, feedback of the NO-signaling pathway, and other processes"
+15,Hemoglobin subunit beta,other,0,Could also be cross-reactive-- check species
+15,Myosin-1,muscle,1,NA
+14,Acid sphingomyelinase-like phosphodiesterase,other,NA,On macrophages
+14,ANK_REP_REGION domain-containing protein,other,NA,Unclear results
+14,G_PROTEIN_RECEP_F2_4 domain-containing protein,other,NA,Unclear results
+14,N-acetylated alpha-linked acidic dipeptidase like 1,other,0,Expressed by non-myelinating Schwann cells in the peripheral nervous system
+14,NDK domain-containing protein,other,NA,Major role in the synthesis of nucleoside triphosphates other than ATP
+14,Signal induced proliferation associated 1 like 2,other,NA,Ubiquitous expression in many tissues
+14,"Troponin C, isoform 2B",muscle,1,NA
+14,Voltage-dependent anion-selective channel protein 1,other,0,NA
+13,"Actin, gamma-enteric smooth muscle (Fragment)",muscle,1,NA
+13,C-type lectin domain containing 9A,other,0,"Recognizes filamentous form of actin in association with particular actin-binding domains of cytoskeletal proteins, including spectrin, exposed when cell membranes are damaged"
+13,Coiled-coil-helix-coiled-coil-helix domain containing 1,other,NA,Transcription factor
+13,Fumarylacetoacetate hydrolase domain containing 1,other,0,Mitochondrial protein
+13,Glyceraldehyde-3-phosphate dehydrogenase (Fragment),other,0,Glycolysis
+13,Lysosomal associated membrane protein 2,other,NA,Lysosomal glycoprotein that provides selectins with carbohydrate ligands
+13,Metabotropic glutamate receptor 2,other,NA,In humans expressed only in brain: presynaptic terminal of glutaminergic neurons
+13,Myosin heavy chain 7-like,muscle,1,NA
+13,Nesprin-1,other,0,Multi-isomeric modular protein which forms a linking network between organelles and the actin cytoskeleton to maintain the subcellular spatial organization
+13,"Troponin T, fast skeletal muscle",muscle,1,NA
+13,UDP-glucose 4-epimerase,other,NA,First step in galactose metabolism
+12,Angiotensin-converting enzyme,other,0,Vasculature
+12,Carbonic anhydrase 4,other,0,"Zinc metalloenzymes that catalyze the reversible hydration of carbon dioxide; occur in muscle, where they contribute 20% of the total CA activity in mouse (https://pubmed.ncbi.nlm.nih.gov/18003750/)"
+12,collagen alpha-6(VI) chain-like,other,NA,Basal lamina component of epithelial cells
+12,"Phosphofructokinase, muscle",other,0,Glycolysis
+12,Solute carrier family 25 member 5,other,0,Antiporter for ADP/ATP exchange between the mitochondrial matrix and cytoplasm
+12,Vitellogenin-1,egg,1,NA
+12,Voltage-dependent anion-selective channel protein 1 (Fragment),other,0,Mitochondrial outer membrane protein
+11,78 kDa glucose-regulated protein,other,NA,Endoplasmic reticulum-resident chaperone and a critical unfolded protein response regulator
+11,Calcyphosin,other,0,Calcium binding protein
+11,Coiled-coil domain containing 150,other,NA,Unclear function
+11,Fibrillar collagen NC1 domain-containing protein,other,0,Extracellular matrix collagen
+11,helicase-like transcription factor,other,NA,NA
+11,NDC1 transmembrane nucleoporin,other,NA,NA
+11,OCIA domain-containing protein 1,other,NA,Mixed functions: involved in integrin-mediated cancer cell adhesion and colony formation in ovarian cancer
+11,Poly [ADP-ribose] polymerase,other,NA,"Proteins involved in a number of cellular processes such as DNA repair, genomic stability, and programmed cell death"
+11,Translation initiation factor IF-2,other,NA,NA
+11,zinc finger protein 711 isoform X1,other,NA,Transcriptional regulator required for brain development
+10,14-3-3 protein beta/alpha,other,NA,Adapter protein implicated in the regulation of a large spectrum of both general and specialized signaling pathways
+10,filamin-C-like isoform X3,other,0,"Filamin C (FLNC) is one of three filamin proteins (Filamin A (FLNA), Filamin B (FLNB), and FLNC) that cross-link actin filaments"
+10,MAGE domain-containing protein,other,NA,"Recent biochemical and biophysical studies indicate that MAGEs assemble with E3 RING ubiquitin ligases to form MAGE-RING ligases (MRLs) and act as regulators of ubiquitination by modulating ligase activity, substrate specification, and subcellular localization"
+10,Mucin-5B,other,NA,NA
+10,Myeloperoxidase,other,NA,"Leukocyte-derived enzyme, catalyzes ROS formation"
+10,"Myosin light chain 1, skeletal muscle isoform",muscle,1,NA
+10,"Myosin light chain 1, skeletal muscle isoform (Fragment)",muscle,1,NA
+10,Nuclear transglutaminase,other,NA,DNA damage repair
+9,Actin-3,muscle,1,NA
+9,Chondroitin sulfate proteoglycan 4,other,NA,Vascular role: stimulates endothelial cell motility during microvascular morphogenesis
+9,cytosolic carboxypeptidase 2-like isoform X3,other,NA,Likely digestive
+9,Glutamine amidotransferase type-2 domain-containing protein,other,NA,Amino acid/nitrogen metabolism
+9,Meprin A subunit,other,NA,Hydrolysis of protein and peptide substrates preferentially on carboxyl side of hydrophobic residues
+9,nucleoprotein TPR-like isoform X1,other,NA,Nuclear pore complex component
+9,Pancreatic triacylglycerol lipase protein (Fragment),other,NA,Likely digestive
+9,Putative maltase-glucoamylase 2,other,NA,"Likely digestive, predicted to be involved in carbohydrate metabolic process"
+9,Tropomyosin alpha-1 chain,muscle,1,NA
+9,"Troponin I, fast skeletal muscle",muscle,1,NA
+9,Type II alpha-keratin IIA,other,0,Found in all epithelia
+8,Adenosine deaminase,other,NA,Involved in purine metabolism. It is needed for the breakdown of adenosine from food and for the turnover of nucleic acids in tissues
+8,alpha-enolase isoform X1,other,0,Glycolysis
+8,Alpha-L-fucosidase,other,NA,"Member of family of hydrolases, specifically those glycosidases that hydrolyse O- and S-glycosyl compounds"
+8,butyrophilin subfamily 1 member A1-like isoform X1,dairy,1,Butyrophilin is the major protein associated with fat droplets in the milk
+8,Ependymin related 1,other,NA,Human homolog of glycoprotein found in CSF of many teleost fish
+8,Ezrin,other,0,"Plasma membrane–actin cytoskeleton linker, participate in the formation of specialized domains of the plasma membrane"
+8,"Filamin C, gamma a (actin binding protein 280)",other,0,"Filamin C (FLNC) is one of three filamin proteins (Filamin A (FLNA), Filamin B (FLNB), and FLNC) that cross-link actin filaments"
+8,"Glycogen phosphorylase, brain form",other,0,"Glycogen mobilization, could be relevant for muscle but interesting that this is brain isoform"
+8,Heat shock protein HSP70 (Fragment),other,NA,"ATP-dependent molecular chaperones, involved in many cellular processes including protein folding, prevention of protein aggregation, modulation of protein complexes, and protein transport between cellular compartments"
+8,Histone H3 (Fragment),other,NA,NA
+8,K-casein (Fragment),dairy,1,NA
+8,"Keratin, type I cytoskeletal 19",other,0,NA
+8,Lamin L3,other,NA,Building block of karyoskeleton (nuclear skeleton?)
+8,M20_dimer domain-containing protein,other,NA,Domain consists of 4 beta strands and two alpha helices which make up the dimerisation surface of members of the M20 family of peptidases
+8,Myosin heavy chain 15,muscle,1,NA
+8,"NADH-ubiquinone oxidoreductase chain 5",other,0,Core subunit of the mitochondrial membrane respiratory chain NADH dehydrogenase
+7,AAA domain-containing protein,other,0,AAA: ATPases Associated with diverse cellular Activities
+7,ABC transporter G family member 20,other,NA,ABC: ATP-binding cassette
+7,Aspartyl aminopeptidase,other,NA,Likely digestive: release of an N-terminal aspartate or glutamate from a peptide
+7,Beta-lactoglobulin,dairy,1,Major whey protein of cow and sheep's milk
+7,Bifunctional purine biosynthesis protein PURH (Fragment),other,NA,De novo purine biosynthesis
+7,Cytochrome b,other,0,Mitochondrial complex III protein
+7,DEAD box helicase DDX5,other,NA,NA
+7,Dual serine/threonine and tyrosine protein kinase,other,NA,Signal transduction
+7,F-box protein 3,other,NA,"The F-box proteins constitute one of the four subunits of the ubiquitin protein ligase complex called SCFs (SKP1-cullin-F-box), which function in phosphorylation-dependent ubiquitination"
+7,G_PROTEIN_RECEP_F1_2 domain-containing protein,other,NA,Unclear function
+7,Keratin 14,other,0,NA
+7,Keratin 4,other,0,NA
+7,"Keratin, type II cytoskeletal 6C (Fragment)",other,0,NA
+7,leukocyte elastase inhibitor-like,other,NA,A member of the clade B of SERPINS. It is an intracellular protein and acts primarily to protect the cell from proteases released into the cytoplasm during stress
+7,Multifunctional fusion protein,other,NA,Unclear function
+7,Non-specific serine/threonine protein kinase,other,NA,Signal transduction
+7,Phosphoglycerate kinase,other,0,Glycolysis
+7,round spermatid basic protein 1-like isoform X2,other,0,Iron binding
+7,Serpin B6,other,0,"Intracellular serine protease inhibitors, localized mainly in the cytoplasm of endothelial cells, some epithelial cells, monocytes, and neutrophils"
+7,Short-chain mitochondrial-like specific acyl (Fragment),other,0,NA
+7,Synaptophysin like 2,muscle,1,Involved in communication between the T-tubular and junctional sarcoplasmic reticulum (SR) membranes
+7,Triacylglycerol lipase,other,NA,Hydrolysis of TAGs to glycerol and Fas
+7,Unc-45-like protein A,other,0,Myosin chaperone protein: https://www.nature.com/articles/s41467-019-12667-8
+7,Uncharacterized protein KIAA0141 (Fragment),other,NA,Unclear function
+7,zf-C3H1 domain-containing protein,other,NA,"Subunit of the trimeric poly(A) tail exosome targeting (PAXT) complex, a complex that directs a subset of long and polyadenylated poly(A) RNAs for exosomal degradation"
+6,"Alpha-actinin, sarcomeric-like isoform X1 (Fragment)",muscle,1,NA
+6,Alpha-fetoprotein,egg,1,Produced in the liver of a developing fetus
+6,Aminopeptidase,other,NA,Likely digestive
+6,Apoptosis inhibitor 5,other,NA,NA
+6,ATP synthase subunit alpha,other,0,Mitochondrial
+6,BTB domain-containing protein,other,NA,Wide range of cellular functions
+6,Carbohydrate sulfotransferase,other,NA,Sulfotransferase enzymes that transfer sulfate to carbohydrate groups in glycoproteins and glycolipids
+6,Cytochrome c domain-containing protein,other,0,Mitochondrial electron transport
+6,DNA-dependent protein kinase catalytic subunit,other,NA,"Regulates proliferation, telomere length, and genomic stability in human somatic cells"
+6,DUF1081 domain-containing protein,other,NA,DUR: Domain of unknown function
+6,Elongation factor Tu,other,NA,Prokaryotic translation elongation factor
+6,F-box only protein 38,other,NA,"Transcription factor co-activator, may participate in ubiquitination"
+6,Heat shock protein 70 B2,other,NA,"ATP-dependent molecular chaperones, involved in many cellular processes including protein folding, prevention of protein aggregation, modulation of protein complexes, and protein transport between cellular compartments"
+6,Histone domain-containing protein (Fragment),other,NA,NA
+6,Hyaluronan binding protein 2,other,0,Extracellular serine protease which binds hyaluronic acid. It is involved in cell adhesion
+6,Latrophilin-3,other,0,Regulator of synaptic function and maintenance in brain regions that mediate locomotor activity
+6,MI domain-containing protein,other,NA,Predicted transcription factor initiation activity
+6,"Myosin-binding protein C, fast-type",muscle,1,NA
+6,Phosphoglycerate mutase 1,other,0,Glycolysis
+6,Phospholipase B-like,other,NA,Catalyses the hydrolytic cleavage of both acylester bonds of glycerophospholipids
+6,protocadherin beta-16-like,other,NA,Unclear function
+6,Serpin family B member 8,other,NA,"Serine protease, regulate a diverse set of intra and extracellular processes"
+6,Solute carrier family 25 member 11,other,0,"Potentially mitochondrial, see https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=732505"
+6,Thioredoxin domain containing 16,other,NA,ER-associated glycoprotein
+6,Zinc finger protein 500,other,NA,NA
+5,Actin-related protein 2/3 complex subunit 4,other,0,Part of a multiprotein complex that mediates actin polymerization
+5,Actinin alpha 3 (gene/pseudogene),muscle,1,"Actin binding, specifically expressed in skeletal muscle"
+5,Actinin alpha 4,other,NA,Non-muscle alpha actinin isoform concentrated in the cytoplasm
+5,"Adenylate kinase 2, mitochondrial",other,0,Mitochondrial
+5,Apovitellenin-1,egg,1,Protein component of the very low density lipoprotein (VLDL) of egg-laying females
+5,Autophagy-related protein 16-1,other,NA,Function characterized in human intestinal Paneth cells
+5,Calponin-homology (CH) domain-containing protein,other,0,Superfamily of actin-binding domains found in both cytoskeletal proteins and signal transduction proteins
+5,Clustered mitochondria protein homolog,other,0,Mitochondrial
+5,Collagen IV NC1 domain-containing protein,other,0,NA
+5,dedicator of cytokinesis protein 3,other,NA,Specifically expressed in the central nervous system (CNS). It encodes a member of the DOCK (dedicator of cytokinesis) family of guanine nucleotide exchange factors (GEFs)
+5,Dishevelled binding antagonist of beta catenin 2,other,NA,"Predicted to enable several functions, including beta-catenin binding activity; delta-catenin binding activity; and protein kinase C binding activity"
+5,F-box only protein 38 isoform X1,other,NA,NA
+5,Glucose-6-phosphate isomerase,other,0,Glycolysis
+5,Heat shock protein 9,other,NA,HSP primarily localized to the mitochondria
+5,"Histidyl-tRNA synthetase, cytoplasmic",other,NA,NA
+5,Histone domain-containing protein,other,NA,NA
+5,Keratin 17,other,0,NA
+5,Keratin 77,other,0,NA
+5,Kinesin motor domain-containing protein,other,NA,Detected in many plants
+5,L-lactate dehydrogenase A chain,other,0,Lactate dehydrogenase A catalyzes the inter-conversion of pyruvate and L-lactate
+5,Lactaldehyde dehydrogenase,other,NA,NA
+5,Myosin heavy chain,muscle,1,NA
+5,N-acetylated alpha-linked acidic dipeptidase 2,other,NA,Likely digestive
+5,nebulin,muscle,1,Nebulin is an actin-binding protein which is localized to the thin filament of the sarcomeres in skeletal muscle
+5,Nebulin,muscle,1,Nebulin is an actin-binding protein which is localized to the thin filament of the sarcomeres in skeletal muscle
+5,Nucleophosmin/nucleoplasmin 3,other,NA,Nuclear chaperone protein
+5,Protein kinase domain-containing protein,other,NA,Signal transduction
+5,Protocadherin-18,other,0,Potential calcium-dependent cell-adhesion protein.
+5,Serpin family B member 1,other,NA,NA
+5,SH3 domain-binding protein 5-like isoform X2,other,NA,Signal transduction
+5,Transmembrane protein 38A,other,0,Predicted to enable potassium channel activity
+5,Trophoblast Kunitz domain protein 4,other,0,Specifically expressed in placenta of ruminant ungulates
+5,Tropomyosin alpha-1 chain (Fragment),muscle,1,NA
+5,Tropomyosin-1 alpha chain,muscle,1,NA
+5,"Troponin C, skeletal muscle (Fragment)",muscle,1,NA
+5,Vimentin-related 2,other,0,Intermediate filament
+5,WD repeat domain 97,other,NA,Potential microtubule binding activity
+5,zinc finger and BTB domain-containing protein 5,other,NA,Transcription factor
+5,Zinc finger FYVE domain-containing protein 19 (Fragment),other,NA,Interaction with endosomal lipids
+4,"10 kDa heat shock protein, mitochondrial",other,1,NA
+4,absent in melanoma 1 protein isoform X1,other,1,NA
+4,ADP/ATP translocase 1,other,1,NA
+4,Alpha-actinin-3,muscle,1,NA
+4,basement membrane-specific heparan sulfate proteoglycan core protein-like isoform X1,other,1,NA
+4,Beta-crystallin B1,other,1,NA
+4,Copine I,other,1,NA
+4,Cyclic GMP-AMP synthase,other,1,NA
+4,Cytochrome b (Fragment),other,1,NA
+4,Denticleless-like protein (Fragment),other,1,NA
+4,Dihydrolipoyl dehydrogenase,other,1,NA
+4,Enolase (Fragment),other,1,NA
+4,Envoplakin,other,1,NA
+4,Estradiol 17-beta-dehydrogenase 2,other,1,NA
+4,"Fidgetin, microtubule severing factor",other,1,NA
+4,G-protein coupled receptor 98,other,1,NA
+4,Galectin,other,1,NA
+4,Glucose-6-phosphate isomerase (Fragment),other,1,NA
+4,Gp_dh_N domain-containing protein,other,1,NA
+4,Growth arrest-specific protein 8,other,1,NA
+4,Hepatic and glial cell adhesion molecule a,other,1,NA
+4,Lactate dehydrogenase (Fragment),other,1,NA
+4,Leukocyte elastase inhibitor,other,1,NA
+4,Metalloendopeptidase,other,1,NA
+4,Mitochondrial folate transporter/carrier,other,1,NA
+4,Myosin_tail_1 domain-containing protein (Fragment),muscle,1,NA
+4,myosin-9-like,muscle,1,NA
+4,"NADH-ubiquinone oxidoreductase chain 2",other,1,NA
+4,Parvalbumin beta 3 (Fragments),other,1,NA
+4,Polyribonucleotide nucleotidyltransferase 1,other,1,NA
+4,Proactivator polypeptide (Fragment),other,1,NA
+4,Proteasome subunit alpha type,other,1,NA
+4,protein NLRC3 isoform X1,other,1,NA
+4,ras-related protein Rab-15-like,other,1,NA
+4,Ras-related protein Rab-8A (Fragment),other,1,NA
+4,regulating synaptic membrane exocytosis protein 1 isoform X6,other,1,NA
+4,Rho GTPase activating protein 29a,other,1,NA
+4,Sarcalumenin,other,1,NA
+4,Sarcoplasmic calcium-binding protein variant c,muscle,1,NA
+4,Serpin family B member 13,other,1,NA
+4,SH3 domain-containing protein,other,1,NA
+4,"Solute carrier family 25 alpha, member 5 (Fragment)",other,1,NA
+4,Spectrin repeat containing nuclear envelope protein 1,other,1,NA
+4,Telethonin,other,1,NA
+4,Tripartite motif-containing protein 45,other,1,NA
+4,Tropomyosin beta chain,muscle,1,NA
+4,Voltage-dependent anion-selective channel protein 2,other,1,NA
+4,VPS39 subunit of HOPS complex,other,1,NA
+4,Xyloside xylosyltransferase 1,other,1,NA
+3,2-phospho-D-glycerate hydrolase (Fragment),other,1,NA
+3,40S ribosomal protein S3,other,1,NA
+3,5-hydroxytryptamine receptor 2C,other,1,NA
+3,AA_TRNA_LIGASE_II domain-containing protein (Fragment),other,1,NA
+3,ADP-ribosylation factor 2a,other,1,NA
+3,ADP/ATP translocase (Fragment),other,1,NA
+3,Alpha-1-acid glycoprotein,other,1,NA
+3,Aminopeptidase N,other,1,NA
+3,ATP synthase peripheral stalk-membrane subunit b,other,1,NA
+3,ATP synthase subunit beta,other,1,NA
+3,ATP-dependent 6-phosphofructokinase,other,1,NA
+3,ATP/ADP translocase,other,1,NA
+3,Beta-glucuronidase,other,1,NA
+3,Carboxypeptidase O,other,1,NA
+3,Cell adhesion molecule 2,other,1,NA
+3,chromodomain-helicase-DNA-binding protein 9 isoform X1,other,1,NA
+3,Cold shock domain-containing protein E1,other,1,NA
+3,Collagen alpha-1(IV) chain,other,1,NA
+3,Copine 3,other,1,NA
+3,"Creatine kinase, mitochondrial 2a (sarcomeric)",muscle,1,NA
+3,Cytochrome P450 (Fragment),other,1,NA
+3,"Discoidin domain receptor family, member 2, like",other,1,NA
+3,DNA excision repair protein ERCC-6-like,other,1,NA
+3,Dpy-19 like C-mannosyltransferase 1,other,1,NA
+3,"Dynein heavy chain 6, axonemal",other,1,NA
+3,E3 ubiquitin-protein ligase,other,1,NA
+3,Enolase,other,1,NA
+3,Ependymin,other,1,NA
+3,ER lipid raft associated 2,other,1,NA
+3,Eyes absent homolog,other,1,NA
+3,F-box only protein 18 isoform X1,other,1,NA
+3,fast myotomal muscle troponin-I,muscle,1,NA
+3,FERM domain-containing protein 4A-like isoform X2,other,1,NA
+3,"Fumarate hydratase class I, aerobic",other,1,NA
+3,G protein subunit alpha 15,other,1,NA
+3,G-patch domain-containing protein (Fragment),other,1,NA
+3,Gamma-tubulin complex component,other,1,NA
+3,Glutamate carboxypeptidase 2,other,1,NA
+3,Glycerol-3-phosphate dehydrogenase [NAD(+)],other,1,NA
+3,Golgi apparatus membrane protein TVP23 homolog,other,1,NA
+3,guanine nucleotide-binding protein subunit alpha-14-like,other,1,NA
+3,Histone acetyltransferase KAT6A,other,1,NA
+3,Histone H2B,other,1,NA
+3,Histone H3.3,other,1,NA
+3,HIT domain-containing protein,other,1,NA
+3,Homeobox domain-containing protein,other,1,NA
+3,IGv domain-containing protein,other,1,NA
+3,Inosine-5'-monophosphate dehydrogenase,other,1,NA
+3,Intersectin-1,other,1,NA
+3,Lactase,other,1,NA
+3,Leucine rich repeat containing 43,other,1,NA
+3,Leucine-rich repeat-containing protein 57,other,1,NA
+3,LIM domain binding 3,other,1,NA
+3,Lipocln_cytosolic_FA-bd_dom domain-containing protein,other,1,NA
+3,"M-protein, striated muscle",other,1,NA
+3,"Mal, T cell differentiation protein 2 (gene/pseudogene)",other,1,NA
+3,MAX dimerization protein 3,other,1,NA
+3,Methyltransferase-like protein 24,other,1,NA
+3,minor histocompatibility protein HA-1-like,other,1,NA
+3,MYBPC1 protein,other,1,NA
+3,"Myosin binding protein C, slow type",muscle,1,NA
+3,"myosin light chain kinase 2, skeletal/cardiac muscle-like isoform X1",muscle,1,NA
+3,"NAC-A/B domain-containing protein",other,1,NA
+3,"Neural precursor cell expressed, developmentally down-regulated 9",other,1,NA
+3,Nucleolar and coiled-body phosphoprotein 1,other,1,NA
+3,Obg-like ATPase 1,other,1,NA
+3,Olfactory receptor,other,1,NA
+3,Origin recognition complex subunit 1,other,1,NA
+3,Peptidase S1 domain-containing protein,other,1,NA
+3,Peptidyl arginine deiminase 2,other,1,NA
+3,Peroxisomal membrane protein PEX16,other,1,NA
+3,PH and SEC7 domain-containing protein 1,other,1,NA
+3,Phosphoglycerate mutase,other,1,NA
+3,Phosphoglycerate mutase 2,other,1,NA
+3,Photosystem II protein D1,other,1,NA
+3,PKS_ER domain-containing protein,other,1,NA
+3,proline-rich receptor-like protein kinase PERK9,other,1,NA
+3,"Protein kinase, DNA-activated, catalytic subunit",other,1,NA
+3,Protein-tyrosine-phosphatase,other,1,NA
+3,PTPRF interacting protein alpha 1,other,1,NA
+3,"RAB15, member RAS oncogene family",other,1,NA
+3,"Rho guanine nucleotide exchange factor (GEF) 3, like",other,1,NA
+3,RRM domain-containing protein,other,1,NA
+3,RUN and FYVE domain containing 2,other,1,NA
+3,Sarcalumenin (Fragment),other,1,NA
+3,Sarcoplasmic/endoplasmic reticulum calcium ATPase 3,muscle,1,NA
+3,Serum albumin (Fragment),other,1,NA
+3,SH3 domain-binding glutamic acid-rich-like protein,other,1,NA
+3,Sidoreflexin,other,1,NA
+3,Solute carrier family 39 member 6,other,1,NA
+3,Staphylococcal nuclease domain-containing protein,other,1,NA
+3,Testis and ovary specific PAZ domain containing 1,other,1,NA
+3,Transient receptor potential cation channel subfamily M member 7,other,1,NA
+3,Triosephosphate isomerase (Fragment),other,1,NA
+3,"Troponin C, slow skeletal and cardiac muscles",muscle,1,NA
+3,"Troponin I1, slow skeletal type",muscle,1,NA
+3,"Troponin I2, fast skeletal type",muscle,1,NA
+3,"Troponin T type 3a (skeletal, fast)",muscle,1,NA
+3,Type I keratin isoform 2,other,1,NA
+3,Ubiquitin carboxyl-terminal hydrolase,other,1,NA
+3,ubiquitin carboxyl-terminal hydrolase 34 isoform X1,other,1,NA
+3,Zgc:110699,other,1,NA
+3,"Zinc finger, NFX1-type containing 1",other,1,NA
+2,40S ribosomal protein S25,other,1,NA
+2,40S ribosomal protein S8 (Fragment),other,1,NA
+2,"60 kDa heat shock protein, mitochondrial",other,1,NA
+2,Adaptin_N domain-containing protein,other,1,NA
+2,Adenosine receptor A2b,other,1,NA
+2,ADP/ATP translocase 3,other,1,NA
+2,Advillin,other,1,NA
+2,AIG1-type G domain-containing protein,other,1,NA
+2,Ankyrin repeat and SOCS box protein 2 (Fragment),other,1,NA
+2,Ankyrin-2,other,1,NA
+2,Annexin (Fragment),other,1,NA
+2,Arginine kinase,other,1,NA
+2,Arginine kinase (Fragment),other,1,NA
+2,"ATP-binding cassette sub-family B member 10, mitochondrial",other,1,NA
+2,ATP-dependent DNA helicase,other,1,NA
+2,ATP/ADP translocase (Fragment),other,1,NA
+2,Basal body-orientation factor 1,other,1,NA
+2,"BTB and CNC homology 1, basic leucine zipper transcription factor 1 a",other,1,NA
+2,c-SKI_SMAD_bind domain-containing protein,other,1,NA
+2,C-type lectin domain-containing protein,other,1,NA
+2,C2H2-type domain-containing protein,other,1,NA
+2,Calcyon neuron specific vesicular protein,other,1,NA
+2,Carbonic anhydrase 3,other,1,NA
+2,CASP2 and RIPK1 domain containing adaptor with death domain,other,1,NA
+2,Caveolae associated protein 1,other,1,NA
+2,CC chemokine SCYA112 isoform X1,other,1,NA
+2,CD86 molecule,other,1,NA
+2,Centrosomal protein 70,other,1,NA
+2,Centrosomal protein 83,other,1,NA
+2,Claudin,other,1,NA
+2,claudin-4-like,other,1,NA
+2,collagen alpha-1(XXIII) chain-like,other,1,NA
+2,Collagen alpha-2(I) chain,other,1,NA
+2,Collagen type I alpha 2 chain,other,1,NA
+2,Collagen type IV alpha 3 chain,other,1,NA
+2,Complement C1q-like protein 4,other,1,NA
+2,CPSF_A domain-containing protein,other,1,NA
+2,Cryptocyanin (Fragment),other,1,NA
+2,"Crystallin, beta B2",other,1,NA
+2,Cyclic nucleotide-binding domain-containing protein 2,other,1,NA
+2,Cytochrome P450 family 2 subfamily U member 1,other,1,NA
+2,Cytoplasmic dynein 2 heavy chain 1,other,1,NA
+2,DDE Tnp4 domain-containing protein,other,1,NA
+2,DEP domain-containing mTOR-interacting protein,other,1,NA
+2,Desmin,other,1,NA
+2,desmoplakin-like isoform X3,other,1,NA
+2,Diacylglycerol kinase,other,1,NA
+2,DNA helicase,other,1,NA
+2,DNA mismatch repair protein,other,1,NA
+2,DnaJ-like subfamily C member 17,other,1,NA
+2,Dual specificity protein phosphatase,other,1,NA
+2,Dynactin subunit 2,muscle,1,NA
+2,Dynein axonemal heavy chain 8,other,1,NA
+2,E3 ubiquitin-protein ligase parkin,other,1,NA
+2,E3 ubiquitin-protein ligase RNF31-like,other,1,NA
+2,EF-hand calcium binding domain 7,other,1,NA
+2,Elongation factor 1-alpha 2,other,1,NA
+2,"Elongation factor G, mitochondrial",other,1,NA
+2,Enhancer of mRNA decapping 4,other,1,NA
+2,eukaryotic translation initiation factor 4B isoform X1,other,1,NA
+2,Exocyst complex component 8,other,1,NA
+2,Exosome complex exonuclease RRP44,other,1,NA
+2,Family with sequence similarity 160 member A1,other,1,NA
+2,Fast myosin light chain 2 (Fragment),muscle,1,NA
+2,FAT atypical cadherin 2,other,1,NA
+2,FGFR1 oncogene partner,other,1,NA
+2,Forkhead box protein N4,other,1,NA
+2,Four and a half LIM domains 3,other,1,NA
+2,Four and a half LIM domains protein 2,other,1,NA
+2,Fucose kinase,other,1,NA
+2,Fumarylacetoacetase,other,1,NA
+2,Furry homolog a (Drosophila),other,1,NA
+2,GLI family zinc finger 4,other,1,NA
+2,Glycos_transf_1 domain-containing protein,other,1,NA
+2,Golgin B1,other,1,NA
+2,Guanine nucleotide-binding protein G(Q) subunit alpha,other,1,NA
+2,Guanylate cyclase,other,1,NA
+2,Heat shock 70 kDa protein,other,1,NA
+2,Heat shock protein family A (Hsp70) member 2,other,1,NA
+2,Hexosyltransferase,other,1,NA
+2,Histone-lysine N-methyltransferase SETDB1-A,other,1,NA
+2,Insulin-like growth factor binding protein 3 paralog B2,other,1,NA
+2,Isocitrate dehydrogenase [NADP],other,1,NA
+2,Junction plakoglobin,other,1,NA
+2,"Keratin, type II cytoskeletal 75",other,1,NA
+2,"Keratin, type II cytoskeletal 79",other,1,NA
+2,Kinetochore protein Spc24,other,1,NA
+2,L-lactate dehydrogenase C chain,other,1,NA
+2,Laminin subunit alpha 3,other,1,NA
+2,leucine-rich repeat-containing protein 10-like,other,1,NA
+2,leucine-rich repeat-containing protein 3-like,other,1,NA
+2,Lipocalin 2,other,1,NA
+2,LIX1-like protein,other,1,NA
+2,Major facilitator superfamily domain-containing protein 10,other,1,NA
+2,MAP kinase-activating death domain protein isoform X1,other,1,NA
+2,Matrilin 1,other,1,NA
+2,MHC class II antigen,other,1,NA
+2,Microtubule associated protein 1B,other,1,NA
+2,MINDY_DUB domain-containing protein,other,1,NA
+2,Mitotic checkpoint serine/threonine-protein kinase BUB1 beta,other,1,NA
+2,Mucin-5AC (Fragment),other,1,NA
+2,Myeloid protein 1,other,1,NA
+2,Myomesin 2,muscle,1,NA
+2,"Myosin binding protein C, cardiac",muscle,1,NA
+2,Myosin light chain 6B,muscle,1,NA
+2,Myosin XIX,muscle,1,NA
+2,myosin-7B isoform X1,muscle,1,NA
+2,"Myosin, heavy chain 7B, cardiac muscle, beta a",muscle,1,NA
+2,"NADPH oxidase 1 (Fragment)",other,1,NA
+2,Nipped-B protein,other,1,NA
+2,non-syndromic hearing impairment protein 5 homolog,other,1,NA
+2,NOP2/Sun RNA methyltransferase 5,other,1,NA
+2,Nuclear mitotic apparatus protein 1,other,1,NA
+2,Nuclear transcription factor Y subunit beta,other,1,NA
+2,P/Homo B domain-containing protein,other,1,NA
+2,"Phosphate cytidylyltransferase 1, choline, beta a",other,1,NA
+2,Phosphoacetylglucosamine mutase,other,1,NA
+2,Phosphoinositide phospholipase C,other,1,NA
+2,Phospholipid-transporting ATPase (Fragment),other,1,NA
+2,Phosphorylase b kinase regulatory subunit,other,1,NA
+2,Phosphoserine aminotransferase,other,1,NA
+2,PIPK domain-containing protein,other,1,NA
+2,Piwi-like protein 2,other,1,NA
+2,PLA2c domain-containing protein,other,1,NA
+2,plexin domain-containing protein 1-like isoform X1,other,1,NA
+2,POU domain protein,other,1,NA
+2,Protein kinase C,other,1,NA
+2,Protein S100,other,1,NA
+2,protein-glutamine gamma-glutamyltransferase 2-like,other,1,NA
+2,Pyruvate kinase (Fragment),other,1,NA
+2,RAP domain-containing protein,other,1,NA
+2,RAS protein activator like-3-like isoform X1,other,1,NA
+2,Ras-GAP domain-containing protein,other,1,NA
+2,ras-related protein Rab-15-like isoform X1,other,1,NA
+2,Ras-related protein Rab-35,other,1,NA
+2,Receptor protein-tyrosine kinase,other,1,NA
+2,Reticulon-4 receptor-like 2,other,1,NA
+2,Reverse transcriptase domain-containing protein,other,1,NA
+2,Rho family-interacting cell polarization regulator 2,other,1,NA
+2,Rho GTPase activating protein 22,other,1,NA
+2,Rho-associated protein kinase,other,1,NA
+2,Ribosomal_L7Ae domain-containing protein,other,1,NA
+2,ribosome-binding protein 1-like isoform X1,other,1,NA
+2,RIMS-binding protein 2,other,1,NA
+2,RING-type domain-containing protein,other,1,NA
+2,Sentrin-specific protease 7,other,1,NA
+2,Serine-protein kinase ATM,other,1,NA
+2,Serine/threonine-protein kinase,other,1,NA
+2,serine/threonine-protein phosphatase 6 regulatory ankyrin repeat subunit A-like,other,1,NA
+2,Serpin A3-1,other,1,NA
+2,Serpin family B member 7,other,1,NA
+2,Sodium-calcium exchanger,other,1,NA
+2,Solute carrier family 12 member 9,other,1,NA
+2,SPARC_Ca_bdg domain-containing protein,other,1,NA
+2,Structural maintenance of chromosomes protein,other,1,NA
+2,Succinate dehydrogenase complex subunit C,other,1,NA
+2,Sulfhydryl oxidase,other,1,NA
+2,Syntenin-1 (Fragment),other,1,NA
+2,Tektin 5,other,1,NA
+2,Tetratricopeptide repeat protein 25,other,1,NA
+2,"Titin, tandem duplicate 2",muscle,1,NA
+2,Transcription factor 20 (Fragment),other,1,NA
+2,Transcription factor RFX3,other,1,NA
+2,Transmembrane channel-like protein,other,1,NA
+2,Transmembrane protein C14orf101-like protein,other,1,NA
+2,Trinucleotide repeat containing adaptor 6B,other,1,NA
+2,Tripartite motif-containing protein 2,other,1,NA
+2,Trophinin,other,1,NA
+2,"Troponin I type 2a (skeletal, fast), tandem duplicate 1",muscle,1,NA
+2,"Troponin T3, fast skeletal type",muscle,1,NA
+2,tubby-related protein 1-like,other,1,NA
+2,Type I collagen proa3 chain,other,1,NA
+2,Ubiquitin like 7,other,1,NA
+2,UDP-glucuronosyltransferase,other,1,NA
+2,Uncharacterized protein C1orf88-like protein (Fragment),other,1,NA
+2,uncharacterized protein LOC106577652 isoform X1,other,1,NA
+2,Vimentin,other,1,NA
+2,Vitelline coat lysin M6 (Fragment),egg,1,NA
+2,VWFA and cache domain-containing protein 1,other,1,NA
+2,VWFA domain-containing protein,other,1,NA
+2,WD repeat domain 6,other,1,NA
+2,WD repeat-containing protein 24,other,1,NA
+2,Zgc:158846,other,1,NA
+2,zinc finger and BTB domain-containing protein 40,other,1,NA
+2,Zinc finger protein 469,other,1,NA
+2,zinc finger protein 883-like,other,1,NA
+2,zinc finger protein with KRAB and SCAN domains 3-like isoform X1,other,1,NA
+1,1-acyl-sn-glycerol-3-phosphate acyltransferase,other,1,NA
+1,14-3-3 epsilon-like protein variant 2 (Fragment),other,1,NA
+1,14-3-3 protein sigma,other,1,NA
+1,14-3-3 protein zeta/delta,other,1,NA
+1,17-beta-hydroxysteroid dehydrogenase type 6,other,1,NA
+1,3-hydroxy-3-methylglutaryl coenzyme A synthase,other,1,NA
+1,"3-hydroxyanthranilate 3,4-dioxygenase",other,1,NA
+1,"3-ketoacyl-CoA thiolase, mitochondrial (Fragment)",other,1,NA
+1,40S ribosomal protein S4,other,1,NA
+1,4F2 cell-surface antigen heavy chain,other,1,NA
+1,5'-nucleotidase ecto,other,1,NA
+1,"6-phosphogluconate dehydrogenase, decarboxylating",other,1,NA
+1,71kDa heat shock connate protein,other,1,NA
+1,A disintegrin and metalloproteinase with thrombospondin motifs 9,other,1,NA
+1,"A kinase anchor protein 1, mitochondrial (Fragment)",other,1,NA
+1,A-kinase anchor protein 12-like,other,1,NA
+1,A-kinase anchor protein 13,other,1,NA
+1,A-kinase anchor protein 9,other,1,NA
+1,A2M domain-containing protein,other,1,NA
+1,AA_TRNA_LIGASE_II domain-containing protein,other,1,NA
+1,AAA_12 domain-containing protein (Fragment),other,1,NA
+1,AB hydrolase-1 domain-containing protein,other,1,NA
+1,Abnormal spindle microtubule assembly,other,1,NA
+1,Acetyltransferase component of pyruvate dehydrogenase complex,other,1,NA
+1,acid-sensing ion channel 2 isoform X1,other,1,NA
+1,"Aconitate hydratase, mitochondrial",other,1,NA
+1,Actin binding Rho activating protein,other,1,NA
+1,Activating transcription factor 7 interacting protein 2,other,1,NA
+1,Acyl-CoA dehydrogenase very long chain,other,1,NA
+1,Acyl-CoA synthetase family member 4,other,1,NA
+1,"Acyl-CoA synthetase short-chain family member 3, mitochondrial",other,1,NA
+1,"Acylpyruvase FAHD1, mitochondrial",other,1,NA
+1,ADAM metallopeptidase with thrombospondin type 1 motif 3,other,1,NA
+1,Adenosine deaminase RNA specific B1,other,1,NA
+1,Adenylate kinase isoenzyme 1,other,1,NA
+1,Adenylosuccinate lyase,other,1,NA
+1,Adenylosuccinate synthetase,other,1,NA
+1,Adenylosuccinate synthetase isozyme 1 C,other,1,NA
+1,Adhesion G protein-coupled receptor D1,other,1,NA
+1,ADNP homeobox protein 2-like isoform X1,other,1,NA
+1,ADP ribosylation factor like GTPase 14,other,1,NA
+1,ADP-ribosyl cyclase 1 (Fragment),other,1,NA
+1,ADP-ribosylation factor,other,1,NA
+1,Adrenomedullin 5,other,1,NA
+1,Adseverin,other,1,NA
+1,Alcohol dehydrogenase [NADP(+)] A,other,1,NA
+1,Aldose 1-epimerase (Fragment),other,1,NA
+1,ALK tyrosine kinase receptor,other,1,NA
+1,Alkaline phosphatase,other,1,NA
+1,Alkyl transferase,other,1,NA
+1,"alpha-1,2-Mannosidase",other,1,NA
+1,Alpha-1B adrenergic receptor,other,1,NA
+1,alpha-2-macroglobulin-like,other,1,NA
+1,alpha-actinin-2-like,muscle,1,NA
+1,"Alpha-actinin, sarcomeric",muscle,1,NA
+1,Amidophosphoribosyltransferase,other,1,NA
+1,Amine oxidase,other,1,NA
+1,Amyloid-beta A4 protein,other,1,NA
+1,ANAPC8 domain-containing protein (Fragment),other,1,NA
+1,Anaphase-promoting complex subunit 4,other,1,NA
+1,Anaphylatoxin-like domain-containing protein,other,1,NA
+1,Androgen dependent TFPI regulating protein,other,1,NA
+1,Angiopoietin 2,other,1,NA
+1,Angiopoietin-related protein 1,other,1,NA
+1,Angiotensinogen,other,1,NA
+1,Anion exchange protein,other,1,NA
+1,Ankyrin repeat and LEM domain containing 1,other,1,NA
+1,ankyrin repeat and MYND domain-containing protein 2-like,other,1,NA
+1,Ankyrin repeat and SAM domain-containing protein 6,other,1,NA
+1,Ankyrin repeat and sterile alpha motif domain containing 3,other,1,NA
+1,ankyrin repeat and sterile alpha motif domain-containing protein 1B-like,other,1,NA
+1,Ankyrin repeat domain 61,other,1,NA
+1,Ankyrin repeat domain-containing protein 5 (Fragment),other,1,NA
+1,Ankyrin repeat domain-containing protein 53,other,1,NA
+1,Ankyrin repeat domain-containing protein 55,other,1,NA
+1,ankyrin-3-like isoform X1,other,1,NA
+1,Anoctamin,other,1,NA
+1,AP-4 complex accessory subunit tepsin,other,1,NA
+1,APC regulator of WNT signaling pathway 2,other,1,NA
+1,apolipoprotein A-IV-like,other,1,NA
+1,Apolipoprotein B,other,1,NA
+1,"ArfGAP with coiled-coil, ankyrin repeat and PH domains 2",other,1,NA
+1,"ArfGAP with RhoGAP domain, ankyrin repeat and PH domain 1",other,1,NA
+1,Armadillo repeat containing X-linked 4,other,1,NA
+1,aryl hydrocarbon receptor-like isoform X1,other,1,NA
+1,Arylsulfatase B,other,1,NA
+1,Asp_Arg_Hydrox domain-containing protein,other,1,NA
+1,Aspartate aminotransferase,other,1,NA
+1,AT rich interactive domain 4A (RBP1-like),other,1,NA
+1,ATP binding cassette subfamily A member 4,other,1,NA
+1,ATP binding cassette subfamily C member 11,other,1,NA
+1,ATP synthase subunit,other,1,NA
+1,ATP-binding cassette sub-family A member 3,other,1,NA
+1,"ATP-binding cassette sub-family B member 6, mitochondrial",other,1,NA
+1,"ATP-binding cassette sub-family B member 7, mitochondrial (Fragment)",other,1,NA
+1,"ATP-binding cassette, sub-family C (CFTR/MRP), member 4",other,1,NA
+1,ATP-dependent zinc metalloprotease YME1L1-like isoform X1,other,1,NA
+1,ATR-interacting protein,other,1,NA
+1,Atx10homo_assoc domain-containing protein,other,1,NA
+1,"Atypical kinase COQ8B, mitochondrial",other,1,NA
+1,autophagy-related protein 2 homolog A-like,other,1,NA
+1,Autophagy-related protein 2-like protein B (Fragment),other,1,NA
+1,B box-type domain-containing protein,other,1,NA
+1,B30.2/SPRY domain-containing protein,other,1,NA
+1,B7-H1/DC,other,1,NA
+1,BAH and coiled-coil domain-containing protein 1-like,other,1,NA
+1,Bardet-Biedl syndrome 12 protein-like,other,1,NA
+1,Basonuclin 2,other,1,NA
+1,Beclin 2,other,1,NA
+1,Beta-2-microglobulin,other,1,NA
+1,Beta-galactosidase,other,1,NA
+1,Bifunctional apoptosis regulator,other,1,NA
+1,Bifunctional lysine-specific demethylase and histidyl-hydroxylase (Fragment),other,1,NA
+1,Bisphosphate nucleotidase 1,other,1,NA
+1,Bleomycin hydrolase,other,1,NA
+1,BRCA1-associated RING domain protein 1-like,other,1,NA
+1,Brevican,other,1,NA
+1,Bromodomain adjacent to zinc finger domain 1A,other,1,NA
+1,BUB1 mitotic checkpoint serine/threonine kinase,other,1,NA
+1,Butyrophilin subfamily 1 member A1 (Fragment),dairy,1,NA
+1,C-Jun-amino-terminal kinase-interacting protein 4-like isoform X1,other,1,NA
+1,C-terminal-binding protein 2 isoform X1,other,1,NA
+1,C1q domain-containing protein,other,1,NA
+1,C2 domain-containing protein,other,1,NA
+1,C3H1-type domain-containing protein (Fragment),other,1,NA
+1,Cadherin 26,other,1,NA
+1,Cadherin 7,other,1,NA
+1,cadherin-15,other,1,NA
+1,Caffeine-induced protein 16,other,1,NA
+1,Calcium-activated potassium channel subunit alpha-1,other,1,NA
+1,Calmodulin,other,1,NA
+1,Calpain 15,other,1,NA
+1,Calpain catalytic domain-containing protein,other,1,NA
+1,Cap-specific mRNA (Nucleoside-2'-O-)-methyltransferase 1,other,1,NA
+1,CAP10 domain-containing protein,other,1,NA
+1,Caprin family member 2,other,1,NA
+1,Carbamoyl-phosphate synthetase 2,other,1,NA
+1,Carbohydrate sulfotransferase 15,other,1,NA
+1,CARD_2 domain-containing protein,other,1,NA
+1,Carnosine synthase 1,other,1,NA
+1,CASPASE_P20 domain-containing protein (Fragment),other,1,NA
+1,Caspase-6,other,1,NA
+1,Catalase,other,1,NA
+1,Cathelicidin-B1,other,1,NA
+1,CD101 molecule,other,1,NA
+1,CD276 antigen,other,1,NA
+1,Cell cycle control protein,other,1,NA
+1,Cell cycle progression 1,other,1,NA
+1,centlein-like,other,1,NA
+1,Centrosomal protein 131,other,1,NA
+1,Centrosome and spindle pole associated protein 1a,other,1,NA
+1,Ceramide kinase like,other,1,NA
+1,Ceramide synthase 2,other,1,NA
+1,cerebellar degeneration-related protein 2-like isoform X1,other,1,NA
+1,Charged multivesicular body protein 4b,other,1,NA
+1,CHCH domain-containing protein,other,1,NA
+1,Chloride anion exchanger,other,1,NA
+1,chloride channel protein 1-like,other,1,NA
+1,Citrate synthase,other,1,NA
+1,Class II major histocompatibility complex transactivator,other,1,NA
+1,Clavesin-2,other,1,NA
+1,CNH domain-containing protein,other,1,NA
+1,Coatomer subunit alpha,other,1,NA
+1,Codanin-1,other,1,NA
+1,COE1_DBD domain-containing protein,other,1,NA
+1,Cofilin 1,other,1,NA
+1,Coiled-coil and C2 domain-containing protein 1-like protein,other,1,NA
+1,Coiled-coil domain-containing protein 5 (Fragment),other,1,NA
+1,Coiled-coil domain-containing protein 53 (Fragment),other,1,NA
+1,ColAa,other,1,NA
+1,Collagen alpha-1(I) chain,other,1,NA
+1,collagen alpha-1(II) chain isoform X1,other,1,NA
+1,Collagen alpha-1(III) chain (Fragment),other,1,NA
+1,collagen alpha-1(XI) chain isoform X7,other,1,NA
+1,collagen alpha-3(IX) chain-like isoform X1,other,1,NA
+1,collagen alpha-3(VI) chain-like isoform X1,other,1,NA
+1,collagen alpha-3(VI) chain-like isoform X5,other,1,NA
+1,Collagen type VI alpha 3 chain,other,1,NA
+1,"Collagen, type II, alpha 1a",other,1,NA
+1,Complement C1q binding protein,other,1,NA
+1,Complement C1q subcomponent subunit A (Fragment),other,1,NA
+1,Component of oligomeric golgi complex 5,other,1,NA
+1,Condensin-2 complex subunit D3,other,1,NA
+1,condensin-2 complex subunit G2,other,1,NA
+1,Contactin 3,other,1,NA
+1,Contactin-1,other,1,NA
+1,contactin-1-like,other,1,NA
+1,COP9 signalosome complex subunit 1,other,1,NA
+1,Cornifelin,other,1,NA
+1,"Creatine kinase, muscle (Fragment)",other,1,NA
+1,CUB and Sushi multiple domains 3,other,1,NA
+1,CUB domain-containing protein,other,1,NA
+1,CUE domain-containing protein 1-like isoform X1,other,1,NA
+1,Cyclic nucleotide-gated cation channel beta-3,other,1,NA
+1,Cyclin dependent kinase inhibitor 2D,other,1,NA
+1,Cyclin N-terminal domain-containing protein,other,1,NA
+1,Cysteine protease,other,1,NA
+1,Cystic fibrosis transmembrane conductance regulator (Fragment),other,1,NA
+1,CYTB_NTER domain-containing protein,other,1,NA
+1,Cytochrome c oxidase subunit 2,other,1,NA
+1,Cytochrome c oxidase subunit 4I1,other,1,NA
+1,Cytochrome c oxidase subunit 7C,other,1,NA
+1,cytochrome P450 2F3-like,other,1,NA
+1,"Cytochrome P450, family 27, subfamily B, polypeptide 1",other,1,NA
+1,Cytohesin-4 (Fragment),other,1,NA
+1,cytoplasmic dynein 2 heavy chain 1-like,other,1,NA
+1,Cytoskeleton-associated protein 2-like,other,1,NA
+1,D-amino acid oxidase,other,1,NA
+1,D(1) dopamine receptor,other,1,NA
+1,DDB1 and CUL4 associated factor 17,other,1,NA
+1,DDE-1 domain-containing protein,other,1,NA
+1,death-inducer obliterator 1,other,1,NA
+1,Dedicator of cytokinesis 2,other,1,NA
+1,Dedicator of cytokinesis 9,other,1,NA
+1,Delphilin,other,1,NA
+1,DENN domain-containing protein 5A isoform X1,other,1,NA
+1,Deoxyribonuclease,other,1,NA
+1,Desmoglein-1,other,1,NA
+1,Desmoplakin,other,1,NA
+1,Diaphanous related formin 3,other,1,NA
+1,Dicer-like protein 2,other,1,NA
+1,dipeptidyl peptidase 9-like isoform X1,other,1,NA
+1,"Discs, large homolog 5a (Drosophila)",other,1,NA
+1,disintegrin and metalloproteinase domain-containing protein 10,other,1,NA
+1,Disks large-associated protein 1,other,1,NA
+1,Disrupted in renal carcinoma protein 2-like,other,1,NA
+1,DLp/HDL-BGBP,other,1,NA
+1,Dmx like 2,other,1,NA
+1,DNA polymerase,other,1,NA
+1,DNA repair protein RAD52 homolog,other,1,NA
+1,DNA topoisomerase 2-binding protein 1,other,1,NA
+1,DNA_pol_B_2 domain-containing protein,other,1,NA
+1,DNA-directed RNA polymerase,other,1,NA
+1,DNA-directed RNA polymerase subunit,other,1,NA
+1,DnaJ heat shock protein family (Hsp40) member C10,other,1,NA
+1,DnaJ-like protein subfamily C member 2,other,1,NA
+1,Drosha ribonuclease III,other,1,NA
+1,dual oxidase 2-like,other,1,NA
+1,Dual specificity tyrosine-phosphorylation-regulated kinase 2,other,1,NA
+1,DUF2428 domain-containing protein,other,1,NA
+1,DUF3668 domain-containing protein,other,1,NA
+1,DUF4503 domain-containing protein,other,1,NA
+1,DUF4704 domain-containing protein,other,1,NA
+1,DUF4801 domain-containing protein,other,1,NA
+1,Dynein axonemal heavy chain 1,other,1,NA
+1,"Dynein heavy chain 5, axonemal",other,1,NA
+1,"dynein heavy chain 8, axonemal-like",other,1,NA
+1,E2F transcription factor 2,other,1,NA
+1,E3 ubiquitin-protein ligase HERC2,other,1,NA
+1,E3 ubiquitin-protein ligase RNF8,other,1,NA
+1,E3 ubiquitin-protein ligase TRIM21-like,other,1,NA
+1,E3 ubiquitin-protein ligase TRIM33,other,1,NA
+1,E3 ubiquitin-protein ligase TRIM33-like isoform X5,other,1,NA
+1,E4 ubiquitin-protein ligase,other,1,NA
+1,Elastin microfibril interfacer 1a,other,1,NA
+1,"Endo-1,3(4)-beta-glucanase 1",other,1,NA
+1,Endoribonuclease Dicer,other,1,NA
+1,endothelial zinc finger protein induced by tumor necrosis factor alpha-like,other,1,NA
+1,Engulfment and cell motility protein 1,other,1,NA
+1,Enhancer of filamentation 1,other,1,NA
+1,Enolase-like protein ENO4,other,1,NA
+1,Ephrin RBD domain-containing protein,other,1,NA
+1,epidermal growth factor receptor kinase substrate 8 isoform X5,other,1,NA
+1,epidermal growth factor receptor kinase substrate 8-like protein 3 isoform X1,other,1,NA
+1,erythropoietin-like,other,1,NA
+1,Estrogen sulfotransferase,other,1,NA
+1,eukaryotic translation initiation factor 2-alpha kinase 1 isoform X1,other,1,NA
+1,eukaryotic translation initiation factor 4 gamma 1-like,other,1,NA
+1,exocyst complex component 3-like protein,other,1,NA
+1,Exonuclease 1,other,1,NA
+1,extended synaptotagmin-1-like,other,1,NA
+1,Extended synaptotagmin-1-like protein (Fragment),other,1,NA
+1,F-box and leucine-rich repeat protein 15,other,1,NA
+1,F-box domain-containing protein,other,1,NA
+1,F-box only protein 8 (Fragment),other,1,NA
+1,F-box/LRR-repeat protein 6,other,1,NA
+1,FAD-binding PCMH-type domain-containing protein,other,1,NA
+1,Family with sequence similarity 110 member C,other,1,NA
+1,Family with sequence similarity 151 member B,other,1,NA
+1,Fascin,other,1,NA
+1,"FAST kinase domain-containing protein 1, mitochondrial",other,1,NA
+1,Fatty acid synthase,other,1,NA
+1,"Fatty acid-binding protein, heart",other,1,NA
+1,FDX-ACB domain-containing protein,other,1,NA
+1,FERM domain containing 4A,other,1,NA
+1,FERM domain-containing protein,other,1,NA
+1,FERM domain-containing protein (Fragment),other,1,NA
+1,Ferric-chelate reductase 1,other,1,NA
+1,FGGY_N domain-containing protein,other,1,NA
+1,Fibrillin-3,other,1,NA
+1,fibroblast growth factor receptor homolog 1-like,other,1,NA
+1,Fibropellin-1,other,1,NA
+1,Fibulin-1,other,1,NA
+1,Filamin A interacting protein 1,other,1,NA
+1,Filamin-A,other,1,NA
+1,Flotillin,other,1,NA
+1,Fork-head domain-containing protein,other,1,NA
+1,forkhead box protein P4-like isoform X7,other,1,NA
+1,Formin-2,other,1,NA
+1,"Fructose-1,6-bisphosphatase 1",other,1,NA
+1,Fucose mutarotase,other,1,NA
+1,FYVE-type domain-containing protein,other,1,NA
+1,G protein pathway suppressor 2-like,other,1,NA
+1,G-protein coupled receptor 4-like,other,1,NA
+1,Galactokinase,other,1,NA
+1,gamma-aminobutyric acid receptor subunit rho-3-like,other,1,NA
+1,Gamma-glutamyltransferase 5a,other,1,NA
+1,Gamma-synuclein,other,1,NA
+1,Gasdermin A,other,1,NA
+1,GC-rich sequence DNA-binding factor (Fragment),other,1,NA
+1,"GDP-mannose 4,6-dehydratase",other,1,NA
+1,"General transcription factor IIH, polypeptide 1",other,1,NA
+1,Gephyrin,other,1,NA
+1,GLTP domain-containing protein,other,1,NA
+1,Glucose-6-phosphate 1-dehydrogenase,other,1,NA
+1,"Glucuronidase, beta",other,1,NA
+1,Glutamate receptor-interacting protein 1,other,1,NA
+1,Glutathione S-transferase kappa,other,1,NA
+1,glycerophosphocholine phosphodiesterase GPCPD1-like isoform X1,other,1,NA
+1,Glycine cleavage system P protein,other,1,NA
+1,Glycogen debranching enzyme (Fragment),other,1,NA
+1,glycoprotein-N-acetylgalactosamine 3-beta-galactosyltransferase 1-B-like,other,1,NA
+1,Glycosyltransferase-like domain-containing protein 2,other,1,NA
+1,Glyoxylate reductase/hydroxypyruvate reductase,other,1,NA
+1,glypican-5-like isoform X2,other,1,NA
+1,Golgin A3,other,1,NA
+1,Golgin A4,other,1,NA
+1,Golgin subfamily A member 4,other,1,NA
+1,GPI inositol-deacylase,other,1,NA
+1,GRIP and coiled-coil domain containing 1,other,1,NA
+1,Growth differentiation factor 10b,other,1,NA
+1,Guanine nucleotide-binding protein subunit alpha-13,other,1,NA
+1,guanine nucleotide-binding protein-like 3-like protein,other,1,NA
+1,GYF_2 domain-containing protein,other,1,NA
+1,H15 domain-containing protein,other,1,NA
+1,"heat shock protein 75 kDa, mitochondrial-like",other,1,NA
+1,Heat shock protein HSP 90-alpha,other,1,NA
+1,Heavy metal-binding protein HIP,other,1,NA
+1,HECT domain-containing protein,other,1,NA
+1,helicase SRCAP isoform X3,other,1,NA
+1,Helicase with zinc finger 2,other,1,NA
+1,Hemicentin-1,other,1,NA
+1,Hepatocyte growth factor receptor,other,1,NA
+1,Histidine triad Nucleotide-binding protein 3,other,1,NA
+1,Histone deacetylase 4 (Fragment),other,1,NA
+1,histone H1-like isoform X1,other,1,NA
+1,histone-lysine N-methyltransferase 2E-like,other,1,NA
+1,histone-lysine N-methyltransferase NSD3-like isoform X1,other,1,NA
+1,"Histone-lysine N-methyltransferase, H3 lysine-9 specific 5",other,1,NA
+1,Homeobox protein TGIF2LX,other,1,NA
+1,Homeobox-containing protein 1,other,1,NA
+1,Host cell factor,other,1,NA
+1,Host cell factor C1a,other,1,NA
+1,HTH CENPB-type domain-containing protein,other,1,NA
+1,HTH_Tnp_Tc3_2 domain-containing protein,other,1,NA
+1,Hyaluronan mediated motility receptor,other,1,NA
+1,Hydroxysteroid (11-beta) dehydrogenase 1-like a,other,1,NA
+1,Hypoxia-inducible factor alpha-like isoform a,other,1,NA
+1,IG domain-containing protein,other,1,NA
+1,Inhibitory synaptic factor family member 2B,other,1,NA
+1,"Inositol 1,4,5-trisphosphate receptor, type 3",other,1,NA
+1,Inositol 3-trisphosphate receptor type (Fragment),other,1,NA
+1,Inositol oxygenase,other,1,NA
+1,INSC_LBD domain-containing protein,other,1,NA
+1,Integrase catalytic domain-containing protein,other,1,NA
+1,Integrator complex subunit 9,other,1,NA
+1,Integrin alpha-9,other,1,NA
+1,Integrin beta,other,1,NA
+1,Interferon beta-1,other,1,NA
+1,interferon-induced GTP-binding protein Mx2-like,other,1,NA
+1,interferon-induced GTP-binding protein Mx3-like,other,1,NA
+1,interferon-induced protein 44-like,other,1,NA
+1,interferon-induced very large GTPase 1-like,other,1,NA
+1,interferon-induced very large GTPase 1-like isoform X1,other,1,NA
+1,Interleukin-1 receptor-associated kinase 4,other,1,NA
+1,Interleukin-22 receptor subunit alpha-2,other,1,NA
+1,Intraflagellar transport 140,other,1,NA
+1,Ionotropic glutamate receptor kainate 1B (Fragment),other,1,NA
+1,iroquois-class homeodomain protein IRX-1-like,other,1,NA
+1,"isoleucine--tRNA ligase, cytoplasmic",other,1,NA
+1,J domain-containing protein,other,1,NA
+1,Joining chain of multimeric IgA and IgM,other,1,NA
+1,Jumonji domain containing 1C,other,1,NA
+1,jun dimerization protein 2-like,other,1,NA
+1,Katanin p60 ATPase-containing subunit A-like 2,other,1,NA
+1,kelch repeat and BTB domain-containing protein 13-like,other,1,NA
+1,kelch-like protein 40b,other,1,NA
+1,Keratin 23,other,1,NA
+1,"Keratin, type I microfibrillar, 47.6 kDa",other,1,NA
+1,KIAA1324,other,1,NA
+1,Kielin/chordin-like protein,other,1,NA
+1,Kinase,other,1,NA
+1,Kinectin,other,1,NA
+1,Kinectin 1,other,1,NA
+1,Kinesin family member 11,other,1,NA
+1,Kinesin family member 7,other,1,NA
+1,Kinesin-like protein,other,1,NA
+1,KN motif and ankyrin repeat domain-containing protein 1 isoform X1,other,1,NA
+1,Kynureninase,other,1,NA
+1,Laminin subunit beta 2,other,1,NA
+1,laminin subunit gamma-1-like,other,1,NA
+1,laminin subunit gamma-3-like,other,1,NA
+1,LanC-like protein 2 (Fragment),other,1,NA
+1,Large tumor suppressor kinase 1,other,1,NA
+1,Lariat debranching enzyme,other,1,NA
+1,Leucine rich repeat containing 31,other,1,NA
+1,Leucine rich repeat kinase 1,other,1,NA
+1,Leucine zipper and EF-hand containing transmembrane protein 1,other,1,NA
+1,leucine-rich alpha-2-glycoprotein-like,other,1,NA
+1,leucine-rich repeat serine/threonine-protein kinase 2 isoform X1,other,1,NA
+1,Leucine-rich repeat transmembrane neuronal protein 4,other,1,NA
+1,leucine-rich repeat-containing protein 14B,other,1,NA
+1,Leucine-rich repeats and WD repeat domain containing 1,other,1,NA
+1,LIM domain 7,other,1,NA
+1,LIM domain only protein 7 isoform X4,other,1,NA
+1,LIM domain-containing protein 1,other,1,NA
+1,Lipase maturation factor,other,1,NA
+1,Lipoprotein lipase,other,1,NA
+1,lipoxygenase homology domain-containing protein 1,other,1,NA
+1,LON peptidase N-terminal domain and RING finger protein 1-like isoform X1,other,1,NA
+1,long-chain-fatty-acid--CoA ligase 3-like,other,1,NA
+1,long-chain-fatty-acid--CoA ligase 5,other,1,NA
+1,Low density lipoprotein receptor class A domain containing 1,other,1,NA
+1,Low molecular weight neuronal intermediate filament,other,1,NA
+1,LOW QUALITY PROTEIN: lanC-like protein 3,other,1,NA
+1,LOW QUALITY PROTEIN: pecanex-like protein 4,other,1,NA
+1,LOW QUALITY PROTEIN: RNA-binding protein 33,other,1,NA
+1,LRR binding FLII interacting protein 1,other,1,NA
+1,LRRC24 protein,other,1,NA
+1,Lysine demethylase 3A,other,1,NA
+1,lysine-specific demethylase 6A-like isoform X2,other,1,NA
+1,lysosomal acid phosphatase isoform X1,other,1,NA
+1,Lysosomal trafficking regulator,other,1,NA
+1,macrophage mannose receptor 1-like,other,1,NA
+1,Macrophage migration inhibitory factor,other,1,NA
+1,"Major histocompatibility complex, class II, DR alpha",other,1,NA
+1,Malate dehydrogenase,other,1,NA
+1,"Mannose receptor, C type 2",other,1,NA
+1,Mannosyltransferase,other,1,NA
+1,MAPK interacting serine/threonine kinase 1,other,1,NA
+1,MARCKS-related protein-like,other,1,NA
+1,matrilin-2-like isoform X3,other,1,NA
+1,Matrin-3,other,1,NA
+1,meiosis-specific coiled-coil domain-containing protein MEIOC isoform X1,other,1,NA
+1,Merlin,other,1,NA
+1,Mesothelin-like protein,other,1,NA
+1,Metallothionein-B,other,1,NA
+1,Methionine synthase,other,1,NA
+1,Methylmalonyl-CoA mutase,other,1,NA
+1,MFS domain-containing protein,other,1,NA
+1,MHC class II antigen (Fragment),other,1,NA
+1,MHC class II DQ alpha,other,1,NA
+1,MICAL-like protein 2,other,1,NA
+1,microtubule-actin cross-linking factor 1-like isoform X8,muscle,1,NA
+1,Microtubule-associated protein 1A,other,1,NA
+1,Migration and invasion-inhibitory protein,other,1,NA
+1,Mitochondrial 2-oxoglutarate/malate carrier protein,other,1,NA
+1,Mitochondrial antiviral signaling protein,other,1,NA
+1,Mitogen-activated protein kinase-binding protein 1,other,1,NA
+1,"Moloney leukemia virus 10b, tandem duplicate 2",other,1,NA
+1,Molybdopterin molybdenumtransferase,other,1,NA
+1,MORC family CW-type zinc finger protein 3,other,1,NA
+1,MRN complex interacting protein,other,1,NA
+1,MTSS I-BAR domain containing 2,other,1,NA
+1,mucin-5AC-like,other,1,NA
+1,Multidrug resistance protein 1,other,1,NA
+1,Multiple EGF-like-domains 6b,other,1,NA
+1,Multiple EGF-like-domains 8,other,1,NA
+1,Multiple epidermal growth factor-like domains protein 6,other,1,NA
+1,Muscleblind like splicing regulator 1,other,1,NA
+1,Myeloid-specific peroxidase,other,1,NA
+1,MYND-type domain-containing protein,other,1,NA
+1,myomegalin-like isoform X6,muscle,1,NA
+1,Myomesin 1,muscle,1,NA
+1,"Myosin heavy chain, striated muscle",muscle,1,NA
+1,Myosin IA,muscle,1,NA
+1,Myosin light chain 2,muscle,1,NA
+1,Myosin light chain 3,muscle,1,NA
+1,myosin phosphatase Rho-interacting protein-like isoform X1,muscle,1,NA
+1,myosin-10 isoform X12,muscle,1,NA
+1,myotubularin-related protein 4 isoform X1,muscle,1,NA
+1,N-acetylglucosamine-1-phosphate transferase subunit gamma,other,1,NA
+1,N-acetylneuraminate lyase,other,1,NA
+1,N-acetyltransferase domain-containing protein,other,1,NA
+1,"N(alpha)-acetyltransferase 80, NatH catalytic subunit",other,1,NA
+1,"NADH-ubiquinone oxidoreductase chain 1",other,1,NA
+1,"nascent polypeptide-associated complex subunit alpha, muscle-specific form-like isoform X1",other,1,NA
+1,Nebulin-related anchoring protein,muscle,1,NA
+1,Nectin 2,other,1,NA
+1,Neural cell adhesion molecule 1b,other,1,NA
+1,neural cell adhesion molecule L1.1-like isoform X1,other,1,NA
+1,Neurexin 1,other,1,NA
+1,Neurexophilin,other,1,NA
+1,Neurite extension and migration factor b,other,1,NA
+1,neurofascin isoform X5,other,1,NA
+1,Neuronal acetylcholine receptor subunit alpha-2,other,1,NA
+1,Neuronal PAS domain-containing protein 4,other,1,NA
+1,Neuropilin and tolloid like 2,other,1,NA
+1,NFX1-type zinc finger-containing protein 1,other,1,NA
+1,Nitric oxide associated 1,other,1,NA
+1,Nitric oxide synthase,other,1,NA
+1,"nuclear factor 7, brain-like",other,1,NA
+1,Nuclear factor related to kappaB binding protein,other,1,NA
+1,nuclear receptor subfamily 1 group D member 2-like isoform X1,other,1,NA
+1,Nucleoside diphosphate kinase B,other,1,NA
+1,NUT domain-containing protein,other,1,NA
+1,Obscurin,other,1,NA
+1,Obscurin like 1,other,1,NA
+1,Olfactomedin 4,other,1,NA
+1,Opioid receptor kappa 1,other,1,NA
+1,Origin recognition complex subunit 6,other,1,NA
+1,Ovomucoid,egg,1,NA
+1,Palmitoyltransferase,other,1,NA
+1,Pantetheinase (Fragment),other,1,NA
+1,"Par-3 family cell polarity regulator alpha, b",other,1,NA
+1,partitioning defective 3 homolog isoform X2,other,1,NA
+1,parvalbumin beta 1-like,other,1,NA
+1,Patched domain-containing protein 3,other,1,NA
+1,PB1 domain-containing protein,other,1,NA
+1,PDZ and LIM domain 5,other,1,NA
+1,PDZ domain-containing protein 7,other,1,NA
+1,Peptidase S1 domain-containing protein (Fragment),other,1,NA
+1,Peptidase S59 domain-containing protein,other,1,NA
+1,"Peptidyl-tRNA hydrolase 2, mitochondrial",other,1,NA
+1,Peptidylprolyl isomerase,other,1,NA
+1,Period circadian regulator 2,other,1,NA
+1,peroxisomal sarcosine oxidase,muscle,1,NA
+1,Peroxisome biogenesis factor 1,other,1,NA
+1,PH and SEC7 domain-containing protein 3-like isoform X1,other,1,NA
+1,PH domain-containing protein (Fragment),other,1,NA
+1,Phosphatase Slingshot-like protein 2,other,1,NA
+1,"Phosphatidylinositol 3,4,5-trisphosphate 3-phosphatase and dual-specificity protein phosphatase PTEN",other,1,NA
+1,Phosphatidylinositol N-acetylglucosaminyltransferase subunit C,other,1,NA
+1,Phosphatidylinositol-4-phosphate 3-kinase catalytic subunit type 2 alpha,other,1,NA
+1,Phosphodiesterase,other,1,NA
+1,Phospholipase A(2),other,1,NA
+1,Phosphopantothenoylcysteine decarboxylase,other,1,NA
+1,Phosphorylated adaptor for RNA export,other,1,NA
+1,Phosphotransferase,other,1,NA
+1,Piccolo presynaptic cytomatrix protein,other,1,NA
+1,PID domain-containing protein,other,1,NA
+1,Plastin-1,other,1,NA
+1,Plastin-3 (Fragment),other,1,NA
+1,plastin-3-like,other,1,NA
+1,Platelet-activating factor receptor,other,1,NA
+1,PLCXc domain-containing protein,other,1,NA
+1,Pleckstrin homology domain containing M3,other,1,NA
+1,"Pleckstrin homology domain containing, family G (with RhoGef domain) member 4",other,1,NA
+1,Pleckstrin homology domain-containing family G member 3,other,1,NA
+1,Pleckstrin homology domain-containing family M member 3,other,1,NA
+1,pleckstrin homology-like domain family B member 1 isoform X1,other,1,NA
+1,PNPLA domain-containing protein,other,1,NA
+1,poly [ADP-ribose] polymerase 12-like,other,1,NA
+1,Polycystic kidney disease protein 1-like 2,other,1,NA
+1,"Polymerase (DNA directed), eta",other,1,NA
+1,Polypeptide N-acetylgalactosaminyltransferase,other,1,NA
+1,"Polyribonucleotide nucleotidyltransferase 1, mitochondrial",other,1,NA
+1,potassium channel subfamily K member 10-like isoform X1,other,1,NA
+1,Potassium voltage-gated channel subfamily H member 5 (Fragment),other,1,NA
+1,Potassium voltage-gated channel subfamily V member 2,other,1,NA
+1,"Potassium voltage-gated channel, subfamily H (eag-related), member 6a",other,1,NA
+1,Potassium/sodium hyperpolarization-activated cyclic nucleotide-gated channel 2,other,1,NA
+1,PPARG coactivator 1 alpha,other,1,NA
+1,PPM-type phosphatase domain-containing protein (Fragment),other,1,NA
+1,Prefoldin subunit 4,other,1,NA
+1,probable inactive glycosyltransferase 25 family member 3,other,1,NA
+1,proline-rich protein 5-like isoform X1,other,1,NA
+1,Prominin-1,other,1,NA
+1,Prostaglandin E2 receptor EP4 subtype,other,1,NA
+1,Proteasome assembly chaperone 3,other,1,NA
+1,Proteasome subunit alpha type-7,other,1,NA
+1,Proteasome subunit beta,other,1,NA
+1,protein CBFA2T3-like isoform X1,other,1,NA
+1,protein FAM117B-like,other,1,NA
+1,protein FAM57B,other,1,NA
+1,protein Jumonji-like isoform X1,other,1,NA
+1,"Protein kinase, cAMP-dependent, regulatory, type II, alpha, B",other,1,NA
+1,Protein MEMO1,other,1,NA
+1,protein MGARP isoform X1,other,1,NA
+1,Protein muscleblind,other,1,NA
+1,protein Niban,other,1,NA
+1,Protein phosphatase 1 regulatory inhibitor subunit 14C,other,1,NA
+1,protein piccolo-like isoform X4,other,1,NA
+1,Protein PTHB1,other,1,NA
+1,Protein S100-A6,other,1,NA
+1,protein shisa-7-like isoform X1,other,1,NA
+1,protein SMG5,other,1,NA
+1,Protein Spindly,other,1,NA
+1,Protein tyrosine phosphatase receptor type N,other,1,NA
+1,Protein tyrosine phosphatase receptor type Z1,other,1,NA
+1,protein virilizer homolog,other,1,NA
+1,protein-methionine sulfoxide oxidase mical1-like isoform X1,other,1,NA
+1,protein-methionine sulfoxide oxidase mical3b-like,other,1,NA
+1,Proteinase-activated receptor 2 (Fragment),other,1,NA
+1,Protocadherin alpha 11,other,1,NA
+1,Protocadherin Fat 1 (Fragment),other,1,NA
+1,Protogenin B,other,1,NA
+1,PseudoU_synth_1 domain-containing protein,other,1,NA
+1,Putative ATP-dependent RNA helicase DDX52,other,1,NA
+1,Putative G-protein coupled receptor 125 (Fragment),other,1,NA
+1,Putative N-ethylmaleimide sensitive fusion protein (Fragment),other,1,NA
+1,PX domain-containing protein,other,1,NA
+1,"pyruvate carboxylase, mitochondrial-like",other,1,NA
+1,Pyruvate dehydrogenase E1 component subunit beta,other,1,NA
+1,Rabphilin 3A like (without C2 domains),other,1,NA
+1,Radial spoke head 1 homolog,other,1,NA
+1,RanBD1 domain-containing protein,other,1,NA
+1,RAP80_UIM domain-containing protein,other,1,NA
+1,ras GTPase-activating protein nGAP isoform X1,other,1,NA
+1,Ras-related protein Rab-27A (Fragment),other,1,NA
+1,Receptor protein serine/threonine kinase (Fragment),other,1,NA
+1,receptor-type tyrosine-protein phosphatase R,other,1,NA
+1,regulator of microtubule dynamics protein 3,other,1,NA
+1,Relaxin family peptide receptor 2a,other,1,NA
+1,"REV3 like, DNA directed polymerase zeta catalytic subunit",other,1,NA
+1,RFX-type winged-helix domain-containing protein,other,1,NA
+1,RGS domain-containing protein,other,1,NA
+1,Rho GTPase activating protein 15,other,1,NA
+1,Rho GTPase activating protein 5,other,1,NA
+1,Rho guanine nucleotide exchange factor 11,other,1,NA
+1,Rho guanine nucleotide exchange factor 17,other,1,NA
+1,Rho-associated protein kinase 1 (Fragment),other,1,NA
+1,rho-associated protein kinase 2-like isoform X1,other,1,NA
+1,Rho-GAP domain-containing protein,other,1,NA
+1,Rhodopsin (Fragment),other,1,NA
+1,Ribonuclease ZC3H12A,other,1,NA
+1,Ribosomal_L2_C domain-containing protein,other,1,NA
+1,Ribosomal_S7 domain-containing protein,other,1,NA
+1,"RIC1 homolog, RAB6A GEF complex partner 1",other,1,NA
+1,RING finger and transmembrane domain-containing protein 1 (Fragment),other,1,NA
+1,Ring finger and WD repeat domain 3,other,1,NA
+1,RING finger protein 151-like,other,1,NA
+1,RNA guanine-7 methyltransferase activating subunit,other,1,NA
+1,RNB domain-containing protein,other,1,NA
+1,roundabout homolog 2-like isoform X1,other,1,NA
+1,RRM domain-containing protein (Fragment),other,1,NA
+1,RT_RNaseH domain-containing protein,other,1,NA
+1,Ryanodine receptor 1,other,1,NA
+1,ryanodine receptor 1-like isoform X1,other,1,NA
+1,SAP domain-containing protein,other,1,NA
+1,SCO-spondin isoform X4,other,1,NA
+1,"SEC24 homolog C, COPII coat complex component",other,1,NA
+1,SECIS binding protein 2 like,other,1,NA
+1,secretagogin-like isoform X2,other,1,NA
+1,Seizure related 6 homolog,other,1,NA
+1,Semaphorin 3F,other,1,NA
+1,serine protease 27-like,other,1,NA
+1,Serine/threonine-protein kinase Nek11,other,1,NA
+1,Serine/threonine-protein kinase PLK,other,1,NA
+1,serine/threonine-protein kinase PLK4-like isoform X3,other,1,NA
+1,serine/threonine-protein kinase TAO1-like,other,1,NA
+1,serine/threonine-protein kinase ULK1 isoform X3,other,1,NA
+1,Serpin B10 (Fragment),other,1,NA
+1,Serpin B8,other,1,NA
+1,Serpin family B member 5,other,1,NA
+1,SET domain-containing protein,other,1,NA
+1,Sex-determining region Y protein,other,1,NA
+1,SH2B adaptor protein 2,other,1,NA
+1,SH3 and multiple ankyrin repeat domains protein 3,other,1,NA
+1,SH3 domain containing 21,other,1,NA
+1,short transient receptor potential channel 1,other,1,NA
+1,Short transient receptor potential channel 7,other,1,NA
+1,"Short/branched chain specific acyl-CoA dehydrogenase, mitochondrial",other,1,NA
+1,Shroom family member 2,other,1,NA
+1,Si:dkey-119f1.1,other,1,NA
+1,SKI family transcriptional corepressor 1b,other,1,NA
+1,Small conductance calcium-activated potassium channel (Fragment),other,1,NA
+1,Small G protein signaling modulator 1,other,1,NA
+1,SMC hinge domain-containing protein (Fragment),other,1,NA
+1,SMC5-SMC6 complex localization factor protein 2-like isoform X1,other,1,NA
+1,Smoothelin,other,1,NA
+1,SNF2 histone linker PHD RING helicase,other,1,NA
+1,Sodium/potassium-transporting ATPase subunit alpha,other,1,NA
+1,Solute carrier family 16 member 3,other,1,NA
+1,Solute carrier family 25 member 12,other,1,NA
+1,Solute carrier family 25 member 21,other,1,NA
+1,Solute carrier family 25 member 3,other,1,NA
+1,Sortilin related receptor 1,other,1,NA
+1,sortilin-related receptor isoform X1,other,1,NA
+1,Sorting nexin,other,1,NA
+1,Spatacsin,other,1,NA
+1,Spectrin repeat containing nuclear envelope protein 2,other,1,NA
+1,"Spectrin repeat containing, nuclear envelope 1b",other,1,NA
+1,Sphingomyelin phosphodiesterase acid like 3B,other,1,NA
+1,spindle assembly checkpoint kinase-like,other,1,NA
+1,Sprouty RTK signaling antagonist 2,other,1,NA
+1,SSD domain-containing protein,other,1,NA
+1,"Steroid 17-alpha-hydroxylase/17,20 lyase",other,1,NA
+1,Stromal interaction molecule 2,other,1,NA
+1,structural maintenance of chromosomes protein 2,other,1,NA
+1,Superoxide dismutase [Cu-Zn],other,1,NA
+1,supervillin-like isoform X5,other,1,NA
+1,Suppressor of tumorigenicity 14 protein homolog,other,1,NA
+1,Synaptosome associated protein 29,other,1,NA
+1,Syndecan binding protein 2,other,1,NA
+1,T cell leukemia homeobox 1,other,1,NA
+1,T-box transcription factor 15,other,1,NA
+1,T-cell leukemia homeobox protein 3,other,1,NA
+1,T-cell surface antigen CD2-like isoform X1,other,1,NA
+1,T-cell surface glycoprotein CD4,other,1,NA
+1,T-complex protein 1 subunit eta (Fragment),other,1,NA
+1,Taperin,other,1,NA
+1,TATA-binding protein-associated factor 172,other,1,NA
+1,Tau tubulin kinase 1,other,1,NA
+1,Tau-tubulin kinase 1,other,1,NA
+1,TBC1 domain family member 1 (Fragment),other,1,NA
+1,TBC1 domain family member 12,other,1,NA
+1,TBC1 domain family member 30,other,1,NA
+1,TBC1 domain family member 5,other,1,NA
+1,TBC1 domain family member 9,other,1,NA
+1,"TBC1 domain family, member 2",other,1,NA
+1,"TBC1 domain family, member 2B",other,1,NA
+1,Tektin-1,other,1,NA
+1,"TEL2, telomere maintenance 2, homolog (S. cerevisiae)",other,1,NA
+1,Telomerase reverse transcriptase,other,1,NA
+1,Telomeric repeat-binding factor 2,other,1,NA
+1,Teneurin-3,other,1,NA
+1,Testis expressed 2,other,1,NA
+1,testis-expressed sequence 11 protein isoform X3,other,1,NA
+1,Tetraspanin,other,1,NA
+1,Tetratricopeptide repeat protein 21B,other,1,NA
+1,tetratricopeptide repeat protein 28-like isoform X1,other,1,NA
+1,tetratricopeptide repeat protein 36,other,1,NA
+1,TFIIS N-terminal domain-containing protein,other,1,NA
+1,Thimet oligopeptidase 1,other,1,NA
+1,Thioredoxin domain-containing protein,other,1,NA
+1,"Thrombospondin, type I, domain containing 1",other,1,NA
+1,Thymidine phosphorylase,other,1,NA
+1,Thyroid hormone receptor interactor 11,other,1,NA
+1,TIR domain-containing protein,other,1,NA
+1,TNFAIP3-interacting protein 1-like isoform X4,other,1,NA
+1,TNFRSF1A associated via death domain,other,1,NA
+1,TOG domain-containing protein,other,1,NA
+1,Toll-like receptor 1 (Fragment),other,1,NA
+1,Toll-like receptor 4,other,1,NA
+1,TPD52 like 2,other,1,NA
+1,TPR_MLP1_2 domain-containing protein,other,1,NA
+1,Transcription factor 12 (Fragment),other,1,NA
+1,transcriptional regulator Kaiso-like,other,1,NA
+1,Transcriptional repressor GATA binding 1,other,1,NA
+1,Transient receptor potential cation channel subfamily M member 1,other,1,NA
+1,Transmembrane and coiled-coil domain family 3,other,1,NA
+1,Transmembrane anterior posterior transformation protein 1-like protein,other,1,NA
+1,Transmembrane O-methyltransferase,other,1,NA
+1,Transmembrane protein 120B,other,1,NA
+1,Transmembrane protein 200C,other,1,NA
+1,trichohyalin-like isoform X1,other,1,NA
+1,"Trifunctional enzyme subunit alpha, mitochondrial",other,1,NA
+1,Tripartite motif containing 3a,other,1,NA
+1,tripartite motif-containing protein 16-like,other,1,NA
+1,Tripartite motif-containing protein 3,other,1,NA
+1,Tripeptidyl-peptidase 2,other,1,NA
+1,tRNA (adenine(58)-N(1))-methyltransferase non-catalytic subunit TRM6,other,1,NA
+1,tRNA (guanine-N(7)-)-methyltransferase non-catalytic subunit WDR4,other,1,NA
+1,tropomyosin alpha-3 chain isoform X5,muscle,1,NA
+1,Troponin C fast,muscle,1,NA
+1,Troponin I-like,muscle,1,NA
+1,TsaA-like domain-containing protein,other,1,NA
+1,TSPY like 5,other,1,NA
+1,TTC5_OB domain-containing protein,other,1,NA
+1,Tubulin alpha chain,other,1,NA
+1,Tudor domain containing 9,other,1,NA
+1,tudor domain-containing protein 7 isoform X1,other,1,NA
+1,TYRO3 protein tyrosine kinase,other,1,NA
+1,Tyrosinase,other,1,NA
+1,Tyrosine-protein kinase receptor (Fragment),other,1,NA
+1,U-box domain containing 5,other,1,NA
+1,U11/U12 small nuclear ribonucleoprotein 25 kDa protein,other,1,NA
+1,Ubiquinol-cytochrome c reductase core protein 1,other,1,NA
+1,"Ubiquinone biosynthesis O-methyltransferase, mitochondrial",other,1,NA
+1,UBIQUITIN_CONJUGAT_2 domain-containing protein,other,1,NA
+1,Ubiquitination factor E4B,other,1,NA
+1,UDENN FNIP1/2-type domain-containing protein,other,1,NA
+1,UDP-N-acetylhexosamine pyrophosphorylase-like protein 1,other,1,NA
+1,UmuC domain-containing protein,other,1,NA
+1,Unc-45 myosin chaperone B,muscle,1,NA
+1,uncharacterized protein C17orf53-like isoform X2,other,1,NA
+1,Uncharacterized protein C17orf68-like protein (Fragment),other,1,NA
+1,Uncharacterized protein C20orf195-like protein (Fragment),other,1,NA
+1,Uncharacterized protein CXorf57 (Fragment),other,1,NA
+1,uncharacterized protein LOC106581144,other,1,NA
+1,uncharacterized protein LOC106584876,other,1,NA
+1,uncharacterized protein LOC106604769,other,1,NA
+1,uncharacterized protein LOC106611023 isoform X1,other,1,NA
+1,uncharacterized protein LOC106611247 isoform X2,other,1,NA
+1,uncharacterized protein LOC108274046,other,1,NA
+1,unconventional myosin-IXb-like,muscle,1,NA
+1,UPF0573 protein C2orf70-like A,other,1,NA
+1,USP domain-containing protein,other,1,NA
+1,utrophin-like isoform X1,other,1,NA
+1,V-type proton ATPase subunit a,other,1,NA
+1,V-type proton ATPase subunit C,other,1,NA
+1,V(D)J recombination-activating protein 1 (Fragment),other,1,NA
+1,Vacuolar protein sorting 13 homolog A,other,1,NA
+1,Vesicle-associated protein,other,1,NA
+1,VHS domain-containing protein,other,1,NA
+1,Vitellogenin Ab,egg,1,NA
+1,Vitellogenin domain-containing protein,egg,1,NA
+1,Vitellogenin-3,egg,1,NA
+1,VLIG-type G domain-containing protein,other,1,NA
+1,Voltage-dependent L-type calcium channel subunit alpha,other,1,NA
+1,VWFA domain-containing protein (Fragment),other,1,NA
+1,W2 domain-containing protein,other,1,NA
+1,WAS protein family homolog 1,other,1,NA
+1,WASH complex subunit strumpellin,other,1,NA
+1,WD and tetratricopeptide repeats protein 1 isoform X1,other,1,NA
+1,WD repeat domain 24,other,1,NA
+1,WD repeat domain 36,other,1,NA
+1,WD repeat domain 55,other,1,NA
+1,WD repeat-containing and planar cell polarity effector protein fritz-like,other,1,NA
+1,WD_REPEATS_REGION domain-containing protein,other,1,NA
+1,WD_REPEATS_REGION domain-containing protein (Fragment),other,1,NA
+1,Wiskott-Aldrich syndrome protein family member 3,other,1,NA
+1,WNK lysine deficient protein kinase 2,other,1,NA
+1,Xanthine dehydrogenase,other,1,NA
+1,Xpo1 domain-containing protein,other,1,NA
+1,Zgc:194887,other,1,NA
+1,Zgc:55262,other,1,NA
+1,zinc finger and BTB domain-containing protein 49 isoform X1,other,1,NA
+1,Zinc finger CCCH domain-containing protein 7B,other,1,NA
+1,Zinc finger CCHC domain-containing protein 2 (Fragment),other,1,NA
+1,Zinc finger MYM-type protein 3,other,1,NA
+1,Zinc finger protein 112,other,1,NA
+1,Zinc finger protein 114,other,1,NA
+1,Zinc finger protein 148,other,1,NA
+1,zinc finger protein 40-like isoform X1,other,1,NA
+1,zinc finger protein 436-like isoform X1,other,1,NA
+1,zinc finger protein 618 isoform X1,other,1,NA
+1,Zinc finger protein DPF3,other,1,NA
+1,Zonadhesin,other,1,NA
+1,ZZ-type domain-containing protein,other,1,NA

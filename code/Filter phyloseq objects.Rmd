@@ -317,7 +317,7 @@ ex.muscle <- '[^rt][Aa]ctin|[Mm]yo|[Nn]ebulin|[Ss]arco|[Tt]itin|[Tt]ropo'
 # Think many of these (had previously had as '[Kk]eratin|[Cc]ollagen|[Ff]ormin') are not cell-type specific and could be reasonably expected to be in human epithelia
 
 # Egg
-ex.egg <- '[Vv]itell|^Ovo|[Aa]lbumin'
+ex.egg <- '[Vv]itell|^Ovo'
 
 # Dairy
 # Lacto gives other hits (e.g. beta-galactosidase, galactokinase), but nothing resembling lactoglobulin, so removed
