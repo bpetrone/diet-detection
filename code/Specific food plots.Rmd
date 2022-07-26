@@ -11,6 +11,7 @@ opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```
 
 ```{r libraries, echo=FALSE}
+library(cowplot)
 library(here) 
 library(phyloseq) 
 library(tidyverse) 
@@ -79,14 +80,16 @@ ps.protein <-
           'phyloseq',
           'combined',
           'filtered',
-          # 'ps_mp_1PUP_taxa.rds') %>% # >=1 protein unique peptide
-          'ps_mp_1UP_taxa.rds') %>% # >=1 unique peptide
+          # 'ps_mp_1PUP.rds') %>% # >=1 protein unique peptide
+          'ps_mp_1UP.rds') %>% # >=1 unique peptide
      readRDS()
           
 ps.protein
 ```
 
 ## Menu data phyloseq
+
+### Aggregate, taxon-level
 
 ```{r}
 ps.menu <- 
@@ -101,6 +104,46 @@ ps.menu <-
 ps.menu
 ```
 
+### Food group level
+
+```{r}
+ps.menu.908.groups <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'ps_menu_908 (with groups).rds') %>% 
+     readRDS()
+```
+
+```{r}
+ps.menu.dfc.groups <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'ps_menu_DFC (with groups).rds') %>% 
+     readRDS()
+```
+
+### Protein annotations
+
+```{r}
+# Raw protein list
+proteins.df <- 
+     here('data',
+          'processed',
+          '5FDR_1UP_both datasets.rds') %>% 
+     readRDS()
+```
+
+```{r}
+annotations <- 
+     here('data',
+          'processed',
+          'Animal-based proteins (full annotation).csv') %>% 
+     read_csv()
+
+annotations
+```
 ## Metabarcoding phyloseq
 
 ```{r}
@@ -152,57 +195,238 @@ samples <-
 
 samples
 ```
+## Metaproteomics
 
-## Dietary data
+### Label proteins
+
+These are already filtered:
 
 ```{r}
+head(taxa_names(ps.protein))
+ps.protein
+```
+
+```{r}
+annotations <- select(annotations, 
+                      protein = word, category)
+```
+
+```{r}
+cat('Starting entries:', nrow(proteins.df), '\n')
+
+proteins.df <- 
+     proteins.df %>% 
+     select(-category) %>% # 'plant' or 'animal'; want to replace
+     filter(Accession %in% taxa_names(ps.protein)) %>% 
+     mutate(protein = gsub(Description,
+                           pattern = ' OS=.*$',
+                           replacement = '')) %>% 
+     left_join(annotations)
+
+cat('Filtered entries:', nrow(proteins.df))
+```
+
+```{r}
+n_distinct(proteins.df$Accession)
+```
+
+Great! This lines up with the number of taxa in the phyloseq object. Subset to relevant columns and use for filtering later:
+
+```{r}
+annotations <- 
+     proteins.df %>% 
+     select(Accession, category, protein) %>% 
+     distinct() %>% 
+     mutate(category = ifelse(is.na(category),
+                              yes = 'other',
+                              no = category))
+
+rm(proteins.df)
+```
+
+```{r}
+table(annotations$category)
+```
+
+## Menu
+
+### Sync metadata
+
+Note difference in entries in OTU table:
+     - DFC: grams of intake
+     - Healthy Donor: # of instances of intake
+     
+```{r}
+head(sample_names(ps.menu.dfc.groups))
+head(sample_names(ps.menu.908.groups))
+```
+
+```{r}
+sample_variables(ps.menu.dfc.groups)
+sample_variables(ps.menu.908.groups)
+```
+
+```{r}
+# Correct difference in naming and state of variables (908 subj is character, DFC is factor)
+sample_data(ps.menu.dfc.groups) <- 
+     ps.menu.dfc.groups@sam_data %>% 
+     data.frame() %>% 
+     rename(subj = ID) %>% 
+     mutate(subj = as.character(subj))
+
+sample_data(ps.menu.908.groups) <- 
+     ps.menu.908.groups@sam_data %>% 
+     data.frame() %>% 
+     rename(subj = ID,
+            date = day)
+```
+
+```{r}
+# Add study variable
+sample_data(ps.menu.dfc.groups)$study <- 'Intervention'
+sample_data(ps.menu.908.groups)$study <- 'Habitual Diet'
+```
+
+### Merge
+
+Perhaps rather than concerning myself with the whole object, just filter to only the taxa I'm actively considering below?
+
+Otherwise a merge will definitely be an incomplete one, because I've only labeledd food groups for a subset of the 908 detected taxa, but Sharon has labeled them all for DFC.  This induces discrepancies like:
+- 908: Vanilla planifolia_NA
+- DFC: Vanilla planifolia_herbs, seasonings, spices; Vanilla planifolia_oils-sugars
+
+(However, all of this can be resolved by a tax_glom on the "name" column.)
+
+```{r}
+taxa <- c('Gallus gallus', 'Bos taurus')
+
+ps.menu.dfc.groups <- 
+     ps.menu.dfc.groups %>% 
+     subset_taxa(species %in% taxa) 
+
+taxa_names(ps.menu.dfc.groups)
+```
+
+```{r}
+ps.menu.908.groups <- 
+     ps.menu.908.groups %>% 
+     subset_taxa(species %in% taxa) 
+
+taxa_names(ps.menu.908.groups)
+```
+
+All match! Merge:
+```{r}
+ps.menu.groups <- 
+     merge_phyloseq(ps.menu.908.groups,
+                    ps.menu.dfc.groups)
+
+ps.menu.groups
+rm(ps.menu.908.groups, ps.menu.dfc.groups)
+```
+
+## Melt dietary data
+```{r}
 melt.menu <- psmelt(ps.menu) 
+melt.menu.groups <- psmelt(ps.menu.groups)
 melt.mb.plant <- psmelt(ps.mb.plant)
 melt.mb.animal <- psmelt(ps.mb.animal)
 melt.mp <- psmelt(ps.protein)
 ```
 
+#### Add common name
 Add common name and group by dataset:
 
 ```{r}
 melt.menu <- 
      melt.menu %>% 
      left_join(select(name.sync,
-                      menu_taxa, common_name, taxon_index),
+                      menu_taxa, common_name),
                by = c('OTU' = 'menu_taxa'))
+
+melt.menu.groups <- 
+     melt.menu.groups %>% 
+     left_join(select(name.sync,
+                      menu_taxa, common_name),
+               by = c('name' = 'menu_taxa')) %>% 
+     # Remove species name before group
+     mutate(group = gsub(group,
+                         pattern = '^[^_]*_',
+                         replacement = ''),
+            OTU = gsub(OTU, 
+                       pattern = '_.*$',
+                       replacement = ''))
 
 melt.mb.animal <- 
      melt.mb.animal %>% 
      left_join(select(name.sync,
-                      mb_taxa, common_name, taxon_index),
+                      mb_taxa, common_name),
                by = c('OTU' = 'mb_taxa'))
 
 melt.mb.plant <- 
      melt.mb.plant %>% 
      left_join(select(name.sync,
-                      mb_taxa, common_name, taxon_index),
+                      mb_taxa, common_name),
                by = c('OTU' = 'mb_taxa'))
 
+# Note column naming differences for metaproteomics
 melt.mp <- 
      melt.mp %>% 
      left_join(select(name.sync,
-                      mp_taxa, common_name, taxon_index),
-               by = c('OTU' = 'mp_taxa'))
+                      mp_taxa, common_name),
+               by = c('name' = 'mp_taxa'))
 ```
+
+### Add detection method
 
 ```{r}
 # Add dataset info to each melted object
-melt.menu$detection <-  'Menu'
+# melt.menu$detection <-  'Menu'
+melt.menu.groups$detection <- 'Menu'
 melt.mb.plant$detection <- 'DNA'
 melt.mb.animal$detection <- 'DNA'
 melt.mp$detection <- 'Protein'
 ```
 
+#### Add tissue type
+
+Menu is embedded, done above
+
 ```{r}
-melts <- list(melt.menu,
-              melt.mb.animal,
-              melt.mb.plant,
-              melt.mp)
+melt.mp <- 
+     left_join(melt.mp, annotations,
+               by = c('OTU' = 'Accession'))
+```
+
+```{r}
+# Sum abundances within each food taxon and tissue type
+melt.mp <- 
+     melt.mp %>% 
+     group_by(detection, 
+              study,
+              subj, 
+              date,
+              common_name, 
+              group = category) %>% 
+     summarize(Abundance = sum(Abundance)) %>% 
+     ungroup()
+```
+
+```{r}
+# Fill out this column for other datasets (need in join below)
+melt.mb.animal$group <- NA
+melt.mb.plant$group <- NA
+```
+
+#### Join melts
+
+```{r}
+melts <- list(
+     # melt.menu, # Full menu
+     melt.menu.groups, # Only cattle and chicken items
+     melt.mb.animal,
+     melt.mb.plant,
+     melt.mp)
 ```
 
 ```{r}
@@ -210,8 +434,8 @@ vs <- c('study',
         'subj', 
         'date',
         'detection', 
-        'taxon_index',
         'common_name', 
+        'group',
         'Abundance') # Shared variables to pull from each phyloseq
 
 lapply(melts, ncol)
@@ -264,13 +488,13 @@ for (taxon in taxa){
                 legend.position = 'none',
                 panel.grid = element_blank())
      
-     ggsave(here('results', 
-                 'biomarkers', 
-                 paste0(plotID, 
-                        '_',
-                        taxon,
-                        ' detection by measure and sample.pdf')),
-            height = 4)
+     # ggsave(here('results', 
+     #             'biomarkers', 
+     #             paste0(plotID, 
+     #                    '_',
+     #                    taxon,
+     #                    ' detection by measure and sample.pdf')),
+     #        height = 4)
 }
 ```
 
@@ -301,12 +525,182 @@ for (taxon in taxa){
                 legend.position = 'none',
                 panel.grid = element_blank())
      
-     ggsave(here('results', 
-                 'biomarkers', 
-                 paste0(plotID, 
-                        '_',
-                        taxon,
-                        ' detection by measure and sample.pdf')),
-            height = 4)
+     # ggsave(here('results', 
+     #             'biomarkers', 
+     #             paste0(plotID, 
+     #                    '_',
+     #                    taxon,
+     #                    ' detection by measure and sample.pdf')),
+     #        height = 3)
 }
+```
+
+### Protein by type
+
+#### Cattle 
+
+```{r}
+taxon <- 'cattle'
+samples.filt <- filter(samples, detection != 'DNA')
+melt.filt <- 
+     filter(melt, common_name == taxon & detection != 'DNA')
+```
+
+##### Recode tissue entries
+
+```{r}
+melt.filt %>% 
+     group_by(detection) %>% 
+     summarize(unique(group))
+```
+
+Preserve differences between dairy, but equate meat and muscle.
+
+```{r}
+melt.filt$group[melt.filt$group == 'muscle'] <- 'meat'
+```
+
+##### Plot
+
+```{r}
+colors.cattle <- c(
+     '#4e79a7',
+     '#4e79a7',
+     '#a0cbe8', 
+     '#e15759',
+     '#bab0ac' # other
+                   )
+```
+
+Try alternate way of plotting: 1 per subject
+
+```{r}
+subjects <- 
+     samples %>% 
+     pull(subj) %>% 
+     unique() %>% 
+     sort()
+
+plot.list <- list()
+
+for (s in 1:5){
+     if (s != 5){ # Label facet differently in last subject
+          p <- melt.filt %>% 
+               filter(subj == subjects[[s]]) %>% 
+               ggplot(aes(x = date, 
+                          y = Abundance, 
+                          fill = group)) +
+               geom_tile(data = filter(samples.filt, 
+                                       subj == subjects[[s]]), 
+                         aes(x = date, y = 0),
+                         fill = 'gray90',
+                         height = Inf) +
+               geom_bar(stat = 'identity') +
+               labs(fill = 'Tissue') +
+               facet_grid(cols = vars(subj), 
+                          rows = vars(detection),
+                          scales = 'free',
+                          space = 'free_x') +
+               scale_fill_manual(values = colors.cattle) +
+               theme(axis.text.x = element_blank(),
+                     axis.ticks.x = element_blank(),
+                     axis.title.x = element_blank(),
+                     axis.title.y = element_blank(),
+                     panel.grid = element_blank(),
+                     strip.text.y = element_blank(),
+                     legend.position = 'none')
+     } else {
+          p <- melt.filt %>% 
+               filter(subj == subjects[[s]]) %>% 
+               ggplot(aes(x = date, 
+                          y = Abundance, 
+                          fill = group)) +
+               geom_tile(data = filter(samples.filt, 
+                                       subj == subjects[[s]]), 
+                         aes(x = date, y = 0),
+                         fill = 'gray90',
+                         width = 1,
+                         height = Inf) +
+               geom_bar(stat = 'identity') +
+               labs(fill = 'Tissue') +
+               facet_grid(cols = vars(subj), 
+                          rows = vars(detection),
+                          scales = 'free',
+                          space = 'free_x') +
+               scale_fill_manual(values = colors.cattle) +
+               theme(axis.text.x = element_blank(),
+                     axis.ticks.x = element_blank(),
+                     axis.title.x = element_blank(),
+                     axis.title.y = element_blank(),
+                     panel.grid = element_blank(),
+                     legend.position = 'none')
+     }
+     # Add to plot list
+     plot.list[[s]] <- p
+}
+```
+
+```{r}
+# Relative widths:
+widths <- 
+     melt.filt %>%
+     group_by(subj) %>% 
+     summarize(dates = n_distinct(date)) %>% 
+     ungroup() %>% 
+     mutate(relative = dates/sum(dates))
+
+widths
+```
+
+```{r}
+plot_grid(plotlist = plot.list,
+          nrow = 1,
+          rel_widths = c(1.2, 2, 2, 2, 2.4))
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+ggsave(here('results',
+            'biomarkers',
+            paste0(plotID,
+                   '_',
+                   taxon,
+                   ' cattle tissue types by sample and menu.pdf')),
+       height = 2.5, width = 10)
+```
+
+#### Chicken
+```{r}
+taxon <- 'chicken'
+samples.filt <- filter(samples, detection != 'DNA')
+melt.filt <- 
+     filter(melt, common_name == taxon & detection != 'DNA')
+```
+
+```{r}
+colors.chicken <- c('#f1ce63',
+                   '#ff9d9a',
+                   '#bab0ac')
+melt.filt %>% 
+     filter(detection == 'Protein') %>% 
+     ggplot(aes(x = paste(subj, date), 
+                y = Abundance, 
+                fill = category)) +
+     geom_bar(stat = 'identity', 
+              position = 'fill') +
+     labs(fill = 'Tissue') +
+     scale_fill_manual(values = colors.chicken) +
+     theme(axis.text.x = element_text(angle = 90, hjust = 1),
+           axis.title.x = element_blank(),
+           panel.grid = element_blank())
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+ggsave(here('results',
+            'biomarkers',
+            paste0(plotID,
+                   '_',
+                   taxon,
+                   ' chicken tissue types by sample (fill).pdf')),
+       height = 3)
 ```
