@@ -676,24 +676,109 @@ melt.filt <-
      filter(melt, common_name == taxon & detection != 'DNA')
 ```
 
+##### Recode tissue entries
+
+```{r}
+melt.filt %>% 
+     group_by(detection) %>% 
+     summarize(unique(group))
+```
+
+```{r}
+melt.filt$group[melt.filt$group == 'muscle'] <- 'meat'
+melt.filt$group[melt.filt$group == 'poultry'] <- 'meat'
+melt.filt$group[melt.filt$group == 'eggs, shell eggs'] <- 'egg'
+```
+
 ```{r}
 colors.chicken <- c('#f1ce63',
                    '#ff9d9a',
                    '#bab0ac')
-melt.filt %>% 
-     filter(detection == 'Protein') %>% 
-     ggplot(aes(x = paste(subj, date), 
-                y = Abundance, 
-                fill = category)) +
-     geom_bar(stat = 'identity', 
-              position = 'fill') +
-     labs(fill = 'Tissue') +
-     scale_fill_manual(values = colors.chicken) +
-     theme(axis.text.x = element_text(angle = 90, hjust = 1),
-           axis.title.x = element_blank(),
-           panel.grid = element_blank())
 ```
 
+```{r}
+subjects <- 
+     samples %>% 
+     pull(subj) %>% 
+     unique() %>% 
+     sort()
+
+plot.list <- list()
+
+for (s in 1:5){
+     if (s != 5){ # Label facet differently in last subject
+          p <- melt.filt %>% 
+               filter(subj == subjects[[s]]) %>% 
+               ggplot(aes(x = date, 
+                          y = Abundance, 
+                          fill = group)) +
+               geom_tile(data = filter(samples.filt, 
+                                       subj == subjects[[s]]), 
+                         aes(x = date, y = 0),
+                         fill = 'gray90',
+                         height = Inf) +
+               geom_bar(stat = 'identity') +
+               labs(fill = 'Tissue') +
+               facet_grid(cols = vars(subj), 
+                          rows = vars(detection),
+                          scales = 'free',
+                          space = 'free_x') +
+               scale_fill_manual(values = colors.chicken) +
+               theme(axis.text.x = element_blank(),
+                     axis.ticks.x = element_blank(),
+                     axis.title.x = element_blank(),
+                     axis.title.y = element_blank(),
+                     panel.grid = element_blank(),
+                     strip.text.y = element_blank(),
+                     legend.position = 'none')
+     } else {
+          p <- melt.filt %>% 
+               filter(subj == subjects[[s]]) %>% 
+               ggplot(aes(x = date, 
+                          y = Abundance, 
+                          fill = group)) +
+               geom_tile(data = filter(samples.filt, 
+                                       subj == subjects[[s]]), 
+                         aes(x = date, y = 0),
+                         fill = 'gray90',
+                         width = 1,
+                         height = Inf) +
+               geom_bar(stat = 'identity') +
+               labs(fill = 'Tissue') +
+               facet_grid(cols = vars(subj), 
+                          rows = vars(detection),
+                          scales = 'free',
+                          space = 'free_x') +
+               scale_fill_manual(values = colors.chicken) +
+               theme(axis.text.x = element_blank(),
+                     axis.ticks.x = element_blank(),
+                     axis.title.x = element_blank(),
+                     axis.title.y = element_blank(),
+                     panel.grid = element_blank(),
+                     legend.position = 'none')
+     }
+     # Add to plot list
+     plot.list[[s]] <- p
+}
+```
+
+```{r}
+# Relative widths:
+widths <- 
+     melt.filt %>%
+     group_by(subj) %>% 
+     summarize(dates = n_distinct(date)) %>% 
+     ungroup() %>% 
+     mutate(relative = dates/sum(dates))
+
+widths
+```
+
+```{r}
+plot_grid(plotlist = plot.list,
+          nrow = 1,
+          rel_widths = c(1.2, 2, 2, 2, 2.4))
+```
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results',
@@ -701,6 +786,6 @@ ggsave(here('results',
             paste0(plotID,
                    '_',
                    taxon,
-                   ' chicken tissue types by sample (fill).pdf')),
-       height = 3)
+                   ' chicken tissue types by sample and menu.pdf')),
+       height = 2.5, width = 10)
 ```
