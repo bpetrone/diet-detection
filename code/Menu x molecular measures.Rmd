@@ -872,30 +872,27 @@ pred.long %>%
                 scales = 'free',
                 space = 'free') +
      theme_classic() +
-     theme(axis.text.x = element_text(angle = 20, hjust = 1),
+     theme(axis.text.x = element_blank(),
            axis.text.y = element_blank(), 
            axis.ticks = element_blank(),
            axis.line = element_blank(),
            axis.title = element_blank(),
-           legend.position = 'top',
+           legend.position = 'none',
            legend.title = element_blank(), 
-           plot.margin = margin(0, 0.5, 0.5, 0.5, 'in')) 
+           plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
+           strip.background = element_blank(),
+           strip.text.x = element_blank()) 
 ```
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-width <- 
-     pred.long %>% 
-     # filter(certain == 1) %>% 
-     dim()
-
 ggsave(here('results',
-            'per-food performance',
+            'manuscript',
+            '3',
             paste0(plotID,
-                   '_Metabarcoding by-food predictions compared to menu, >4 PSMs per taxon filter, no intake filter, certain.pdf')),
-       height = 4, width = width[1]/4 * 0.5,
-       limitsize = FALSE)
+                   '_Metabarcoding by-food predictions compared to menu.pdf')),
+       height = 2, width = 6)
 ```
 
 ```{r}
