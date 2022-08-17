@@ -10,6 +10,8 @@ opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```
 
 ```{r}
+library(cowplot)
+library(eulerr) # For Euler plots
 library(here)
 library(phyloseq)
 library(tidyverse)
@@ -207,6 +209,8 @@ melt$detection <- factor(melt$detection,
 
 ### Find uniquely detected foods
 
+#### Count
+
 ```{r}
 uniques <- 
      melt %>% 
@@ -240,7 +244,7 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results', 
             'transit time',
             paste0(plotID, '_Unique foods by participant and method.pdf')),
-       height = 3)
+       height = 3, width = 5)
 ```
 
 ```{r}
@@ -258,6 +262,22 @@ uniques.stat
 
 ```{r}
 # Test for difference
+# Think this is most appropriately a Friedman test: "Similar to the parametric repeated measures ANOVA, it is used to detect differences in treatments across multiple test attempts"
+
+uniques.test <- 
+     uniques %>% 
+     group_by(detection, subj) %>% 
+     count() %>% 
+     ungroup() %>% 
+     pivot_wider(names_from = 'detection',
+                 values_from = 'n') %>% 
+     column_to_rownames(var = 'subj') %>% 
+     as.matrix()
+
+dimnames(uniques.test)
+
+friedman.test(uniques.test)
+PMCMRplus::frdAllPairsNemenyiTest(uniques.test)
 ```
 
 ```{r}
@@ -266,6 +286,10 @@ uniques %>%
      group_by(subj, detection) %>% 
      count() %>% 
      ggplot(aes(x = detection)) +
+     geom_jitter(aes(y = n, color = detection),
+                 alpha = 0.8,
+                 height = 0,
+                 width = 0.05) +
      geom_errorbar(data = uniques.stat,
                    aes(ymin = med-mad,
                        ymax = med+mad),
@@ -274,160 +298,148 @@ uniques %>%
                     aes(ymin = med,
                         ymax = med),
                     width = 0.2) +
-     geom_jitter(aes(y = n, color = detection),
-                 alpha = 0.8,
-                 height = 0,
-                 width = 0.05) +
      labs(y = 'Foods detected or<br>consumed only once',
           x = 'Method') +
      scale_color_manual(values = colors.detection) +
-     theme(legend.position = 'none')
+     ylim(0, 28) +
+     theme(legend.position = 'none',
+           axis.text.x = element_blank(),
+           axis.ticks.x = element_blank())
 ```
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 ggsave(here('results', 
             'transit time',
-            paste0(plotID, '_Unique foods by participant and method.pdf')),
-       height = 3)
+            paste0(plotID, '_Unique foods by method.pdf')),
+       height = 3,
+       width = 2)
 ```
-
 
 Follow-on thoughts: 
 * How believable is the signal in each case? 
      + Is it abundant? (High number of PSMs)?
      + Is it backed up by menu data/trnL? (Menu data would be the necessary feature to get at transit time).
      
+#### Intersection
+
+How many are in common across the three datasets?
+
 ```{r}
-# How to connect to menu data? Visually?
-# Refactor food by count
-foods.desc <- 
-     uniques.protein %>% 
-     group_by(food) %>% 
-     summarize(tot.psms = sum(Abundance)) %>% 
-     arrange(desc(tot.psms))
+# Reformat for Euler plots
+uniques.wide <-
+     uniques %>% 
+     mutate(detected = 1) %>% 
+     pivot_wider(names_from = 'detection',
+                 values_from = 'detected',
+                 values_fill = 0) 
 
-uniques.protein$food <- factor(uniques.protein$food,
-                       levels = foods.desc$food)
-
-rm(foods.desc)
+uniques.wide
 ```
 
 ```{r}
-# Only foods with >5 counts, per input from Ali
-uniques.protein %>% 
-     filter(Abundance > 4) %>% 
-     ggplot(aes(x = food, y = Abundance)) +
-     geom_bar(stat = 'identity') +
-     facet_wrap(~subj, scales = 'free', ncol = 1) +
-     labs(y = 'Total PSMs\n\n\n') +
-     theme_bw() +
-     theme(axis.text.x = element_text(angle = 20,
-                                      hjust = 1),
-           axis.title.x = element_blank(),
-           plot.margin = unit(c(1, 1, 1.5, 1.5), "cm"))
+subj1 <- 
+     uniques.wide %>% 
+     filter(subj == '908') %>% 
+     select(DNA, Protein, Menu) %>% 
+     euler() %>% 
+     plot(
+          fills = colors.detection,
+          labels = FALSE,
+          shape = "ellipse", 
+          quantities = TRUE
+          )
+
+subj2 <- 
+     uniques.wide %>% 
+     filter(subj == 'AK65') %>% 
+     select(DNA, Protein, Menu) %>% 
+     euler() %>% 
+     plot(
+          fills = colors.detection,
+          labels = FALSE,
+          shape = "ellipse", 
+          quantities = TRUE
+          )
+
+subj3 <- 
+     uniques.wide %>% 
+     filter(subj == 'JN55') %>% 
+     select(DNA, Protein, Menu) %>% 
+     euler() %>% 
+     plot(
+          fills = colors.detection,
+          labels = FALSE,
+          shape = "ellipse", 
+          quantities = TRUE
+          )
+
+subj4 <- 
+     uniques.wide %>% 
+     filter(subj == 'ML48') %>% 
+     select(DNA, Protein, Menu) %>% 
+     euler() %>% 
+     plot(
+          fills = colors.detection,
+          labels = FALSE,
+          shape = "ellipse", 
+          quantities = TRUE
+          )
+
+subj5 <- 
+     uniques.wide %>% 
+     filter(subj == 'PC74') %>% 
+     select(DNA, Protein, Menu) %>% 
+     euler() %>% 
+     plot(
+          fills = colors.detection,
+          labels = FALSE,
+          shape = "ellipse", 
+          quantities = TRUE
+          )
+```
+
+```{r}
+plot_grid(subj1, subj2, subj3, subj4, subj5,
+          nrow = 5,
+          scale = 0.9) + # To give a bit more margin between plots
+     draw_plot_label(label = c('  908', 
+                               'AK65', 
+                               'JN55',
+                               'ML48',
+                               'PC74'),
+                     x = -0.05,
+                     y = .21*4:0 + 0.09,
+                     size = 12) +
+     theme(plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")) 
 ```
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-# 2021-03-12.132: First pass (>5 PSMs/taxon filter)
-# 2021-04-09.100: Database v2, >4 PSMs/taxon filter
-
-ggsave(here('results', 'transit time',
-            paste0(plotID, '_Unique foods per-participant, with PSMs.png')),
-       height = 8, width = 4.5)
+ggsave(here('results', 
+            'transit time',
+            paste0(plotID, '_Intersection of uniquely identified foods.pdf')),
+       height = 6,
+       width = 4)
 ```
 
-### Metabarcoding
-
-#### trnL
+#### Abundance
 
 ```{r}
-# Update subject to subj to be compatible with function
-samdf.trnL <- as(sample_data(ps.trnL), 'data.frame')
-samdf.trnL <- rename(samdf.trnL, subj = subject)
-
-sample_data(ps.trnL) <- samdf.trnL
+# Join back to abundance data from big melt object
+uniques <- 
+     melt %>% 
+     select(names(uniques), Abundance) %>% 
+     filter(Abundance > 0) %>% 
+     left_join(uniques, .)
 ```
 
 ```{r}
-# For storing results
-uniques.trnL <- data.frame()
-
-# Find unique foods for each subject
-# Note!! JN55 not sequenced here
-# TODO: Repeat once JN55 added to phyloseq object
-for (subject in c('AK65', 'ML48', 'PC74')){
-     uniques.trnL <- 
-          # Get uniques.trnL
-          data.frame(subj = subject, 
-                     food = get_unique(ps.trnL, subject)) %>% 
-          # Add to results dataframe
-          bind_rows(uniques.trnL, .)
-}
+uniques
 ```
 
-```{r}
-# Do any of these come up in all four subjects?
-uniques.trnL %>% 
-     group_by(food) %>% 
-     count() %>% 
-     filter(n > 1)
-```
-
-```{r}
-# Add PSM counts
-melt.protein <- psmelt(ps.protein)
-
-uniques.trnL <- 
-     melt.protein %>% 
-     filter(Abundance != 0) %>% 
-     select(subj, Sample, food = OTU, Abundance) %>% 
-     right_join(uniques.trnL, by = c('subj', 'food')) %>% 
-     arrange(subj, desc(Abundance))
-```
-
-#### 12SV5
-
-### Menu
-
-```{r}
-# Update ID to subj to be compatible with function
-samdf.menu <- as(sample_data(ps.menu), 'data.frame')
-samdf.menu <- rename(samdf.menu, subj = ID)
-
-sample_data(ps.menu) <- samdf.menu
-```
-
-```{r}
-# For storing results
-uniques.menu <- data.frame()
-
-# Find unique foods for each subject
-for (subject in subjects){
-     uniques.menu <- 
-          # Get uniques.protein
-          data.frame(subj = subject, 
-                     food = get_unique(ps.menu, subject)) %>% 
-          # Add to results dataframe
-          bind_rows(uniques.menu, .)
-}
-```
-
-```{r}
-# Add amount consumed (dry weight here)
-melt.menu <- psmelt(ps.menu)
-
-uniques.menu <- 
-     melt.menu %>% 
-     filter(Abundance != 0) %>% 
-     select(subj, Sample, food = OTU, Abundance) %>% 
-     right_join(uniques.menu, by = c('subj', 'food')) %>% 
-     arrange(subj, desc(Abundance))
-```
-
-## Intersection
+### Time series
 
 ### Unique in metaproteomics, menu
 
