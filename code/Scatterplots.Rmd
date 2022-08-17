@@ -214,9 +214,22 @@ pred.summary <-
 ### Sensitivity, specificity
 
 ```{r}
-ggplot(pred.summary, aes(x = recall_DNA, y = recall_1PUP)) +
-     geom_point(alpha = 0.5) +
+ggplot(pred.summary, aes(x = recall_DNA, y = recall_1UP)) +
+     geom_point(alpha = 0.5, aes(color = kingdom)) +
+     # geom_text(aes(label = common_name), angle = 20, hjust = 0) +
+     scale_color_manual(values = c('#59a14f', '#e15759', 'gray50')) +
+     labs(x = 'Recall (DNA)', y = 'Recall (Protein)') +
      coord_equal()
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'manuscript',
+            '3',
+            paste0(plotID, '_Metaproteomic (1UP) x metabarcoding recall.pdf')),
+       height = 4, width = 4)
 ```
 
 ```{r}
@@ -242,9 +255,23 @@ cor.test(pred.summary$precision_1UP,
 
 ```{r}
 ggplot(pred.summary, aes(x = precision_DNA, y = precision_1UP)) +
-     geom_point(alpha = 0.5) +
+     geom_point(alpha = 0.5, aes(color = kingdom)) +
+     # geom_text(aes(label = common_name), angle = 20, hjust = 0) +
+     scale_color_manual(values = c('#59a14f', '#e15759', 'gray50')) +
+     labs(x = 'Precision (DNA)', y = 'Precision (Protein)') +
      coord_equal()
 ```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'manuscript',
+            '3',
+            paste0(plotID, '_Metaproteomic (1UP) x metabarcoding precision.pdf')),
+       height = 4, width = 4)
+```
+
 
 ### Correlation by detection type
 
