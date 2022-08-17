@@ -15,6 +15,33 @@ library(phyloseq)
 library(tidyverse)
 ```
 
+```{r}
+colors.detection <- 
+     c('#849db1', 
+       '#fbb04e',
+       '#7e756d')
+
+names(colors.detection) <- 
+     c('DNA',
+       'Protein',
+       'Menu')
+```
+
+```{r}
+# Plotting themes
+theme_set(theme_bw() +
+               theme(
+                    axis.text = element_text(size = 12),
+                    axis.title.x = ggtext::element_markdown(size = 14),
+                    axis.title.y = ggtext::element_markdown(size = 14),
+                    legend.title = element_text(size = 12,
+                                                face = 'bold'),
+                    strip.text = element_text(size = 12,
+                                              face = 'bold')
+               )
+)
+```
+
 ## Read in files
 
 ## Taxon name mapping
@@ -181,63 +208,90 @@ melt$detection <- factor(melt$detection,
 ### Find uniquely detected foods
 
 ```{r}
-subjects <- unique(melt$subj)
-subjects
-```
-
-```{r}
-# Helper function to find uniquely detected foods for a given subject
-get_unique <- function(ps, subject){
-     # Input: a phyloseq object and the subject of interest
-     # Returns: a taxonomy table containing only those taxa detected in
-     # a single sample
-     
-     # Subset to only the subject desired
-     ps <- subset_samples(ps, subj == subject)
-     # Get their ASV table
-     asvtab <- otu_table(ps)@.Data
-
-     uniques <- names(which(colSums(asvtab > 0) == 1))
-     uniques
-}
-```
-
-### Metaproteomic
-
-```{r}
-# For storing results
-uniques.protein <- data.frame()
-
-# Find unique foods for each subject
-for (subject in subjects){
-     uniques.protein <- 
-          # Get uniques.protein
-          data.frame(subj = subject, 
-                     food = get_unique(ps.protein, subject)) %>% 
-          # Add to results dataframe
-          bind_rows(uniques.protein, .)
-}
-```
-
-```{r}
-# Do any of these come up in all four subjects?
-uniques.protein %>% 
-     group_by(food) %>% 
+uniques <- 
+     melt %>% 
+     group_by(detection, subj, common_name) %>% 
+     filter(Abundance > 0) %>% 
      count() %>% 
-     filter(n > 1)
+     filter(n == 1) %>% 
+     ungroup() %>% 
+     select(-n)
+
+uniques
+```
+```{r}
+# Plot
+uniques %>% 
+     group_by(subj, detection) %>% 
+     count() %>% 
+     ggplot(aes(x = subj, y = n, fill = detection)) +
+     geom_bar(stat = 'identity',
+              position = 'dodge') +
+     labs(y = 'Foods detected or<br>consumed only once',
+          x = 'Participant') +
+     scale_fill_manual(values = colors.detection) +
+     theme(legend.title = element_blank(),
+           panel.grid = element_blank())
 ```
 
 ```{r}
-# Add PSM counts
-melt.protein <- psmelt(ps.protein)
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-uniques.protein <- 
-     melt.protein %>% 
-     filter(Abundance != 0) %>% 
-     select(subj, Sample, food = OTU, Abundance) %>% 
-     right_join(uniques.protein, by = c('subj', 'food')) %>% 
-     arrange(subj, desc(Abundance))
+ggsave(here('results', 
+            'transit time',
+            paste0(plotID, '_Unique foods by participant and method.pdf')),
+       height = 3)
 ```
+
+```{r}
+# Median and MAD to add to plots
+uniques.stat <- 
+     uniques %>% 
+     group_by(subj, detection) %>% 
+     count() %>%  
+     group_by(detection) %>% 
+     summarize(med = median(n),
+               mad = mad(n))
+
+uniques.stat
+```
+
+```{r}
+# Test for difference
+```
+
+```{r}
+# Plot
+uniques %>% 
+     group_by(subj, detection) %>% 
+     count() %>% 
+     ggplot(aes(x = detection)) +
+     geom_errorbar(data = uniques.stat,
+                   aes(ymin = med-mad,
+                       ymax = med+mad),
+                   width = 0.05) +
+     geom_errorbar(data = uniques.stat,
+                    aes(ymin = med,
+                        ymax = med),
+                    width = 0.2) +
+     geom_jitter(aes(y = n, color = detection),
+                 alpha = 0.8,
+                 height = 0,
+                 width = 0.05) +
+     labs(y = 'Foods detected or<br>consumed only once',
+          x = 'Method') +
+     scale_color_manual(values = colors.detection) +
+     theme(legend.position = 'none')
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'transit time',
+            paste0(plotID, '_Unique foods by participant and method.pdf')),
+       height = 3)
+```
+
 
 Follow-on thoughts: 
 * How believable is the signal in each case? 
