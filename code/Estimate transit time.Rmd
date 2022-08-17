@@ -89,10 +89,99 @@ ps.mb.animal <-
 ps.mb.plant
 ```
 
-## Find uniquely detected foods
+## Pre-process
+
+### Melt 
+```{r}
+melt.menu <- psmelt(ps.menu) 
+melt.mb.plant <- psmelt(ps.mb.plant)
+melt.mb.animal <- psmelt(ps.mb.animal)
+melt.mp <- psmelt(ps.protein)
+```
+
+#### Add common name
+Add common name and group by dataset:
 
 ```{r}
-subjects <- unique(sample_data(ps.protein)$subj)
+melt.menu <- 
+     melt.menu %>% 
+     left_join(select(name.sync,
+                      menu_taxa, common_name),
+               by = c('OTU' = 'menu_taxa'))
+
+melt.mb.animal <- 
+     melt.mb.animal %>% 
+     left_join(select(name.sync,
+                      mb_taxa, common_name),
+               by = c('OTU' = 'mb_taxa'))
+
+melt.mb.plant <- 
+     melt.mb.plant %>% 
+     left_join(select(name.sync,
+                      mb_taxa, common_name),
+               by = c('OTU' = 'mb_taxa'))
+
+# Note column naming differences for metaproteomics
+melt.mp <- 
+     melt.mp %>% 
+     left_join(select(name.sync,
+                      mp_taxa, common_name),
+               by = c('name' = 'mp_taxa'))
+```
+
+#### Add detection method
+
+```{r}
+# Add dataset info to each melted object
+# melt.menu$detection <-  'Menu'
+melt.menu$detection <- 'Menu'
+melt.mb.plant$detection <- 'DNA'
+melt.mb.animal$detection <- 'DNA'
+melt.mp$detection <- 'Protein'
+```
+
+#### Join melts
+
+```{r}
+melts <- list(
+     melt.menu, # Full menu
+     melt.mb.animal,
+     melt.mb.plant,
+     melt.mp)
+```
+
+```{r}
+vs <- c('study',
+        'subj', 
+        'date',
+        'detection', 
+        'common_name', 
+        'Abundance') # Shared variables to pull from each phyloseq
+
+lapply(melts, ncol)
+melts <- lapply(melts, function(x){select(x, one_of(vs))})
+lapply(melts, ncol)
+```
+
+```{r}
+melt <- bind_rows(melts)
+dim(melt)
+rm(melts)
+```
+
+```{r}
+melt$detection <- factor(melt$detection, 
+                         levels = c('Menu',
+                                    'DNA',
+                                    'Protein'))
+```
+
+## Analyze
+
+### Find uniquely detected foods
+
+```{r}
+subjects <- unique(melt$subj)
 subjects
 ```
 
