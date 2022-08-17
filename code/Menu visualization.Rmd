@@ -240,7 +240,7 @@ menu.plot <-
                height = 0.2) +
      scale_fill_manual(values = c('#b66353',
                                   '#d7ce9f',
-                                  '#638b66'))
+                                  '#638b66')) 
   # geom_text(data = menu.dendro.data$labels, aes(x, y, label = label),
   #           hjust = 1, angle = 90, size = 3) 
 ```
