@@ -17,55 +17,77 @@ library(tidyverse)
 
 ## Read in files
 
-### Metaproteomic phyloseq
+## Taxon name mapping
 
 ```{r}
-# DFC
-ps.protein <- readRDS(here('data', 'processed', 'phyloseq',
-                           '20210912_ps_mp.rds'))
+name.sync <- 
+     here('data',
+          'processed',
+          'Naming discrepancies.xlsx') %>% 
+     readxl::read_excel()
+
+name.sync
+```
+
+### Metaproteomic
+
+```{r}
+ps.protein <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          # 'ps_mp_1PUP.rds') %>% # >=1 protein unique peptide
+          'ps_mp_1UP.rds') %>% # >=1 unique peptide
+     readRDS()
+          
 ps.protein
 ```
 
-### DFC menu data phyloseq
+### Menu
 
 ```{r}
-ps.menu <- readRDS(here('data', 'processed', 'phyloseq',
-                        '20210220_ps_menu.rds'))
+ps.menu <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_menu.rds') %>% 
+     readRDS()
 
 ps.menu
 ```
 
 ### Metabarcoding phyloseqs
 
-#### trnL
 
 ```{r}
-# This experiment contained PCRs amplified with an annealing temp of 55 or 63C; filter to only those at 63.
-ps.trnL <- 
-     readRDS(here('data', 'processed', 'phyloseq',
-                        '20200225_ps_trnL.rds')) %>% 
-     subset_samples(anneal_t == '63') %>% # Subset to 63C samples
-     prune_taxa(taxa_sums(.) > 0, .) %>% # Remove taxa now with 0 reads
-     subset_taxa(!is.na(superkingdom)) # Remove SVs not identified to a food
+ps.mb.plant <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mb_trnL.rds') %>% 
+     readRDS()
 
-ps.trnL
+ps.mb.plant
 ```
 
 ```{r}
-# Rename samples by subject_date for compatibility
-sample_names(ps.trnL) <- paste(sample_data(ps.trnL)$subject,
-                               sample_data(ps.trnL)$date, sep = '_')
+ps.mb.animal <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mb_12SV5.rds') %>% 
+     readRDS()
+
+ps.mb.plant
 ```
-
-#### 12SV5
-
-
-#### Merge
-
-```{r}
-# TODO
-```
-
 
 ## Find uniquely detected foods
 
