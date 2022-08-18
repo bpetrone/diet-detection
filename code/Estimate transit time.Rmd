@@ -275,10 +275,10 @@ uniques %>%
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results', 
-            'transit time',
-            paste0(plotID, '_Unique foods by participant and method.pdf')),
-       height = 3, width = 5)
+# ggsave(here('results', 
+#             'transit time',
+#             paste0(plotID, '_Unique foods by participant and method.pdf')),
+#        height = 3, width = 5)
 ```
 
 ```{r}
@@ -343,11 +343,11 @@ uniques %>%
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results', 
-            'transit time',
-            paste0(plotID, '_Unique foods by method.pdf')),
-       height = 3,
-       width = 2)
+# ggsave(here('results', 
+#             'transit time',
+#             paste0(plotID, '_Unique foods by method.pdf')),
+#        height = 3,
+#        width = 2)
 ```
 
 Follow-on thoughts: 
@@ -451,11 +451,11 @@ plot_grid(subj1, subj2, subj3, subj4, subj5,
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results', 
-            'transit time',
-            paste0(plotID, '_Intersection of uniquely identified foods.pdf')),
-       height = 6,
-       width = 4)
+# ggsave(here('results', 
+#             'transit time',
+#             paste0(plotID, '_Intersection of uniquely identified foods.pdf')),
+#        height = 6,
+#        width = 4)
 ```
 
 #### Abundance
@@ -517,36 +517,112 @@ plot_grid(plotlist = plot.list,
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-ggsave(here('results',
-            'transit time',
-            paste0(plotID,
-                   '_Unique menu items by abundance and subject.pdf')),
-       height = 10, width = 4)
+# ggsave(here('results',
+#             'transit time',
+#             paste0(plotID,
+#                    '_Unique menu items by abundance and subject.pdf')),
+#        height = 10, width = 4)
 ```
 
 #### Time series
 
 ```{r}
-melt.filt <- 
-     filter(melt, common_name == 'mango' & subj == 'AK65')
+# Here, might as well try uniquely detected foods by any source, not just menu. Make infrastructure for iterating over subjects and foods:
+foods.908 <- 
+     uniques %>% 
+     filter(subj == '908') %>% 
+     pull(common_name) %>% 
+     unique()
 
-samples.filt <- filter(samples, subj == 'AK65')
+foods.AK65 <- 
+     uniques %>% 
+     filter(subj == 'AK65') %>% 
+     pull(common_name) %>% 
+     unique()
 
-ggplot(melt.filt, aes(x = date)) +
-     geom_tile(data = samples.filt, aes(x = date, 
-                                        y = 0),
-               fill = 'gray90',
-               height = Inf) +
-     geom_bar(aes(y = Abundance, fill = detection), stat = 'identity') +
-     facet_grid(cols = vars(subj),
-                rows = vars(detection),
-                scales = 'free',
-                space = 'free_x') +
-     scale_fill_manual(values = colors.detection) +
-     labs(x = 'Date', y = 'Food abundance') +
-     theme(axis.text.x = element_blank(),
-           legend.position = 'none',
-           panel.grid = element_blank())
+foods.JN55 <- 
+     uniques %>% 
+     filter(subj == 'JN55') %>% 
+     pull(common_name) %>% 
+     unique()
+
+foods.ML48 <- 
+     uniques %>% 
+     filter(subj == 'ML48') %>% 
+     pull(common_name) %>% 
+     unique()
+
+foods.PC74 <- 
+     uniques %>% 
+     filter(subj == 'PC74') %>% 
+     pull(common_name) %>% 
+     unique()
+```
+
+```{r}
+foods <- list(foods.908,
+              foods.AK65,
+              foods.JN55,
+              foods.ML48,
+              foods.PC74)
+
+names(foods) <- subjects
+```
+
+```{bash}
+cd results/transit\ time
+mkdir 908
+mkdir AK65
+mkdir JN55
+mkdir ML48
+mkdir PC74
+```
+
+```{r}
+# Iterate over all, saving plots
+for (i in seq_along(foods)){
+     subject <- names(foods)[i]
+     subject.foods <- foods[[i]]
+     
+     samples.filt <- filter(samples, subj == subject)
+     
+     # Set plotID by subject
+     plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+     
+     for (food in subject.foods){
+          melt.filt <- 
+               filter(melt, subj == subject & common_name == food)
+          
+          ggplot(melt.filt, aes(x = date)) +
+               geom_tile(data = samples.filt, 
+                         aes(x = date, y = 0),
+                         fill = 'gray90',
+                         width = 1,
+                         height = Inf) +
+               geom_bar(aes(y = Abundance, fill = detection), 
+                        stat = 'identity',
+                        width = 1) + 
+               facet_grid(cols = vars(common_name),
+                          rows = vars(detection),
+                          scales = 'free',
+                          space = 'free_x') +
+               scale_fill_manual(values = colors.detection) +
+               scale_x_date(date_breaks = '1 day') +
+               labs(x = 'Date', y = 'Food abundance') +
+               theme(axis.text.x = element_blank(),
+                     legend.position = 'none',
+                     panel.grid = element_blank())
+          
+          # Save plot
+          ggsave(here('results',
+                      'transit time',
+                      subject,
+                      paste0(plotID,
+                             paste0('_', subject,'_', food),
+                             '_time series.pdf')),
+                 height = 3, width = 4)
+     }
+}
 ```
 
 
