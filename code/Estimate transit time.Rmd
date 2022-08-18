@@ -46,7 +46,19 @@ theme_set(theme_bw() +
 
 ## Read in files
 
-## Taxon name mapping
+### Sample dates
+
+```{r}
+samples <- 
+     here('data',
+          'metadata',
+          'Sample collection times.csv') %>% 
+     read_csv()
+
+samples
+```
+
+### Taxon name mapping
 
 ```{r}
 name.sync <- 
@@ -119,6 +131,28 @@ ps.mb.plant
 ```
 
 ## Pre-process
+
+### Samples
+
+```{r}
+samples$date <- as.Date(samples$date,
+                        format = '%m/%d/%y')
+```
+
+```{r}
+# Add detection for each so shading is done by facet, below
+detection <- c('Menu', 'DNA', 'Protein')
+subj <- unique(samples$subj)
+
+samples <-
+     expand.grid(detection = detection, 
+                 subj = subj) %>% 
+     right_join(samples) %>% 
+     arrange(study, subj, date) %>% 
+     select(subj:time, detection)
+
+samples
+```
 
 ### Melt 
 ```{r}
@@ -435,11 +469,86 @@ uniques <-
      left_join(uniques, .)
 ```
 
+Make one plot per subject, and aggregate.  Prioritize by menu items that are most abundant:
 ```{r}
-uniques
+subjects <- sort(unique(melt$subj))
+
+plot.list <- list()
+
+for (s in 1:5){
+     uniques.subj <- 
+          uniques %>% 
+          filter(subj == subjects[s] & detection == 'Menu') %>% 
+          arrange(desc(Abundance), common_name) %>% 
+          mutate(common_name = factor(common_name,
+                                      levels = common_name))
+     
+     uniques.subj$common_name <- factor(uniques.subj$common_name,
+                                        levels = uniques.subj$common_name)
+          
+     p <- ggplot(uniques.subj,
+                 aes(x = common_name, 
+                     y = Abundance, 
+                     fill = detection)) +
+          geom_bar(stat = 'identity') +
+          scale_fill_manual(values = colors.detection['Menu']) +
+          theme(axis.title.x = element_blank(),
+                axis.title.y = element_blank(),
+                axis.text.x = element_text(size = 6,
+                                           angle = 30, 
+                                           hjust = 1),
+                legend.position = 'none',
+                panel.grid = element_blank())
+     
+     if (subjects[s] != '908'){
+          # Add ~1 oz amount threshold 
+          p <- p + geom_hline(yintercept = 28, color = '#e03531')
+     }
+     
+     plot.list[[s]] <- p
+}
 ```
 
-### Time series
+```{r}
+plot_grid(plotlist = plot.list,
+          nrow = 5) +
+     theme(plot.margin = unit(c(0, 0, 0, 0.5), 'cm'))
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+ggsave(here('results',
+            'transit time',
+            paste0(plotID,
+                   '_Unique menu items by abundance and subject.pdf')),
+       height = 10, width = 4)
+```
+
+#### Time series
+
+```{r}
+melt.filt <- 
+     filter(melt, common_name == 'mango' & subj == 'AK65')
+
+samples.filt <- filter(samples, subj == 'AK65')
+
+ggplot(melt.filt, aes(x = date)) +
+     geom_tile(data = samples.filt, aes(x = date, 
+                                        y = 0),
+               fill = 'gray90',
+               height = Inf) +
+     geom_bar(aes(y = Abundance, fill = detection), stat = 'identity') +
+     facet_grid(cols = vars(subj),
+                rows = vars(detection),
+                scales = 'free',
+                space = 'free_x') +
+     scale_fill_manual(values = colors.detection) +
+     labs(x = 'Date', y = 'Food abundance') +
+     theme(axis.text.x = element_blank(),
+           legend.position = 'none',
+           panel.grid = element_blank())
+```
+
 
 ### Unique in metaproteomics, menu
 
