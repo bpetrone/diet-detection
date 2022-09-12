@@ -367,6 +367,10 @@ menu
 sample_data(menu)$subj <- 
      factor(sample_data(menu)$subj,
             labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
+
+sample_names(menu) <- paste(sample_data(menu)$subj,
+                            sample_data(menu)$date,
+                            sep = '_')
 ```
 
 ## Metabarcoding
@@ -383,6 +387,10 @@ mb.plant
 sample_data(mb.plant)$subj <- 
      factor(sample_data(mb.plant)$subj,
             labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
+
+sample_names(mb.plant) <- paste(sample_data(mb.plant)$subj,
+                            sample_data(mb.plant)$date,
+                            sep = '_')
 ```
 
 ```{r}
@@ -397,6 +405,10 @@ mb.animal
 sample_data(mb.animal)$subj <- 
      factor(sample_data(mb.animal)$subj,
             labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
+
+sample_names(mb.animal) <- paste(sample_data(mb.animal)$subj,
+                            sample_data(mb.animal)$date,
+                            sep = '_')
 ```
 
 ### Update assignment
@@ -550,12 +562,20 @@ mb.plant
 sample_data(mp.pup)$subj <- 
      factor(sample_data(mp.pup)$subj,
             labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
+
+sample_names(mp.pup) <- paste(sample_data(mp.pup)$subj,
+                            sample_data(mp.pup)$date,
+                            sep = '_')
 ```
 
 ```{r}
 sample_data(mp.up)$subj <- 
      factor(sample_data(mp.up)$subj,
             labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
+
+sample_names(mp.up) <- paste(sample_data(mp.up)$subj,
+                            sample_data(mp.up)$date,
+                            sep = '_')
 ```
 
 # Save
