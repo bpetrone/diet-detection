@@ -346,7 +346,7 @@ mb.dfc.plant
 mb.dfc.animal
 ```
 
-# Combine
+# Combine, refactor subject
 
 ## Menu
 
@@ -363,6 +363,12 @@ menu <-
 menu
 ```
 
+```{r}
+sample_data(menu)$subj <- 
+     factor(sample_data(menu)$subj,
+            labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
+```
+
 ## Metabarcoding
 
 ```{r}
@@ -374,11 +380,23 @@ mb.plant
 ```
 
 ```{r}
+sample_data(mb.plant)$subj <- 
+     factor(sample_data(mb.plant)$subj,
+            labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
+```
+
+```{r}
 mb.animal <- 
      merge_phyloseq(mb.908.animal,
                     mb.dfc.animal)
 
 mb.animal
+```
+
+```{r}
+sample_data(mb.animal)$subj <- 
+     factor(sample_data(mb.animal)$subj,
+            labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
 ```
 
 ### Update assignment
@@ -528,7 +546,17 @@ mb.plant
 
 ## Metaproteomic
 
-Already done in "Metaproteomic phyloseq" notebook.
+```{r}
+sample_data(mp.pup)$subj <- 
+     factor(sample_data(mp.pup)$subj,
+            labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
+```
+
+```{r}
+sample_data(mp.up)$subj <- 
+     factor(sample_data(mp.up)$subj,
+            labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
+```
 
 # Save
 
