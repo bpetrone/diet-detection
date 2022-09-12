@@ -13,6 +13,7 @@ opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```
 
 ```{r libraries, echo=FALSE}
+library(cowplot)
 library(here) 
 library(phyloseq) 
 library(tidyverse) 
@@ -31,14 +32,12 @@ subj.colors <-
 theme_set(theme_bw() +
                theme(
                     axis.text = element_text(size = 12),
-                    axis.title.x = element_text(size = 14,
+                    axis.title.x = element_text(size = 14),
+                    axis.title.y = element_text(size = 14),
+                    legend.title = element_text(size = 12),
+                    plot.title = element_text(size = 14,
                                                 face = 'bold'),
-                    axis.title.y = element_text(size = 14,
-                                                face = 'bold'),
-                    legend.title = element_text(size = 12,
-                                                face = 'bold'),
-                    strip.text = element_text(size = 12,
-                                              face = 'bold')
+                    strip.text = element_text(size = 12)
                )
 )
 ```
@@ -157,11 +156,10 @@ nsamples(ps.menu)
 ```
 
 ```{r}
-ps.menu <- 
+    ps.menu <- 
      ps.menu %>% 
-     prune_samples(sample_names(.) %in% intersect(
-          sample_data(ps.mb)$delta1,
-          sample_data(ps.protein)$delta1),
+     prune_samples(union(sample_data(ps.mb)$delta1,
+                         sample_data(ps.protein)$delta1),
                    .) %>% 
      prune_taxa(taxa_sums(.) > 0, .)
 
@@ -273,15 +271,20 @@ samdf.protein <- data.frame(ps.protein@sam_data)
 
 data <- bind_cols(data, samdf.protein)
 
-ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
+mp.jacc <- 
+     ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
      geom_point(alpha = 0.8,
                 size = 3) +
      labs(x = 'PCo1 (14%)',
           y = 'PCo2 (11.9%)') +
      scale_color_manual(values = subj.colors) +
      coord_equal() +
-     theme(legend.title = element_blank(),
+     ylim(-0.4, 0.3) + xlim(-0.6, 0.3) +
+     labs(title = 'Protein') +
+     theme(legend.position = 'none',
            panel.grid = element_blank())
+
+mp.jacc
 ```
 
 ```{r}
@@ -396,14 +399,20 @@ data <-
 
 data <- left_join(data, samdf.mb)
 
-ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
+mb.jacc <- 
+     ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
      geom_point(alpha = 0.8,
                 size = 3) +
      labs(x = 'PCo1 (24.2%)', 
           y = 'PCo2 (11.2%)') +
      scale_color_manual(values = subj.colors) +
      coord_equal() +
+     ylim(-0.4, 0.3) + xlim(-0.6, 0.3) +
+     labs(title = 'DNA',
+          color = 'Participant') +
      theme(panel.grid = element_blank())
+
+mb.jacc
 ```
 
 ```{r}
@@ -424,30 +433,98 @@ vegan::adonis(distance(ps.mb,
               data = samdf.mb)
 ```
 
+### Menu
+
+##### PCoA on Jaccard
+
+```{r}
+ord.menu <- 
+     ps.menu %>% 
+     ordinate(.,
+              method = 'PCoA',
+              distance = 'jaccard',
+              binary = TRUE)
+```
+
+```{r}
+plot_ordination(ps.menu,
+                ord.menu,
+                type = 'samples',
+                color = 'subj')
+```
+```{r}
+samdf.menu <- 
+     sample_data(ps.menu) %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'name')
+```
+
+```{r}
+# Customize plot 
+data <- 
+     data.frame(ord.menu$vectors) %>% 
+     rownames_to_column(var = 'name')
+
+data <- left_join(data, samdf.menu)
+
+menu.jacc <- 
+     ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
+     geom_point(alpha = 0.8,
+                size = 3) +
+     labs(x = 'PCo1 (14.8%)', 
+          y = 'PCo2 (10%)') +
+     scale_color_manual(values = subj.colors) +
+     coord_equal() +
+     ylim(-0.4, 0.3) + xlim(-0.6, 0.3) +
+     labs(title = 'Diet record') +
+     theme(panel.grid = element_blank(),
+           legend.position = 'none')
+
+menu.jacc
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results',
+            'manuscript',
+            '2',
+            paste0(plotID, '_Menu ordination (Jaccard).pdf')),
+       device = cairo_pdf,
+       height = 4, width = 4)
+```
+
+```{r}
+vegan::adonis(distance(ps.menu, 
+                       method = 'jaccard',
+                       binary = TRUE) ~ subj,
+              data = samdf.menu)
+```
+
 ### Mantel tests:
 
 #### Aitchison
 ```{r}
 set.seed(1234)
-# trnL vs plant proteins
-# Subset to only sequenced samples
+samples <- intersect(sample_names(ps.protein),
+                     sample_names(ps.mb))
 
-samples <- intersect(sample_names(ps.protein.plant),
-                     sample_names(ps.mb.plant))
+asvtab.mb <- ps.mb.clr@otu_table@.Data[samples, ]
+asvtab.protein <- ps.protein.clr@otu_table@.Data[samples, ]
 
-asvtab.mb.plant <- ps.mb.plant.clr@otu_table@.Data[samples, ]
-asvtab.protein.plant <- ps.protein.plant.clr@otu_table@.Data[samples, ]
+vegan::mantel(dist(asvtab.mb),
+              dist(asvtab.protein))
 
 # Does this Mantel need a strata argument?
-# samples.strata <- 
-#      samples %>% 
-#      gsub(pattern = '_.*$', 
-#           replacement = '') %>% 
+# samples.strata <-
+#      samples %>%
+#      gsub(pattern = '_.*$',
+#           replacement = '') %>%
 #      factor()
 
-vegan::mantel(dist(asvtab.mb.plant),
-              dist(asvtab.protein.plant))
-              # strata = samples.strata)
+# vegan::mantel(dist(asvtab.mb),
+#               dist(asvtab.protein),
+#               strata = samples.strata)
 ```
 
 This is surprising, esp based on the appearance of the ordination.  What about instead trying on distances between PCA-transformed points?
@@ -457,39 +534,18 @@ set.seed(1234)
 # trnL vs plant proteins
 # Subset to only sequenced samples
 
-samples.plant <- intersect(sample_names(ps.protein.plant),
-                           sample_names(ps.mb.plant))
+samples <- intersect(sample_names(ps.protein),
+                           sample_names(ps.mb))
 
-pca.mb.plant <- 
-     prcomp(ps.mb.plant.clr@otu_table@.Data[samples.plant, ],
+pca.mb <- 
+     prcomp(ps.mb.clr@otu_table@.Data[samples, ],
             center = TRUE, 
             scale = FALSE)
 
-pca.protein.plant <- 
-     prcomp(ps.protein.plant.clr@otu_table@.Data[samples.plant, ],
+pca.protein <- 
+     prcomp(ps.protein.clr@otu_table@.Data[samples, ],
             center = TRUE,
             scale = FALSE)
-
-# samples.strata <- 
-#      samples.plant %>% 
-#      gsub(pattern = '_.*$', 
-#           replacement = '') %>% 
-#      factor()
-
-vegan::mantel(dist(pca.mb.plant$x[,1:2]),
-              dist(pca.protein.plant$x[,1:2]))
-```
-
-```{r}
-set.seed(1234)
-# 12SV5 vs animal proteins
-# Subset to only sequenced samples
-
-samples.animal <- intersect(sample_names(ps.protein.animal),
-                            sample_names(ps.mb.animal))
-
-asvtab.mb.animal <- ps.mb.animal.clr@otu_table@.Data[samples, ]
-asvtab.protein.animal <- ps.protein.animal.clr@otu_table@.Data[samples, ]
 
 # samples.strata <- 
 #      samples %>% 
@@ -497,41 +553,20 @@ asvtab.protein.animal <- ps.protein.animal.clr@otu_table@.Data[samples, ]
 #           replacement = '') %>% 
 #      factor()
 
-vegan::mantel(dist(asvtab.mb.animal),
-              dist(asvtab.protein.animal))
+vegan::mantel(dist(pca.mb$x[,1:2]),
+              dist(pca.protein$x[,1:2]))
 ```
-
-```{r}
-set.seed(1234)
-# 12SV5 vs animal proteins
-# Subset to only sequenced samples
-
-samples.animal <- intersect(sample_names(ps.protein.animal),
-                            sample_names(ps.mb.animal))
-
-pca.mb.animal <- 
-     prcomp(ps.mb.animal.clr@otu_table@.Data[samples.animal, ],
-            center = TRUE, 
-            scale = FALSE)
-
-pca.protein.animal <- 
-     prcomp(ps.protein.animal.clr@otu_table@.Data[samples.animal, ],
-            center = TRUE,
-            scale = FALSE)
-
-vegan::mantel(dist(pca.mb.animal$x[,1:2]),
-              dist(pca.protein.animal$x[,1:2]))
-```
-
 
 #### Jaccard
 
+##### Protein to DNA
+
 ```{r}
 set.seed(1234)
-vegan::mantel(distance(prune_samples(samples.plant, ps.mb.plant),
+vegan::mantel(distance(prune_samples(samples, ps.mb),
                        method = 'jaccard',
                        binary = TRUE),
-              distance(prune_samples(samples.plant, ps.protein.plant),
+              distance(prune_samples(samples, ps.protein),
                        method = 'jaccard',
                        binary = TRUE))
 ```
@@ -539,31 +574,86 @@ vegan::mantel(distance(prune_samples(samples.plant, ps.mb.plant),
 ```{r}
 set.seed(1234)
 
-vegan::mantel(dist(ord.mb.plant$vectors[samples.plant, 1:2]),
-              dist(ord.protein.plant$vectors[samples.plant, 1:2])
+vegan::mantel(dist(ord.mb$vectors[samples, 1:2]),
+              dist(ord.protein$vectors[samples, 1:2])
 )
 ```
 
+##### DNA to menu
+
+Need to temporarily update names to make matching possible between these two.
+
 ```{r}
-vegan::mantel(
-     distance(
-          prune_samples(samples.animal,
-                        ps.mb.animal),
-          method = 'jaccard',
-          binary = TRUE),
-     distance(
-          ps.protein.animal,
-          method = 'jaccard',
-          binary = TRUE))
+ps.mb.mantel <- prune_samples(samples, ps.mb)
+sample_names(ps.mb.mantel) <- sample_data(ps.mb.mantel)$delta1
 ```
 
 ```{r}
 set.seed(1234)
-
-vegan::mantel(dist(ord.mb.animal$vectors[samples.animal, 1:2]),
-              dist(ord.protein.animal$vectors[samples.animal, 1:2])
-)
+vegan::mantel(distance(ps.mb.mantel,
+                       method = 'jaccard',
+                       binary = TRUE),
+              distance(prune_samples(sample_names(ps.mb.mantel), ps.menu),
+                       method = 'jaccard',
+                       binary = TRUE))
 ```
+
+##### Protein to menu
+
+Need to temporarily update names to make matching possible between these two.
+
+```{r}
+ps.protein.mantel <- prune_samples(samples, ps.protein)
+sample_names(ps.protein.mantel) <- sample_data(ps.protein.mantel)$delta1
+```
+
+```{r}
+set.seed(1234)
+vegan::mantel(distance(ps.protein.mantel,
+                       method = 'jaccard',
+                       binary = TRUE),
+              distance(prune_samples(sample_names(ps.protein.mantel), ps.menu),
+                       method = 'jaccard',
+                       binary = TRUE))
+```
+
+Try instead with Aitchison distance:
+
+```{r}
+asvtab.protein <- prune_samples(samples, ps.protein)
+sample_names(asvtab.protein) <- sample_data(asvtab.protein)$delta1
+
+asvtab.protein <- asvtab.protein@otu_table@.Data
+
+vegan::mantel(dist(asvtab.protein),
+              distance(prune_samples(row.names(asvtab.protein), ps.menu),
+                       method = 'jaccard',
+                       binary = TRUE))
+```
+
+## Joint plot
+
+```{r}
+cowplot::plot_grid(menu.jacc,
+                   mp.jacc,
+                   mb.jacc,
+                   nrow = 1,
+                   rel_widths = c(1, 1, 1.38),
+                   axis = 't',
+                   align = 'h',
+                   labels = 'a')
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results',
+            'manuscript',
+            '2',
+            paste0(plotID, '_Combined ordinations.pdf')),
+       device = cairo_pdf,
+       height = 4, width = 10)
+```
+
 
 ## Consecutive days
 
