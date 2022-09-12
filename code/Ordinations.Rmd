@@ -34,7 +34,7 @@ theme_set(theme_bw() +
                     axis.text = element_text(size = 12),
                     axis.title.x = element_text(size = 14),
                     axis.title.y = element_text(size = 14),
-                    legend.title = element_text(size = 12),
+                    legend.title = ggtext::element_markdown(size = 12),
                     plot.title = element_text(size = 14,
                                                 face = 'bold'),
                     strip.text = element_text(size = 12)
@@ -212,29 +212,31 @@ limit <- max(abs(pca.df[, c('PC1', 'PC2')])) +
 
 ```{r}
 # Plot
-mp.plot <- 
+mp.aitch <- 
      ggplot(pca.df, aes(x = PC1, y = PC2, 
                         color = subj)) +
      geom_point(size = 3, alpha = 0.7) +
      coord_equal() +
      labs(x = paste0(' PC1 (', ve.pc1, '%)'),
-          y = paste0(' PC2 (', ve.pc2, '%)')) +
+          y = paste0(' PC2 (', ve.pc2, '%)'),
+          title = 'Protein') +
      scale_color_manual(values = subj.colors) +
      xlim(-limit, limit) + ylim(-limit, limit) +
-     theme(panel.grid = element_blank())
+     theme(panel.grid = element_blank(),
+           legend.position = 'none')
 
-mp.plot
+mp.aitch
 ```
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results', 
-            'manuscript',
-            '2',
-            paste0(plotID, '_Metaproteomic ordination (Aitchison).pdf')),
-       device = cairo_pdf,
-       height = 4, width = 4)
+# ggsave(here('results', 
+#             'manuscript',
+#             '2',
+#             paste0(plotID, '_Metaproteomic ordination (Aitchison).pdf')),
+#        device = cairo_pdf,
+#        height = 4, width = 4)
 ```
 
 ```{r}
@@ -290,12 +292,12 @@ mp.jacc
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results',
-            'manuscript',
-            '2',
-            paste0(plotID, '_Metaproteomic ordination, taxa (Jaccard).pdf')),
-       device = cairo_pdf,
-       height = 4, width = 4)
+# ggsave(here('results',
+#             'manuscript',
+#             '2',
+#             paste0(plotID, '_Metaproteomic ordination, taxa (Jaccard).pdf')),
+#        device = cairo_pdf,
+#        height = 4, width = 4)
 ```
 
 ```{r}
@@ -344,28 +346,30 @@ limit <- max(abs(pca.df[, c('PC1', 'PC2')])) +
 
 ```{r}
 # Plot
-mb.plot <- 
+mb.aitch <- 
      ggplot(pca.df, aes(x = PC1, y = PC2, 
                         color = subj)) +
      geom_point(size = 3, alpha = 0.7) +
      coord_equal() +
      labs(x = paste0(' PC1 (', ve.pc1, '%)'),
-          y = paste0(' PC2 (', ve.pc2, '%)')) +
+          y = paste0(' PC2 (', ve.pc2, '%)'),
+          title = 'DNA') +
      scale_color_manual(values = subj.colors) +
      xlim(-limit, limit) + ylim(-limit, limit) +
+     labs(color = 'Participant') +
      theme(panel.grid = element_blank())
 
-mb.plot
+mb.aitch
 ```
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results', 
-            'manuscript',
-            '2',
-            paste0(plotID, '_Metabarcoding ordination (Aitchison).pdf')),
-       device = cairo_pdf,
-       height = 4, width = 4)
+# ggsave(here('results', 
+#             'manuscript',
+#             '2',
+#             paste0(plotID, '_Metabarcoding ordination (Aitchison).pdf')),
+#        device = cairo_pdf,
+#        height = 4, width = 4)
 ```
 
 ```{r}
@@ -418,12 +422,12 @@ mb.jacc
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results',
-            'manuscript',
-            '2',
-            paste0(plotID, '_Metabarcoding ordination (Jaccard).pdf')),
-       device = cairo_pdf,
-       height = 4, width = 4)
+# ggsave(here('results',
+#             'manuscript',
+#             '2',
+#             paste0(plotID, '_Metabarcoding ordination (Jaccard).pdf')),
+#        device = cairo_pdf,
+#        height = 4, width = 4)
 ```
 
 ```{r}
@@ -486,12 +490,12 @@ menu.jacc
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results',
-            'manuscript',
-            '2',
-            paste0(plotID, '_Menu ordination (Jaccard).pdf')),
-       device = cairo_pdf,
-       height = 4, width = 4)
+# ggsave(here('results',
+#             'manuscript',
+#             '2',
+#             paste0(plotID, '_Menu ordination (Jaccard).pdf')),
+#        device = cairo_pdf,
+#        height = 4, width = 4)
 ```
 
 ```{r}
@@ -501,9 +505,10 @@ vegan::adonis(distance(ps.menu,
               data = samdf.menu)
 ```
 
-### Mantel tests:
+### Mantel tests
 
 #### Aitchison
+##### Protein to DNA
 ```{r}
 set.seed(1234)
 samples <- intersect(sample_names(ps.protein),
@@ -512,8 +517,10 @@ samples <- intersect(sample_names(ps.protein),
 asvtab.mb <- ps.mb.clr@otu_table@.Data[samples, ]
 asvtab.protein <- ps.protein.clr@otu_table@.Data[samples, ]
 
-vegan::mantel(dist(asvtab.mb),
-              dist(asvtab.protein))
+mantel.mb.mp <- vegan::mantel(dist(asvtab.mb),
+                              dist(asvtab.protein))
+
+mantel.mb.mp
 
 # Does this Mantel need a strata argument?
 # samples.strata <-
@@ -527,11 +534,9 @@ vegan::mantel(dist(asvtab.mb),
 #               strata = samples.strata)
 ```
 
-This is surprising, esp based on the appearance of the ordination.  What about instead trying on distances between PCA-transformed points?
-
+On coordinates in PCA space:
 ```{r}
 set.seed(1234)
-# trnL vs plant proteins
 # Subset to only sequenced samples
 
 samples <- intersect(sample_names(ps.protein),
@@ -557,18 +562,65 @@ vegan::mantel(dist(pca.mb$x[,1:2]),
               dist(pca.protein$x[,1:2]))
 ```
 
+##### Protein to menu
+
+Need to temporarily update names to make matching possible between these two.
+
+```{r}
+ps.mp.mantel <- prune_samples(samples, ps.protein.clr)
+sample_names(ps.mp.mantel) <- sample_data(ps.mp.mantel)$delta1
+```
+
+```{r}
+set.seed(1234)
+asvtab.mp <- ps.mp.mantel@otu_table@.Data
+ps.menu.mantel <- prune_samples(sample_names(ps.mp.mantel), ps.menu)
+
+mantel.mp.menu <- 
+     vegan::mantel(dist(asvtab.mp),
+              distance(ps.menu.mantel,
+                       method = 'jaccard',
+                       binary = TRUE))
+
+mantel.mp.menu
+```
+
+##### DNA to menu
+
+```{r}
+ps.mb.mantel <- prune_samples(samples, ps.mb.clr)
+sample_names(ps.mb.mantel) <- sample_data(ps.mb.mantel)$delta1
+```
+
+```{r}
+set.seed(1234)
+asvtab.mb <- ps.mb.mantel@otu_table@.Data
+ps.menu.mantel <- prune_samples(sample_names(ps.mb.mantel), ps.menu)
+
+mantel.mb.menu <- 
+     vegan::mantel(dist(asvtab.mb),
+              distance(ps.menu.mantel,
+                       method = 'jaccard',
+                       binary = TRUE))
+
+mantel.mb.menu
+```
+
 #### Jaccard
 
 ##### Protein to DNA
 
 ```{r}
 set.seed(1234)
-vegan::mantel(distance(prune_samples(samples, ps.mb),
+mantel.mb.mp <- 
+     vegan::mantel(distance(prune_samples(samples, ps.mb),
                        method = 'jaccard',
                        binary = TRUE),
               distance(prune_samples(samples, ps.protein),
                        method = 'jaccard',
                        binary = TRUE))
+
+mantel.mb.mp
 ```
 
 ```{r}
@@ -580,7 +632,6 @@ vegan::mantel(dist(ord.mb$vectors[samples, 1:2]),
 ```
 
 ##### DNA to menu
-
 Need to temporarily update names to make matching possible between these two.
 
 ```{r}
@@ -590,12 +641,15 @@ sample_names(ps.mb.mantel) <- sample_data(ps.mb.mantel)$delta1
 
 ```{r}
 set.seed(1234)
-vegan::mantel(distance(ps.mb.mantel,
+mantel.mb.menu <- 
+     vegan::mantel(distance(ps.mb.mantel,
                        method = 'jaccard',
                        binary = TRUE),
               distance(prune_samples(sample_names(ps.mb.mantel), ps.menu),
                        method = 'jaccard',
                        binary = TRUE))
+
+mantel.mb.menu
 ```
 
 ##### Protein to menu
@@ -609,12 +663,15 @@ sample_names(ps.protein.mantel) <- sample_data(ps.protein.mantel)$delta1
 
 ```{r}
 set.seed(1234)
-vegan::mantel(distance(ps.protein.mantel,
+mantel.mp.menu <- 
+     vegan::mantel(distance(ps.protein.mantel,
                        method = 'jaccard',
                        binary = TRUE),
               distance(prune_samples(sample_names(ps.protein.mantel), ps.menu),
                        method = 'jaccard',
                        binary = TRUE))
+
+mantel.mp.menu
 ```
 
 Try instead with Aitchison distance:
@@ -634,14 +691,68 @@ vegan::mantel(dist(asvtab.protein),
 ## Joint plot
 
 ```{r}
-cowplot::plot_grid(menu.jacc,
-                   mp.jacc,
-                   mb.jacc,
+a <- cowplot::plot_grid(
+     menu.jacc,
+     # mp.jacc,
+     # mb.jacc,
+     mp.aitch,
+     mb.aitch,
+     nrow = 1,
+     # rel_widths = c(1, 1, 1.38),
+     rel_widths = c(1.2, 1, 1.5),
+     axis = 't',
+     align = 'h')
+
+a
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+# ggsave(here('results',
+#             'manuscript',
+#             '2',
+#             paste0(plotID, '_Combined ordinations.pdf')),
+#        device = cairo_pdf,
+#        height = 3, width = 10)
+```
+
+```{r}
+# Panel B: Mantel
+mantel.df <- 
+     data.frame(d1 = c('Menu', 'Menu', 'Protein'),
+                d2 = c('Protein', 'DNA', 'DNA'),
+                r = c(mantel.mp.menu$statistic, 
+                      mantel.mb.menu$statistic,
+                      mantel.mb.mp$statistic),
+                p = c(mantel.mp.menu$signif, 
+                      mantel.mb.menu$signif,
+                      mantel.mb.mp$signif)) %>% 
+     mutate(signif_text = ifelse(p < 0.05,
+                                 yes = '***',
+                                 no = ''))
+```
+
+```{r}
+b <- ggplot(mantel.df, aes(x = d1, y = d2, fill = r)) +
+     geom_tile() +
+     geom_text(aes(label = signif_text)) +
+     coord_equal() +
+     labs(fill = 'Mantel *r*') +
+     theme(panel.grid = element_blank(),
+           panel.border = element_blank(),
+           axis.title.x = element_blank(),
+           axis.title.y = element_blank(),
+           axis.ticks = element_blank()) 
+
+b
+```
+
+```{r}
+cowplot::plot_grid(a, b,
                    nrow = 1,
-                   rel_widths = c(1, 1, 1.38),
-                   axis = 't',
-                   align = 'h',
-                   labels = 'a')
+                   rel_widths = c(3, 1),
+                   labels = c('a', 'b'),
+                   label_y = 0.9)
 ```
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
@@ -649,9 +760,9 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results',
             'manuscript',
             '2',
-            paste0(plotID, '_Combined ordinations.pdf')),
+            paste0(plotID, '_Composite figure (Aitchison).pdf')),
        device = cairo_pdf,
-       height = 4, width = 10)
+       height = 3, width = 12)
 ```
 
 
@@ -977,10 +1088,10 @@ ggplot(data, aes(x = Axis.1, y = Axis.2, color = subj)) +
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results',
-            'manuscript',
-            '2',
-            paste0(plotID, '_Menu ordination (Jaccard).pdf')))
+# ggsave(here('results',
+#             'manuscript',
+#             '2',
+#             paste0(plotID, '_Menu ordination (Jaccard).pdf')))
 ```
 
 ```{r}
