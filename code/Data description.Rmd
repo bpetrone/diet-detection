@@ -98,7 +98,7 @@ ps.protein.taxon <-
           'phyloseq',
           'combined',
           'filtered',
-          'ps_mp_taxa.rds') %>%
+          'ps_mp_1UP_taxa.rds') %>%
      readRDS()
 
 # By protein
@@ -108,7 +108,7 @@ ps.protein <-
           'phyloseq',
           'combined',
           'filtered',
-          'ps_mp_proteins.rds') %>%
+          'ps_mp_1UP.rds') %>%
      readRDS()
 ```
 
@@ -516,9 +516,12 @@ n_distinct(proteins.df$Accession)
 n_distinct(proteins.df$Description)
 ```
 
+From Ali, I want to use the "Accession" count, because the "Description" can be the same for the proteins from distinct organisms (and that represent distinct proteins in the dataset).
+
 ```{r}
 # Most prevalent foods
-melt.mp %>% 
+prevalence <- 
+     melt.mp %>% 
      group_by(Sample, kingdom, name) %>% 
      summarize(psms_tot = sum(Abundance)) %>% 
      mutate(prevalence_within = psms_tot >= 5) %>% 
@@ -526,7 +529,54 @@ melt.mp %>%
      group_by(kingdom, name) %>% 
      summarize(prevalence_across = sum(prevalence_within)) %>% 
      arrange(desc(prevalence_across))
+
+prevalence
 ```
+
+```{r}
+# Generate a list of proteins and abundances for taxa detected in every sample
+prevalence.high <- 
+     prevalence %>% 
+     filter(prevalence_across == 26) %>% # Greater than 90% of samples
+     pull(name)
+
+prevalence.high
+```
+
+```{r}
+# Switch this to protein accessions
+prevalence.high <- 
+     melt.mp %>% 
+     filter(name %in% prevalence.high) %>% 
+     pull(OTU)
+```
+
+```{r}
+# Look these up in protein table, get name
+prevalent.names <-
+     proteins.df %>% 
+     filter(Accession %in% prevalence.high) %>% 
+     select(common_name, Accession, Description) %>% 
+     unique() %>% 
+     mutate(Description = gsub(Description, 
+                               pattern = ' OS=.*$',
+                               replacement = ''))
+```
+
+```{r}
+melt.mp %>% 
+     filter(OTU %in% prevalence.high) %>% 
+     select(OTU, Abundance) %>% 
+     left_join(prevalent.names,
+               by = c('OTU' = 'Accession')) %>% 
+     group_by(common_name, Description) %>% 
+     summarize(psms_tot = sum(Abundance)) %>% 
+     arrange(desc(psms_tot)) %>% 
+     write_csv(here('data',
+                    'processed',
+                    'Proteins from taxa detected in every sample.csv'))
+```
+
 
 Interesting: there are still some that trigger questions for me here. For example, goat had previously been down to 4 detections, maybe I am being too permissive?  Check which proteins are listed and maybe flag??
 
@@ -791,7 +841,9 @@ melt.mb.animal %>%
 
 What species are shared between metaproteomic, metabarcoding, and (day before sample) menu datasets?
 
-#### Filter to only successful samples in all 3
+#### DNA and menu only
+
+#### All 3
 
 ```{r}
 ps.mb.plant
@@ -851,18 +903,18 @@ mb.plant.taxa <-
      taxa_names(ps.mb.plant) %>% 
      data.frame(old = .) %>% 
      left_join(name.sync, by = c('old' = 'mb_taxa')) %>% 
-     select(old, `taxon index`) %>% 
+     select(old, common_name) %>% 
      distinct() %>% 
-     pull(`taxon index`)
+     pull(common_name)
 
 # 12SV5
 mb.animal.taxa <- 
      taxa_names(ps.mb.animal) %>% 
      data.frame(old = .) %>% 
      left_join(name.sync, by = c('old' = 'mb_taxa')) %>% 
-     select(old, `taxon index`) %>% 
+     select(old, common_name) %>% 
      distinct() %>% 
-     pull(`taxon index`)
+     pull(common_name)
 ```
 
 ```{r}
@@ -872,27 +924,27 @@ protein.plant.taxa <-
      taxa_names(ps.protein.plant) %>% 
      data.frame(old = .) %>% 
      left_join(name.sync, by = c('old' = 'mp_taxa')) %>% 
-     select(old, `taxon index`) %>% 
+     select(old, common_name) %>% 
      distinct() %>% 
-     pull(`taxon index`)
+     pull(common_name)
 
 # Animal
 protein.animal.taxa <- 
      taxa_names(ps.protein.animal) %>% 
      data.frame(old = .) %>% 
      left_join(name.sync, by = c('old' = 'mp_taxa')) %>% 
-     select(old, `taxon index`) %>% 
+     select(old, common_name) %>% 
      distinct() %>% 
-     pull(`taxon index`)
+     pull(common_name)
 
 # Other
 protein.other.taxa <- 
      taxa_names(ps.protein.other) %>% 
      data.frame(old = .) %>% 
      left_join(name.sync, by = c('old' = 'mp_taxa')) %>% 
-     select(old, `taxon index`) %>% 
+     select(old, common_name) %>% 
      distinct() %>% 
-     pull(`taxon index`)
+     pull(common_name)
 ```
 
 ```{r}
@@ -902,29 +954,28 @@ menu.plant.taxa <-
      taxa_names(ps.menu.plant) %>% 
      data.frame(old = .) %>% 
      left_join(name.sync, by = c('old' = 'menu_taxa')) %>% 
-     select(old, `taxon index`) %>% 
+     select(old, common_name) %>% 
      distinct() %>% 
-     pull(`taxon index`)
+     pull(common_name)
 
 # Animal
 menu.animal.taxa <- 
      taxa_names(ps.menu.animal) %>% 
      data.frame(old = .) %>% 
      left_join(name.sync, by = c('old' = 'menu_taxa')) %>% 
-     select(old, `taxon index`) %>% 
+     select(old, common_name) %>% 
      distinct() %>% 
-     pull(`taxon index`)
+     pull(common_name)
 
 # Other
 menu.other.taxa <- 
      taxa_names(ps.menu.other) %>% 
      data.frame(old = .) %>% 
      left_join(name.sync, by = c('old' = 'menu_taxa')) %>% 
-     select(old, `taxon index`) %>% 
+     select(old, common_name) %>% 
      distinct() %>% 
-     pull(`taxon index`)
+     pull(common_name)
 ```
-
 
 ```{r}
 # Plants
