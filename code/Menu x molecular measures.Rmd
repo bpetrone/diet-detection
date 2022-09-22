@@ -108,52 +108,15 @@ ps.mb.plant <- subset_taxa(ps.mb.plant, !is.na(superkingdom))
 ## Filter to shared samples
 
 ```{r}
-# ps.mb.plant
-# ps.mb.plant <- 
-#      ps.mb.plant %>% 
-#      prune_samples(sample_sums(.) > 0, .) 
-# 
-# ps.mb.plant
+ps.mb.plant
+ps.mb.plant <-
+     ps.mb.plant %>%
+     prune_samples(sample_sums(.) > 0, .)
+
+ps.mb.plant
 ```
 
 No similar pruning necessary for animal metabarcoding (all successful) or metaproteomic dataset (failed sample falls off when split kingdom-wise). 
-
-```{r}
-# samples.plant <- 
-#      intersect(sample_names(ps.mb.plant),
-#                sample_names(ps.protein))
-# 
-# length(samples.plant)
-```
-
-```{r}
-# samples.animal <- 
-#      intersect(sample_names(ps.mb.animal),
-#                sample_names(ps.protein))
-# 
-# length(samples.animal)
-```
-
-```{r}
-# subset_ps <- function(ps, samples){
-#      ps %>% 
-#           prune_samples(samples, .) %>% 
-#           prune_taxa(taxa_sums(.) > 0, .)
-# }
-# 
-# # Now, subset each dataset (except menu)
-# ps.mb.plant <- subset_ps(ps.mb.plant, samples.plant)
-# ps.protein.plant <- 
-#      ps.protein %>% 
-#      subset_taxa(kingdom == 'Viridiplantae') %>% 
-#      subset_ps(., samples.plant)
-# 
-# ps.mb.animal <- subset_ps(ps.mb.animal, samples.animal)
-# ps.protein.animal <- 
-#      ps.protein %>% 
-#      subset_taxa(kingdom == 'Metazoa') %>% 
-#      subset_ps(., samples.animal)
-```
 
 ## Pair with 1-2 days prior intake
 
