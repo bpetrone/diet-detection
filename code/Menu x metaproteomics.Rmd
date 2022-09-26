@@ -68,55 +68,7 @@ ps.menu <-
 ps.menu
 ```
 
-## Metabarcoding phyloseq
-
-```{r}
-ps.mb.plant <- 
-     here('data', 
-          'processed', 
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_mb_trnL.rds') %>% 
-     readRDS()
-
-ps.mb.plant
-```
-
-```{r}
-ps.mb.animal <- 
-     here('data', 
-          'processed', 
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_mb_12SV5.rds') %>% 
-     readRDS()
-
-ps.mb.plant
-```
-
 # Pre-process
-
-## Remove unnamed taxa
-
-Only present in plant metabarcoding data
-```{r}
-ps.mb.plant <- subset_taxa(ps.mb.plant, !is.na(superkingdom))
-```
-
-## Filter to shared samples
-
-```{r}
-ps.mb.plant
-ps.mb.plant <-
-     ps.mb.plant %>%
-     prune_samples(sample_sums(.) > 0, .)
-
-ps.mb.plant
-```
-
-No similar pruning necessary for animal metabarcoding (all successful) or metaproteomic dataset (failed sample falls off when split kingdom-wise). 
 
 ## Pair with 1-2 days prior intake
 
@@ -166,42 +118,9 @@ There are `r ntaxa(ps.menu.12)` recorded in the menu in the 2 days prior to each
 
 ## Reference taxa by their shared index
 
-Will need to glom by the taxon index, because otherwise phyloseq object would have multiple instances of that taxon. 
+Will need to glom by the shared taxon name, because otherwise phyloseq object would have multiple instances of that taxon. 
 
 So what I'll want to do here is join the taxon indices to the names to the taxonomy, and then glom there and rename in the object.
-
-For metabarcoding, I want different reference days for plant and animal markers (because fewer samples amplified with trnL than with 12SV5). Sort this by keeping markers separate when calculating TP, TN, etc.
-
-```{r}
-# Metabarcoding
-# trnL
-tax_table(ps.mb.plant) <- 
-     name.sync %>% 
-     select(common_name, mb_taxa) %>% 
-     right_join(data.frame(ps.mb.plant@tax_table@.Data),
-               by = c('mb_taxa' = 'name')) %>%
-     distinct() %>% 
-     select(superkingdom:phylum, common_name, mb_taxa) %>% 
-     column_to_rownames(var = 'mb_taxa') %>%
-     as.matrix()
-
-ps.mb.plant.id <- tax_glom(ps.mb.plant, taxrank = 'common_name')
-taxa_names(ps.mb.plant.id) <- tax_table(ps.mb.plant.id)[, 'common_name']
-
-# 12SV5
-tax_table(ps.mb.animal) <- 
-     name.sync %>% 
-     select(common_name, mb_taxa) %>% 
-     right_join(data.frame(ps.mb.animal@tax_table@.Data), 
-               by = c('mb_taxa' = 'name')) %>% 
-     distinct() %>% 
-     select(kingdom:phylum, common_name, mb_taxa) %>%
-     column_to_rownames(var = 'mb_taxa') %>% 
-     as.matrix()
-
-ps.mb.animal.id <- tax_glom(ps.mb.animal, taxrank = 'common_name')
-taxa_names(ps.mb.animal.id) <- tax_table(ps.mb.animal.id)[, 'common_name']
-```
 
 Here, use "mp_to_menu" column, which maps specifically between these two datasets.
 ```{r}
@@ -212,12 +131,45 @@ tax_table(ps.protein) <-
      right_join(data.frame(ps.protein@tax_table@.Data),
                by = c('mp_taxa' = 'name')) %>%
      distinct() %>% 
-     select(superkingdom:species, mp_to_menu, mp_taxa) %>% 
      column_to_rownames(var = 'mp_taxa') %>% 
      as.matrix()
+```
 
-ps.protein.id <- tax_glom(ps.protein, taxrank = 'mp_to_menu')
+Doing a glom on shared name doesn't work if there's a higher taxonomic level that differs, e.g.
+- Musa acuminata / banana
+- Musa x paradisiaca / banana 
+will both be preserved, when I actually want them to be merged
+
+```{r}
+# Get a list of these duplicates
+dups <- 
+     ps.protein@tax_table@.Data %>% 
+     data.frame() %>% 
+     filter(duplicated(mp_to_menu)) %>% 
+     pull(mp_to_menu)
+
+dups
+```
+
+```{r}
+# Note this has to be done in a different way if there's >1 duplicate,
+# see menu below
+ps.protein
+for (taxon in dups){
+     # Get the list of equivalent taxa at the species level for that food
+     eq_taxa <- 
+          ps.protein@tax_table@.Data %>% 
+          data.frame() %>% 
+          filter(mp_to_menu == taxon) %>% 
+          select(-mp_to_menu) %>% 
+          MButils::lowest_level() %>% 
+          pull(name)
+     
+     ps.protein.id <- merge_taxa(ps.protein, eq_taxa)
+}
+
 taxa_names(ps.protein.id) <- tax_table(ps.protein.id)[, 'mp_to_menu']
+ps.protein.id
 ```
 
 ```{r}
@@ -233,12 +185,51 @@ tax_table(ps.menu.12) <-
      right_join(data.frame(ps.menu.12@tax_table@.Data), 
                by = c('menu_taxa' = 'name')) %>% 
      distinct() %>% 
-     select(superkingdom:species, mp_to_menu, menu_taxa) %>%
      column_to_rownames(var = 'menu_taxa') %>% 
      as.matrix()
+```
 
-ps.menu.id <- tax_glom(ps.menu.12, taxrank = 'mp_to_menu')
+```{r}
+# Get a list of these duplicates
+dups <- 
+     ps.menu.12@tax_table@.Data %>% 
+     data.frame() %>% 
+     filter(duplicated(mp_to_menu)) %>% 
+     pull(mp_to_menu)
+
+dups
+```
+
+```{r}
+ps.menu.12
+merges = list()
+for (taxon in dups){
+     # Get the list of equivalent taxa at the species level for that food
+     eq_taxa <- 
+          ps.menu.12@tax_table@.Data %>% 
+          data.frame() %>% 
+          filter(mp_to_menu == taxon) %>% 
+          select(-mp_to_menu) %>% 
+          MButils::lowest_level() %>% 
+          pull(name)
+     
+     merges <- append(merges, list(eq_taxa))
+}
+
+if (length(merges) == 1){
+     # Just do one merge
+      ps.menu.id <- merge_taxa(ps.menu.12, merges[[1]])
+} else {
+     # Merge once to make new phyloseq
+     ps.menu.id <- merge_taxa(ps.menu.12, merges[[1]])
+     # Then loop over remainder
+     for (i in 2:length(merges)){
+          ps.menu.id <- merge_taxa(ps.menu.id, merges[[i]])
+     }
+}
+
 taxa_names(ps.menu.id) <- tax_table(ps.menu.id)[, 'mp_to_menu']
+ps.menu.id
 ```
 
 # Analyze 
@@ -354,6 +345,7 @@ dim(asvtab.menu.12)
 length(union(colnames(asvtab.menu.12), colnames(asvtab.protein)))
 ```
 
+Want to make these tables the same same size (taking the union of their columns, and populating the new additions to each with zeros since the food wasn't detected in that dataset).
 ```{r}
 # Helper function to pad out columns
 pad_columns <- function(x, y, fill = 0){
@@ -404,8 +396,25 @@ all(colnames(asvtab.protein) == colnames(asvtab.menu.12))
 
 ```{r}
 # Label predictions 
-protein.pos <- asvtab.protein > 0 # Already filtered, above
-menu.pos <- asvtab.menu.12 > 0
+protein.pos <- 
+     asvtab.protein %>% 
+     # Convert sample name to study variable for grouping
+     data.frame() %>% 
+     rownames_to_column(var = 'study') %>% 
+     mutate(study = gsub('_.*', '', study),
+            study = gsub('\\d', '', study)) %>% 
+     mutate(across(.cols = -study,
+                   ~.x > 0))
+
+menu.pos <-
+     asvtab.menu.12 %>% 
+     # Convert sample name to study variable for grouping
+     data.frame() %>% 
+     rownames_to_column(var = 'study') %>% 
+     mutate(study = gsub('_.*', '', study),
+            study = gsub('\\d', '', study)) %>% 
+     mutate(across(.cols = -study,
+                   ~.x > 0))
 
 tp <- protein.pos & menu.pos
 tn <- !protein.pos & !menu.pos
@@ -455,12 +464,12 @@ taxtab <-
           data.frame(ps.menu.id@tax_table),
           data.frame(ps.protein.id@tax_table)
           ) %>% 
-     distinct() %>% 
-     select(kingdom, common_name) %>% 
+     select(kingdom, common_name = mp_to_menu) %>% 
      mutate(kingdom = ifelse(kingdom %in% c('Metazoa',
                                             'Viridiplantae'),
                              yes = kingdom,
-                             no = 'Other'))
+                             no = 'Other')) %>% 
+     distinct()
 
 pred.summary <- left_join(pred.summary, taxtab)
 ```
@@ -517,7 +526,7 @@ pred.long %>%
                 scales = 'free',
                 space = 'free') +
      theme_classic() +
-     theme(axis.text.x = element_blank(),
+     theme(axis.text.x = element_text(angle = 40, hjust = 1),
            axis.text.y = element_blank(), 
            axis.ticks = element_blank(),
            axis.line = element_blank(),
@@ -528,6 +537,29 @@ pred.long %>%
            strip.background = element_blank(),
            strip.text.x = element_blank()) 
 ```
+```{r}
+pred.long %>%
+     ggplot(aes(x = common_name, y = count, fill = prediction)) +
+     geom_bar(position = 'stack', stat = 'identity') +
+     scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
+                                  '#D7191C', '#FDAE61')) + # FP, FN
+     facet_grid(cols = vars(kingdom),
+                scales = 'free',
+                space = 'free') +
+     theme_classic() +
+     theme(axis.text.x = element_text(angle = 40, hjust = 1),
+           axis.text.y = element_blank(), 
+           axis.ticks = element_blank(),
+           axis.line = element_blank(),
+           axis.title = element_blank(),
+           legend.position = 'none',
+           legend.title = element_blank(), 
+           plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
+           strip.background = element_blank(),
+           strip.text.x = element_blank()) 
+```
+
+
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
