@@ -396,52 +396,55 @@ all(colnames(asvtab.protein) == colnames(asvtab.menu.12))
 
 ```{r}
 # Label predictions 
-protein.pos <- 
-     asvtab.protein %>% 
-     # Convert sample name to study variable for grouping
-     data.frame() %>% 
-     rownames_to_column(var = 'study') %>% 
-     mutate(study = gsub('_.*', '', study),
-            study = gsub('\\d', '', study)) %>% 
-     mutate(across(.cols = -study,
-                   ~.x > 0))
-
-menu.pos <-
-     asvtab.menu.12 %>% 
-     # Convert sample name to study variable for grouping
-     data.frame() %>% 
-     rownames_to_column(var = 'study') %>% 
-     mutate(study = gsub('_.*', '', study),
-            study = gsub('\\d', '', study)) %>% 
-     mutate(across(.cols = -study,
-                   ~.x > 0))
+protein.pos <- asvtab.protein > 0
+menu.pos <- asvtab.menu.12 > 0
 
 tp <- protein.pos & menu.pos
 tn <- !protein.pos & !menu.pos
 fp <- protein.pos & !menu.pos
 fn <- !protein.pos & menu.pos
+```
 
-pred <- bind_rows(colSums(tp),
-                  colSums(tn),
-                  colSums(fp),
-                  colSums(fn))
+```{r}
+# Group results by study and reorganize
+reformat <- function(pred, label){
+     # Relabel results with study (based on sample) and prediction type
+     pred <- 
+          data.frame(pred, check.names = FALSE) %>% 
+          rownames_to_column(var = 'study') %>% 
+          mutate(study = substr(study, 1, 2)) %>%  # 1st 2 chars: HD/ID
+          group_by(study) %>% 
+          summarize(across(.cols = everything(),
+                           ~sum(.x))) %>% 
+          mutate(prediction = label) %>% 
+          select(study, prediction, everything())
+     
+     pred
+}
 
-pred$prediction <- c('tp', 'tn', 'fp', 'fn')
+tp <- reformat(tp, 'tp')
+tn <- reformat(tn, 'tn')
+fp <- reformat(fp, 'fp')
+fn <- reformat(fn, 'fn')
 
-pred <- select(pred, prediction, everything())
+pred <- bind_rows(tp, tn, fp, fn)
 ```
 
 ```{r}
 # Reformat to long for visualization
 pred.long <- pivot_longer(pred,
-                          cols = -prediction,
+                          cols = -c(prediction, study),
                           names_to = 'common_name',
                           values_to = 'count')
 
 # Factor data for visualization
 # Calculate F-measure to be used downstream
+# For this ranking, combine results from both cohorts
 pred.summary <- 
      pred.long %>% 
+     select(-study) %>% 
+     group_by(prediction, common_name) %>% 
+     summarize(count = sum(count)) %>% 
      pivot_wider(names_from = prediction, values_from = count) %>% 
      mutate(recall = tp/(tp + fn),
             precision = tp/(tp + fp),
@@ -487,20 +490,24 @@ pred.long <-
 # Now that joins complete, add factor levels
 pred.long <- 
      pred.long %>% 
-     mutate(common_name = factor(common_name, 
-                                 levels = pred.summary$common_name),
-            prediction = factor(prediction, levels = c('tp',
-                                                       'tn',
-                                                       'fp',
-                                                       'fn'),
-                                labels = c('True positive',
-                                           'True negative',
-                                           'False positive',
-                                           'False negative')),
-            kingdom = factor(kingdom,
-                             levels = c('Viridiplantae',
-                                        'Metazoa',
-                                        'Other')))
+     mutate(
+          study = factor(study,
+                         levels = c('ID', 'HD'),
+                         labels = c('Intervention', 'Habitual')),
+          common_name = factor(common_name, 
+                               levels = pred.summary$common_name),
+          prediction = factor(prediction, levels = c('tp',
+                                                     'tn',
+                                                     'fp',
+                                                     'fn'),
+                              labels = c('True positive',
+                                         'True negative',
+                                         'False positive',
+                                         'False negative')),
+          kingdom = factor(kingdom,
+                           levels = c('Viridiplantae',
+                                      'Metazoa',
+                                      'Other')))
 ```
 
 ```{r}
@@ -523,6 +530,7 @@ pred.long %>%
      scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
                                   '#D7191C', '#FDAE61')) + # FP, FN
      facet_grid(cols = vars(kingdom),
+                rows = vars(study),
                 scales = 'free',
                 space = 'free') +
      theme_classic() +
@@ -534,31 +542,8 @@ pred.long %>%
            legend.position = 'none',
            legend.title = element_blank(), 
            plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
-           strip.background = element_blank(),
-           strip.text.x = element_blank()) 
+           strip.background = element_blank()) 
 ```
-```{r}
-pred.long %>%
-     ggplot(aes(x = common_name, y = count, fill = prediction)) +
-     geom_bar(position = 'stack', stat = 'identity') +
-     scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
-                                  '#D7191C', '#FDAE61')) + # FP, FN
-     facet_grid(cols = vars(kingdom),
-                scales = 'free',
-                space = 'free') +
-     theme_classic() +
-     theme(axis.text.x = element_text(angle = 40, hjust = 1),
-           axis.text.y = element_blank(), 
-           axis.ticks = element_blank(),
-           axis.line = element_blank(),
-           axis.title = element_blank(),
-           legend.position = 'none',
-           legend.title = element_blank(), 
-           plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
-           strip.background = element_blank(),
-           strip.text.x = element_blank()) 
-```
-
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
@@ -568,61 +553,7 @@ ggsave(here('results',
             '3',
             paste0(plotID,
                    '_Metaproteomic by-food predictions compared to menu.pdf')),
-       height = 2, width = 6)
-```
-
-```{r}
-# Refactor so positives are grouped:
-pred.summary <- arrange(pred.summary,
-                        desc(pos_n), taxon)
-
-pred.long <- 
-     pred.long %>% 
-     mutate(prediction = factor(prediction, 
-                                levels = c('True negative',
-                                          'False negative',
-                                          'True positive', 
-                                          'False positive')),
-            taxon = factor(taxon,
-                           levels = pred.summary$taxon))
-```
-
-```{r}
-pred.long %>% 
-     filter(certain == 0) %>% 
-     ggplot(aes(x = taxon, y = count, fill = prediction)) +
-     geom_bar(position = 'stack', stat = 'identity') +
-     scale_fill_manual(values = c('gray80',
-                                  'gray80', 
-                                  '#1A9641', 
-                                  '#1A9641')) + 
-     facet_grid(cols = vars(kingdom), 
-                scales = 'free',
-                space = 'free') +
-     theme_classic() +
-     theme(axis.text.x = element_text(angle = 20, hjust = 1),
-           axis.text.y = element_blank(),
-           axis.ticks = element_blank(),
-           axis.line = element_blank(),
-           axis.title = element_blank(),
-           legend.position = 'top',
-           legend.title = element_blank(), 
-           plot.margin = margin(0, 0.5, 0, 0.5, 'in'),
-           strip.text.x = element_blank()) 
-
-```
-
-```{r}
-width <- 
-     pred.long %>% 
-     filter(certain == 0) %>% 
-     dim()
-
-# ggsave(here('results', 
-#             'per-food performance',
-#             paste0(plotID, 
-#                    '_By-food (shared taxa) predictions compared to menu, >4 PSMs per taxon filter, no intake filter, v2 analysis, uncertain.pdf')),
-#        height = 4, width = width[1]/4 * 0.7)
+       height = 4, width = 24)
 ```
 
 ##### ROC
