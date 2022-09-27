@@ -236,6 +236,8 @@ ps.menu.id
 
 ## Metaproteomics x menu
 
+### All taxa
+
 ```{r}
 fp <- setdiff(taxa_names(ps.protein.id), taxa_names(ps.menu.id))
 length(fp)
@@ -403,6 +405,248 @@ tp <- protein.pos & menu.pos
 tn <- !protein.pos & !menu.pos
 fp <- protein.pos & !menu.pos
 fn <- !protein.pos & menu.pos
+```
+
+```{r}
+# Group results by study and reorganize
+reformat <- function(pred, label){
+     # Relabel results with study (based on sample) and prediction type
+     pred <- 
+          data.frame(pred, check.names = FALSE) %>% 
+          rownames_to_column(var = 'study') %>% 
+          mutate(study = substr(study, 1, 2)) %>%  # 1st 2 chars: HD/ID
+          group_by(study) %>% 
+          summarize(across(.cols = everything(),
+                           ~sum(.x))) %>% 
+          mutate(prediction = label) %>% 
+          select(study, prediction, everything())
+     
+     pred
+}
+
+tp <- reformat(tp, 'tp')
+tn <- reformat(tn, 'tn')
+fp <- reformat(fp, 'fp')
+fn <- reformat(fn, 'fn')
+
+pred <- bind_rows(tp, tn, fp, fn)
+```
+
+```{r}
+# Reformat to long for visualization
+pred.long <- pivot_longer(pred,
+                          cols = -c(prediction, study),
+                          names_to = 'common_name',
+                          values_to = 'count')
+
+# Factor data for visualization
+# Calculate F-measure to be used downstream
+# For this ranking, combine results from both cohorts
+pred.summary <- 
+     pred.long %>% 
+     select(-study) %>% 
+     group_by(prediction, common_name) %>% 
+     summarize(count = sum(count)) %>% 
+     pivot_wider(names_from = prediction, values_from = count) %>% 
+     mutate(recall = tp/(tp + fn),
+            precision = tp/(tp + fp),
+            f_measure = (2 * recall * precision)/(recall + precision),
+            pos_n = tp + fp) %>% 
+     # mutate(certain = ifelse(taxon %in% facet$family,
+     # mutate(certain = ifelse(taxon %in% facet$genus,
+     # mutate(certain = ifelse(taxon %in% unlist(facet), # At any taxonomic level
+     #                         yes = 0,
+     #                         no = 1)) %>%
+     arrange(desc(f_measure), fn, fp)
+
+pred.summary
+```
+```{r}
+# Join to taxonomy to get kingdom-level info
+# Make overall taxonomy matrix (combined menu and metaproteomics)
+taxtab <- 
+     bind_rows(
+          data.frame(ps.menu.id@tax_table),
+          data.frame(ps.protein.id@tax_table)
+          ) %>% 
+     select(kingdom, common_name = mp_to_menu) %>% 
+     mutate(kingdom = ifelse(kingdom %in% c('Metazoa',
+                                            'Viridiplantae'),
+                             yes = kingdom,
+                             no = 'Other')) %>% 
+     distinct()
+
+pred.summary <- left_join(pred.summary, taxtab)
+```
+
+```{r}
+# Incorporate into object
+pred.long <- 
+     pred.summary %>% 
+     select(common_name, kingdom) %>% 
+     right_join(pred.long) %>% 
+     select(kingdom, common_name, everything())
+```
+
+```{r}
+# Now that joins complete, add factor levels
+pred.long <- 
+     pred.long %>% 
+     mutate(
+          study = factor(study,
+                         levels = c('ID', 'HD'),
+                         labels = c('Intervention', 'Habitual')),
+          common_name = factor(common_name, 
+                               levels = pred.summary$common_name),
+          prediction = factor(prediction, levels = c('tp',
+                                                     'tn',
+                                                     'fp',
+                                                     'fn'),
+                              labels = c('True positive',
+                                         'True negative',
+                                         'False positive',
+                                         'False negative')),
+          kingdom = factor(kingdom,
+                           levels = c('Viridiplantae',
+                                      'Metazoa',
+                                      'Other')))
+```
+
+```{r}
+# Save for comparison to metabarcoding data
+saveRDS(pred.long,
+        here('data', 
+             'processed', 
+             'performance-metrics', 
+             'Metaproteomic 1UP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds'))
+```
+
+#### Plot
+
+##### Bar
+
+```{r}
+pred.long %>%
+     ggplot(aes(x = common_name, y = count, fill = prediction)) +
+     geom_bar(position = 'stack', stat = 'identity') +
+     scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
+                                  '#D7191C', '#FDAE61')) + # FP, FN
+     facet_grid(cols = vars(kingdom),
+                rows = vars(study),
+                scales = 'free',
+                space = 'free') +
+     theme_classic() +
+     theme(axis.text.x = element_text(angle = 40, hjust = 1),
+           axis.text.y = element_blank(), 
+           axis.ticks = element_blank(),
+           axis.line = element_blank(),
+           axis.title = element_blank(),
+           legend.position = 'none',
+           legend.title = element_blank(), 
+           plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
+           strip.background = element_blank()) 
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results',
+            'manuscript',
+            '3',
+            paste0(plotID,
+                   '_Metaproteomic by-food predictions compared to menu.pdf')),
+       height = 4, width = 24)
+```
+
+### Grouped: to species, family, genera
+
+```{r}
+rank_names(ps.menu.12)
+rank_names(ps.protein)
+```
+
+
+```{r}
+# Glom taxa at these levels (removing common-name labels first)
+# Menu
+tax_table(ps.menu.12) <- 
+     ps.menu.12@tax_table@.Data %>% 
+     data.frame() %>% 
+     select(-mp_to_menu) %>% 
+     as.matrix()
+
+menus <- 
+     lapply(list('species', 'genus', 'family'),
+            tax_glom,
+            physeq = ps.menu.12)
+
+# Metaproteomic
+tax_table(ps.protein) <- 
+     ps.protein@tax_table@.Data %>% 
+     data.frame() %>% 
+     select(-mp_to_menu) %>% 
+     as.matrix()
+
+proteins <- 
+     lapply(list('species', 'genus', 'family'),
+            tax_glom,
+            physeq = ps.protein) 
+```
+
+### Paired samples, per-food
+
+```{r}
+# Replace full phyloseq object with its OTU table
+menus <- 
+     lapply(menus, otu_table) %>% # otu_table-class object
+     lapply(., slot, name = '.Data') # matrix
+
+proteins <- 
+     lapply(proteins, otu_table) %>% # otu_table-class object
+     lapply(., slot, name = '.Data') # matrix
+```
+
+```{r}
+# Check their dimensions
+lapply(menus, dim)
+lapply(proteins, dim)
+```
+
+Want to make these tables the same same size (taking the union of their columns, and populating the new additions to each with zeros since the food wasn't detected in that dataset). Use `pad_columns()` helper function defined above. 
+
+```{r}
+padded <- 
+     mapply(
+          pad_columns,
+          menus,
+          proteins
+     )
+
+menus <- list(padded[[1]], padded[[3]], padded[[5]])
+proteins <- list(padded[[2]], padded[[4]], padded[[6]])
+```
+
+```{r}
+# Label predictions 
+# Recode detections or records as binary
+menus.pos <- lapply(menus, function(x){x > 0})
+proteins.pos <- lapply(proteins, function(x){x > 0})
+
+tp <- mapply(function(record, detect){record & detect},
+             menus.pos, 
+             proteins.pos)
+
+tn <- mapply(function(record, detect){!record & !detect},
+             menus.pos, 
+             proteins.pos)
+
+fp <- mapply(function(record, detect){!record & detect},
+             menus.pos, 
+             proteins.pos)
+
+fn <- mapply(function(record, detect){record & !detect},
+             menus.pos, 
+             proteins.pos)
 ```
 
 ```{r}
