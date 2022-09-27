@@ -555,34 +555,3 @@ ggsave(here('results',
                    '_Metaproteomic by-food predictions compared to menu.pdf')),
        height = 4, width = 24)
 ```
-
-##### ROC
-
-Think I need to filter out cases where the denominator of either FPR or FNR is NA in advance.
-
-```{r}
-drop.na <- 
-     pred.long %>% 
-     pivot_wider(names_from = prediction,
-                 values_from = count) %>% 
-     group_by(common_name) %>% 
-     filter((tp == 0 & fn == 0) | (fp == 0 & tn == 0)) %>% 
-     pull(common_name)
-```
-
-```{r}
-protein.roc <- 
-     protein.pos[, !(colnames(protein.pos) %in% drop.na)] %>% 
-     apply(2, as.numeric)
-
-menu.roc <- 
-     menu.pos[, colnames(protein.roc)] %>% 
-     apply(2, as.numeric)
-```
-
-```{r}
-x <- prediction(predictions = protein.roc, labels = menu.roc)
-y <- performance(x, 'tpr', 'fpr')
-
-plot(y)
-```
