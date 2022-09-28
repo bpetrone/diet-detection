@@ -334,7 +334,6 @@ taxtab <-
 facet <- left_join(facet, taxtab)
 ```
 
-### Paired samples, per-food
 
 ```{r}
 # Extract OTU tables
@@ -523,8 +522,6 @@ saveRDS(pred.long,
 
 #### Plot
 
-##### Bar
-
 ```{r}
 pred.long %>%
      ggplot(aes(x = common_name, y = count, fill = prediction)) +
@@ -560,6 +557,8 @@ ggsave(here('results',
 
 ### Grouped: to species, family, genera
 
+This repeats the above but vectorized over a list of objects, which contain the menu/protein information grouped to either the species, genus, or family level.
+
 ```{r}
 rank_names(ps.menu.12)
 rank_names(ps.protein)
@@ -568,18 +567,26 @@ rank_names(ps.protein)
 
 ```{r}
 # Glom taxa at these levels (removing common-name labels first)
-# Menu
+# Remove common name, which inhibits glom
 tax_table(ps.menu.12) <- 
      ps.menu.12@tax_table@.Data %>% 
      data.frame() %>% 
      select(-mp_to_menu) %>% 
      as.matrix()
 
+# Do glom
 menus <- 
      lapply(list('species', 'genus', 'family'),
             tax_glom,
-            physeq = ps.menu.12)
+            physeq = ps.menu.12) 
 
+# Rename taxa to the glommed level
+taxa_names(menus[[1]]) <- tax_table(menus[[1]])@.Data[, 'species']
+taxa_names(menus[[2]]) <- tax_table(menus[[2]])@.Data[, 'genus']
+taxa_names(menus[[3]]) <- tax_table(menus[[3]])@.Data[, 'family']
+```
+
+```{r}
 # Metaproteomic
 tax_table(ps.protein) <- 
      ps.protein@tax_table@.Data %>% 
@@ -590,10 +597,12 @@ tax_table(ps.protein) <-
 proteins <- 
      lapply(list('species', 'genus', 'family'),
             tax_glom,
-            physeq = ps.protein) 
-```
+            physeq = ps.protein)
 
-### Paired samples, per-food
+taxa_names(proteins[[1]]) <- tax_table(proteins[[1]])@.Data[, 'species']
+taxa_names(proteins[[2]]) <- tax_table(proteins[[2]])@.Data[, 'genus']
+taxa_names(proteins[[3]]) <- tax_table(proteins[[3]])@.Data[, 'family']
+```
 
 ```{r}
 # Replace full phyloseq object with its OTU table
@@ -624,6 +633,14 @@ padded <-
 
 menus <- list(padded[[1]], padded[[3]], padded[[5]])
 proteins <- list(padded[[2]], padded[[4]], padded[[6]])
+```
+
+```{r}
+# Confirm row and column names are equal before proceeding
+for (i in 1:3){
+     print(all(row.names(menus[[i]]) == row.names(proteins[[i]])))
+     print(all(colnames(menus[[i]]) == colnames(proteins[[i]])))
+}
 ```
 
 ```{r}
@@ -666,136 +683,161 @@ reformat <- function(pred, label){
      pred
 }
 
-tp <- reformat(tp, 'tp')
-tn <- reformat(tn, 'tn')
-fp <- reformat(fp, 'fp')
-fn <- reformat(fn, 'fn')
+tp <- lapply(tp, reformat, label = 'tp')
+tn <- lapply(tn, reformat, label = 'tn')
+fp <- lapply(fp, reformat, label = 'fp')
+fn <- lapply(fn, reformat, label = 'fn')
 
-pred <- bind_rows(tp, tn, fp, fn)
+pred <- 
+     mapply(bind_rows, 
+            tp, 
+            tn, 
+            fp,
+            fn)
 ```
 
 ```{r}
 # Reformat to long for visualization
-pred.long <- pivot_longer(pred,
-                          cols = -c(prediction, study),
-                          names_to = 'common_name',
-                          values_to = 'count')
+pred.long <- 
+     lapply(pred,
+            pivot_longer,
+            cols = -c(prediction, study),
+            names_to = 'name',
+            values_to = 'count')
+```
 
+```{r}
 # Factor data for visualization
 # Calculate F-measure to be used downstream
 # For this ranking, combine results from both cohorts
-pred.summary <- 
-     pred.long %>% 
+summary_helper <- function(p){
+     # p: pred.long: Long-form summary of per-taxon predictions
+     p %>% 
      select(-study) %>% 
-     group_by(prediction, common_name) %>% 
+     group_by(prediction, name) %>% 
      summarize(count = sum(count)) %>% 
      pivot_wider(names_from = prediction, values_from = count) %>% 
      mutate(recall = tp/(tp + fn),
             precision = tp/(tp + fp),
             f_measure = (2 * recall * precision)/(recall + precision),
             pos_n = tp + fp) %>% 
-     # mutate(certain = ifelse(taxon %in% facet$family,
-     # mutate(certain = ifelse(taxon %in% facet$genus,
-     # mutate(certain = ifelse(taxon %in% unlist(facet), # At any taxonomic level
-     #                         yes = 0,
-     #                         no = 1)) %>%
      arrange(desc(f_measure), fn, fp)
+     }
 
-pred.summary
+pred.summary <- lapply(pred.long, summary_helper)
 ```
+
 ```{r}
 # Join to taxonomy to get kingdom-level info
 # Make overall taxonomy matrix (combined menu and metaproteomics)
-taxtab <- 
+taxtabs <- 
      bind_rows(
-          data.frame(ps.menu.id@tax_table),
-          data.frame(ps.protein.id@tax_table)
+          data.frame(ps.menu.12@tax_table),
+          data.frame(ps.protein@tax_table)
           ) %>% 
-     select(kingdom, common_name = mp_to_menu) %>% 
-     mutate(kingdom = ifelse(kingdom %in% c('Metazoa',
-                                            'Viridiplantae'),
-                             yes = kingdom,
-                             no = 'Other')) %>% 
-     distinct()
-
-pred.summary <- left_join(pred.summary, taxtab)
+     # Pair kingdom with either species, genus, or family label
+     # for downstream join
+     lapply(list('species', 'genus', 'family'),
+            select, 
+            .data = .,
+            kingdom) %>% 
+     lapply(.,
+            distinct) %>% 
+     # "Other": fungi and bacteria
+     lapply(.,
+            mutate,
+            kingdom = ifelse(!(kingdom %in% c('Viridiplantae',
+                                              'Metazoa')),
+                             yes = 'Other',
+                             no = kingdom))
 ```
 
 ```{r}
-# Incorporate into object
+# Incorporate kingdom into objects
+# Rename name to the specific taxonomic level relevant to that dataframe
+pred.long[[1]] <- rename(pred.long[[1]], species = name)
+pred.long[[2]] <- rename(pred.long[[2]], genus = name)
+pred.long[[3]] <- rename(pred.long[[3]], family = name)
+
 pred.long <- 
-     pred.summary %>% 
-     select(common_name, kingdom) %>% 
-     right_join(pred.long) %>% 
-     select(kingdom, common_name, everything())
+     mapply(left_join,
+            pred.long,
+            taxtabs) %>% 
+     # Matrix output, reorganize into 3 dataframes
+     apply(2, data.frame) %>% 
+     # Rename taxon column, which was reset to "species" by prior step
+     lapply(.,
+            rename,
+            name = species)
 ```
 
 ```{r}
 # Now that joins complete, add factor levels
 pred.long <- 
-     pred.long %>% 
-     mutate(
-          study = factor(study,
+     lapply(pred.long, 
+            mutate,
+            study = factor(study,
                          levels = c('ID', 'HD'),
                          labels = c('Intervention', 'Habitual')),
-          common_name = factor(common_name, 
-                               levels = pred.summary$common_name),
-          prediction = factor(prediction, levels = c('tp',
-                                                     'tn',
-                                                     'fp',
-                                                     'fn'),
-                              labels = c('True positive',
-                                         'True negative',
-                                         'False positive',
-                                         'False negative')),
-          kingdom = factor(kingdom,
-                           levels = c('Viridiplantae',
-                                      'Metazoa',
-                                      'Other')))
+            prediction = factor(prediction, levels = c('tp',
+                                                       'tn',
+                                                       'fp',
+                                                       'fn'),
+                                labels = c('True positive',
+                                           'True negative',
+                                           'False positive',
+                                           'False negative')),
+            kingdom = factor(kingdom,
+                             levels = c('Viridiplantae',
+                                        'Metazoa',
+                                        'Other'))
+     )
+```
+      
+```{r}
+# Refactor taxa to rank them by descending F measure (info from pred.summary)
+for (i in 1:3){
+     pred.long[[i]]$name <- factor(pred.long[[i]]$name,
+                                   levels = pred.summary[[i]]$name)
+}
+
+names(pred.long) <- c('species', 'genera', 'families')
 ```
 
-```{r}
-# Save for comparison to metabarcoding data
-saveRDS(pred.long,
-        here('data', 
-             'processed', 
-             'performance-metrics', 
-             'Metaproteomic 1UP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds'))
-```
+Okay, so now I should be able to iterate over these objects to plot them.
 
 #### Plot
 
-##### Bar
-
-```{r}
-pred.long %>%
-     ggplot(aes(x = common_name, y = count, fill = prediction)) +
-     geom_bar(position = 'stack', stat = 'identity') +
-     scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
-                                  '#D7191C', '#FDAE61')) + # FP, FN
-     facet_grid(cols = vars(kingdom),
-                rows = vars(study),
-                scales = 'free',
-                space = 'free') +
-     theme_classic() +
-     theme(axis.text.x = element_text(angle = 40, hjust = 1),
-           axis.text.y = element_blank(), 
-           axis.ticks = element_blank(),
-           axis.line = element_blank(),
-           axis.title = element_blank(),
-           legend.position = 'none',
-           legend.title = element_blank(), 
-           plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
-           strip.background = element_blank()) 
-```
-
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-
-ggsave(here('results',
-            'manuscript',
-            '3',
-            paste0(plotID,
-                   '_Metaproteomic by-food predictions compared to menu.pdf')),
-       height = 4, width = 24)
+for (i in 1:3){
+ ggplot(pred.long[[i]],
+        aes(x = name, y = count, fill = prediction)) +
+          geom_bar(position = 'stack', stat = 'identity') +
+          scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
+                                       '#D7191C', '#FDAE61')) + # FP, FN
+          facet_grid(cols = vars(kingdom),
+                     rows = vars(study),
+                     scales = 'free',
+                     space = 'free') +
+          theme_classic() +
+          theme(axis.text.x = element_text(angle = 40, hjust = 1),
+                axis.text.y = element_blank(), 
+                axis.ticks = element_blank(),
+                axis.line = element_blank(),
+                axis.title = element_blank(),
+                legend.position = 'none',
+                legend.title = element_blank(), 
+                plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
+                strip.background = element_blank())    
+     
+     ggsave(here('results',
+                 'manuscript',
+                 '3',
+                 paste0(plotID,
+                        '_Metaproteomic ',
+                        names(pred.long)[i],
+                        ' predictions compared to menu.pdf')),
+            height = 4, width = 20)
+}
 ```
