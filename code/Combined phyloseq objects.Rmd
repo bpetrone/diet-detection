@@ -25,7 +25,7 @@ menu.dfc <-
      here('data', 
           'processed', 
           'phyloseq',
-          'ps_menu_DFC.rds') %>% 
+          'ps_menu_DFC (with groups).rds') %>% 
      readRDS()
 
 menu.dfc
@@ -36,7 +36,7 @@ menu.908 <-
      here('data', 
           'processed', 
           'phyloseq',
-          'ps_menu_908.rds') %>% 
+          'ps_menu_908 (with groups).rds') %>% 
      readRDS()
 
 menu.908
