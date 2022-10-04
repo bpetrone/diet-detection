@@ -1,0 +1,340 @@
+---
+title: "Biomarkers"
+output: html_notebook
+---
+
+Only want to use menu and metaproteomic data, and consider the best-synchronized name between the two
+
+## Setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r libraries, echo=FALSE}
+library(cowplot)
+library(here) 
+library(phyloseq) 
+library(tidyverse) 
+```
+
+```{r}
+colors.detection <- 
+     c('#fbb04e',
+       '#7e756d')
+
+names(colors.detection) <- 
+     c('Protein',
+       'Menu')
+```
+
+```{r}
+# Plotting themes
+theme_set(theme_bw() +
+               theme(
+                    axis.text = element_text(size = 12),
+                    axis.title.x = ggtext::element_markdown(size = 14),
+                    axis.title.y = ggtext::element_markdown(size = 14),
+                    legend.title = element_text(size = 12),
+                    strip.text = element_text(size = 12)
+               )
+)
+```
+
+## Read in data
+
+### Taxon name mapping
+
+```{r}
+name.sync <- 
+     here('data',
+          'processed',
+          'Naming discrepancies.xlsx') %>% 
+     readxl::read_excel()
+
+name.sync
+```
+
+### Sample dates
+
+```{r}
+samples <- 
+     here('data',
+          'metadata',
+          'Sample collection times.csv') %>% 
+     read_csv()
+
+samples
+```
+
+### Metaproteomic phyloseq
+
+```{r}
+ps.protein <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          # 'ps_mp_1PUP.rds') %>% # >=1 protein unique peptide
+          'ps_mp_1UP.rds') %>% # >=1 unique peptide
+     readRDS()
+          
+ps.protein
+```
+
+### Menu data phyloseq
+
+This includes information on food group, which should allow for distinction between raw ingredients and their more processed derivatives (*e.g.* apple vs vinegar). 
+
+```{r}
+ps.menu <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_menu.rds') %>% 
+     readRDS()
+
+ps.menu
+head(taxa_names(ps.menu))
+```
+
+### Protein annotations
+
+```{r}
+# Raw protein list
+proteins.df <- 
+     here('data',
+          'processed',
+          '5FDR_1UP_both datasets.rds') %>% 
+     readRDS()
+```
+
+```{r}
+annotations <- 
+     here('data',
+          'processed',
+          'Animal-based proteins (full annotation).csv') %>% 
+     read_csv()
+
+annotations
+```
+## Pre-process
+
+### Samples
+
+```{r}
+samples$date <- as.Date(samples$date,
+                        format = '%m/%d/%y')
+```
+
+```{r}
+# Add detection for each so shading is done by facet, below
+detection <- c('Menu', 'Protein')
+subj <- unique(samples$subj)
+
+samples <-
+     expand.grid(detection = detection, 
+                 subj = subj) %>% 
+     right_join(samples) %>% 
+     arrange(study, subj, date) %>% 
+     select(subj:time, detection) %>% 
+     mutate(subj = factor(subj, 
+                          labels = c('HD',
+                                     'ID1', 'ID2', 'ID3', 'ID4')))
+
+samples
+```
+
+### Menu
+
+```{r}
+tax_table(ps.menu)@.Data[, 'food_group'] %>% 
+     unique() %>% 
+     sort()
+```
+
+```{r}
+# Remove food groups that we don't want to consider here, even if derived from
+# the source taxon of interest
+ps.menu <- 
+     subset_taxa(ps.menu,
+                 !(food_group %in% c('oils-sugars',
+                                     'other')))
+```
+
+### Combine
+
+```{r}
+melt.menu <- psmelt(ps.menu) 
+melt.mp <- psmelt(ps.protein)
+```
+
+#### Add common name
+Add common name and group by dataset:
+
+```{r}
+melt.menu <- 
+     melt.menu %>% 
+     left_join(select(name.sync,
+                      menu_taxa, 
+                      mp_to_menu),
+               by = c('name' = 'menu_taxa'))
+
+melt.mp <- 
+     melt.mp %>% 
+     left_join(select(name.sync,
+                      mp_taxa, 
+                      mp_to_menu),
+               by = c('name' = 'mp_taxa'))
+```
+
+```{r}
+# Add dataset info to each melted object
+melt.menu$detection <- 'Menu'
+melt.mp$detection <- 'Protein'
+```
+
+```{r}
+melts <- list(melt.menu, melt.mp)
+
+vs <- c('study',
+        'subj', 
+        'date',
+        'detection', 
+        'mp_to_menu',
+        'food_group', # This will induce a warning for protein object
+        'Abundance') # Shared variables to pull from each phyloseq
+
+lapply(melts, ncol)
+melts <- lapply(melts, function(x){select(x, one_of(vs))})
+lapply(melts, ncol)
+```
+
+```{r}
+melt <- bind_rows(melts)
+dim(melt)
+rm(melts)
+```
+
+```{r}
+melt$detection <- factor(melt$detection, 
+                         levels = c('Menu',
+                                    'Protein'))
+```
+
+## Analyze
+
+### Apple
+
+Try for one food first
+
+```{r}
+taxon <- 'carrot'
+```
+
+Stream plot of intake
+
+```{r}
+melt.filt <- filter(melt, mp_to_menu == taxon)
+     
+ggplot(melt.filt, aes(x = date)) +
+     geom_tile(data = samples, aes(x = date, 
+                                   y = 0),
+               fill = 'gray90',
+               height = Inf) +
+     geom_bar(aes(y = Abundance, fill = detection), stat = 'identity') +
+     facet_grid(cols = vars(subj),
+                rows = vars(detection),
+                scales = 'free',
+                space = 'free_x') +
+     scale_fill_manual(values = colors.detection) +
+     labs(x = 'Date', y = 'Food abundance') +
+     theme(axis.text.x = element_blank(),
+           legend.position = 'none',
+           panel.grid = element_blank())
+```
+What proteins do we detect (stacked bar of contributions)? 
+
+```{r}
+proteins.df %>% 
+     filter(common_name == 'apple') %>% 
+     ggplot(aes(x = id)) +
+     geom_bar(aes(y = `# PSMs`, fill = Accession), 
+              stat = 'identity',
+              position = 'stack') +
+     facet_wrap(~subj,
+                scales = 'free_x') +
+     labs(x = 'Date', y = 'PSMs') +
+     theme(axis.text.x = element_blank(),
+           legend.position = 'none',
+           panel.grid = element_blank())
+```
+What proteins are most consistently detected?
+
+```{r}
+# How many unique accessions for apple? 
+proteins.df %>% 
+     filter(common_name == 'apple') %>% 
+     pull(Accession) %>% 
+     n_distinct()
+```
+
+```{r}
+proteins.df %>% 
+     filter(common_name == 'apple') %>% 
+     group_by(Accession) %>% 
+     summarize(total_psms = sum(`# PSMs`),
+               prevalence = n_distinct(id)) %>% 
+     arrange(desc(total_psms))
+```
+```{r}
+# What are these top four?
+top4 <- 
+     proteins.df %>% 
+     filter(common_name == taxon) %>% 
+     group_by(Accession) %>% 
+     summarize(total_psms = sum(`# PSMs`),
+               prevalence = n_distinct(id)) %>% 
+     slice_max(total_psms, n = 4) %>% 
+     left_join(select(proteins.df, 
+                      Accession,
+                      Description)) %>% 
+     pull(Description) %>% 
+     unique()
+
+top4
+```
+
+```{r}
+# Try highlighting on plots
+melt.filt <- filter(melt, mp_to_menu == taxon)
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+for (i in 1:4){
+     proteins.df %>% 
+     filter(common_name == taxon) %>% 
+     ggplot(aes(x = id)) +
+     geom_bar(aes(y = `# PSMs`, fill = Description == top4[i]), 
+              stat = 'identity',
+              position = 'stack') +
+     facet_wrap(~subj,
+                scales = 'free_x',
+                nrow = 1) +
+     labs(x = 'Date', y = 'PSMs') +
+     theme(axis.text.x = element_blank(),
+           legend.position = 'none',
+           panel.grid = element_blank())
+     
+     ggsave(here('results', 
+                 'manuscript',
+                 'tbd',
+                 'biomarkers',
+            paste0(plotID, '_', taxon, 'top ', i, ' prevalent protein.pdf')),
+       height = 4, width = 6)
+}
+```
+
