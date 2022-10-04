@@ -27,6 +27,12 @@ names(colors.detection) <-
      c('DNA',
        'Protein',
        'Menu')
+
+# Define color palettes
+colors.subj <- 
+     palette.colors(n = 5, 
+                    palette = 'Okabe-Ito') %>% 
+     unname()
 ```
 
 ```{r}
@@ -118,33 +124,6 @@ annotations <-
 
 annotations
 ```
-## Metabarcoding phyloseq
-
-```{r}
-ps.mb.plant <- 
-     here('data', 
-          'processed', 
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_mb_trnL.rds') %>% 
-     readRDS()
-
-ps.mb.plant
-```
-
-```{r}
-ps.mb.animal <- 
-     here('data', 
-          'processed', 
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_mb_12SV5.rds') %>% 
-     readRDS()
-
-ps.mb.plant
-```
 
 # Pre-process
 
@@ -222,15 +201,38 @@ rm(proteins.df)
 table(annotations$category)
 ```
 
-## Menu
-
-Nothing to do here; all handled in combined phyloseq notebooks.
-Is this all menu days? Yes:
+## Select menu days
 
 ```{r}
-ps.menu
+nsamples(ps.menu)
+nsamples(ps.protein)
 ```
 
+```{r}
+# What taxa are removed in this filtering?
+ps.menu %>% 
+     # Use all possible samples here, rather than filtering for only successes
+     # This occurs in either metabarcoding object (full 27), 
+     # not yet filtered for success
+     prune_samples(sample_names(.) %in% sample_data(ps.mb.animal)$delta1,
+                   .) %>% 
+     prune_taxa(taxa_sums(.) == 0, .) %>% 
+     taxa_names() %>% 
+     sort()
+```
+
+```{r}
+# Hold off on filtering for now
+# ps.menu <- 
+#      ps.menu %>% 
+#      # Use all possible samples here, rather than filtering for only successes
+#      # This occurs in either metabarcoding object (full 27), not yet filtered for success
+#      prune_samples(sample_names(.) %in% sample_data(ps.mb.animal)$delta1,
+#                    .) %>% 
+#      prune_taxa(taxa_sums(.) > 0, .)
+# 
+# ps.menu
+```
 
 ## Subset and melt
 
@@ -354,19 +356,43 @@ melt$food_group[melt$food_group == 'dairy, fluid milk'] <- 'dairy'
 ### "Overall" summaries
 
 Note that this is currently with all menu days included.
+
 ```{r}
-melt %>% 
+overall.input <- 
+     melt %>% 
      filter(mp_to_menu == 'chicken',
-            study == 'Intervention') %>% 
-     pivot_wider(names_from = detection,
-                 values_from = Abundance) %>% 
-     ggplot(aes(x = Menu, y = Protein, color = subj)) +
-     geom_point(alpha = 0.8) +
-     facet_wrap(~food_group)     
+            study == 'Intervention') %>% # Healthy Donor lacking portion size; omit for now
+     pivot_wider(names_from = food_group,
+                 values_from = Abundance)
+
+overall.input
+```
+
+```{r}
+ggplot(overall.input, aes(x = meat, y = egg, color = subj)) +
+     geom_point(alpha = 0.8, size = 2) +
+     facet_wrap(~detection,
+                scales = 'free') + 
+     scale_color_manual(values = colors.subj[2:5]) +
+     labs(y = 'Egg intake<br>(grams or PSMs)',
+          x = 'Meat intake<br>(grams or PSMs)') + 
+     theme(legend.position = 'none')
+```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+ggsave(here('results', 
+            'manuscript',
+            'tbd',
+            'biomarkers',
+            paste0(plotID,
+                   '_Chicken meat v. egg intake by detection.pdf')),
+       height = 3, width = 8)
 ```
 
 
-### Pairing to menu
+Does this improve if I subset to only 1-2 days prior to sample?
+
+### Pairing to menus
 
 ```{r}
 taxa <- c('chicken', 'cattle')
