@@ -34,14 +34,10 @@ names(colors.detection) <-
 theme_set(theme_bw() +
                theme(
                     axis.text = element_text(size = 12),
-                    axis.title.x = ggtext::element_markdown(size = 14,
-                                                            face = 'bold'),
-                    axis.title.y = ggtext::element_markdown(size = 14,
-                                                            face = 'bold'),
-                    legend.title = element_text(size = 12,
-                                                face = 'bold'),
-                    strip.text = element_text(size = 12,
-                                              face = 'bold')
+                    axis.title.x = ggtext::element_markdown(size = 14),
+                    axis.title.y = ggtext::element_markdown(size = 14),
+                    legend.title = element_text(size = 12),
+                    strip.text = element_text(size = 12)
                )
 )
 ```
@@ -89,8 +85,6 @@ ps.protein
 
 ## Menu data phyloseq
 
-### Aggregate, taxon-level
-
 ```{r}
 ps.menu <- 
      here('data', 
@@ -102,26 +96,6 @@ ps.menu <-
      readRDS()
 
 ps.menu
-```
-
-### Food group level
-
-```{r}
-ps.menu.908.groups <- 
-     here('data', 
-          'processed', 
-          'phyloseq',
-          'ps_menu_908 (with groups).rds') %>% 
-     readRDS()
-```
-
-```{r}
-ps.menu.dfc.groups <- 
-     here('data', 
-          'processed', 
-          'phyloseq',
-          'ps_menu_DFC (with groups).rds') %>% 
-     readRDS()
 ```
 
 ### Protein annotations
@@ -250,183 +224,89 @@ table(annotations$category)
 
 ## Menu
 
-### Sync metadata
-
-Note difference in entries in OTU table:
-     - DFC: grams of intake
-     - Healthy Donor: # of instances of intake
-     
-```{r}
-head(sample_names(ps.menu.dfc.groups))
-head(sample_names(ps.menu.908.groups))
-```
+Nothing to do here; all handled in combined phyloseq notebooks.
+Is this all menu days? Yes:
 
 ```{r}
-sample_variables(ps.menu.dfc.groups)
-sample_variables(ps.menu.908.groups)
+ps.menu
 ```
+
+
+## Subset and melt
+
+Currently I'm concerned only with the following examples of tissue-type biomarkers:
+- Chicken and egg
+- Cattle and dairy
 
 ```{r}
-# Correct difference in naming and state of variables (908 subj is character, DFC is factor)
-sample_data(ps.menu.dfc.groups) <- 
-     ps.menu.dfc.groups@sam_data %>% 
-     data.frame() %>% 
-     rename(subj = ID) %>% 
-     mutate(subj = as.character(subj))
+# Filter objects to only these taxa
+ps.protein <- 
+     subset_taxa(ps.protein, 
+                 species %in% c('Bos taurus',
+                                'Gallus gallus'))
 
-sample_data(ps.menu.908.groups) <- 
-     ps.menu.908.groups@sam_data %>% 
-     data.frame() %>% 
-     rename(subj = ID,
-            date = day)
+ps.menu <- 
+     subset_taxa(ps.menu, 
+                 species %in% c('Bos taurus',
+                                'Gallus gallus'))
 ```
 
-```{r}
-# Add study variable
-sample_data(ps.menu.dfc.groups)$study <- 'Intervention'
-sample_data(ps.menu.908.groups)$study <- 'Habitual Diet'
-```
-
-### Merge
-
-Perhaps rather than concerning myself with the whole object, just filter to only the taxa I'm actively considering below?
-
-Otherwise a merge will definitely be an incomplete one, because I've only labeledd food groups for a subset of the 908 detected taxa, but Sharon has labeled them all for DFC.  This induces discrepancies like:
-- 908: Vanilla planifolia_NA
-- DFC: Vanilla planifolia_herbs, seasonings, spices; Vanilla planifolia_oils-sugars
-
-(However, all of this can be resolved by a tax_glom on the "name" column.)
-
-```{r}
-taxa <- c('Gallus gallus', 'Bos taurus')
-
-ps.menu.dfc.groups <- 
-     ps.menu.dfc.groups %>% 
-     subset_taxa(species %in% taxa) 
-
-taxa_names(ps.menu.dfc.groups)
-```
-
-```{r}
-ps.menu.908.groups <- 
-     ps.menu.908.groups %>% 
-     subset_taxa(species %in% taxa) 
-
-taxa_names(ps.menu.908.groups)
-```
-
-All match! Merge:
-```{r}
-ps.menu.groups <- 
-     merge_phyloseq(ps.menu.908.groups,
-                    ps.menu.dfc.groups)
-
-ps.menu.groups
-rm(ps.menu.908.groups, ps.menu.dfc.groups)
-```
-
-## Melt dietary data
 ```{r}
 melt.menu <- psmelt(ps.menu) 
-melt.menu.groups <- psmelt(ps.menu.groups)
-melt.mb.plant <- psmelt(ps.mb.plant)
-melt.mb.animal <- psmelt(ps.mb.animal)
 melt.mp <- psmelt(ps.protein)
 ```
 
-#### Add common name
-Add common name and group by dataset:
-
 ```{r}
+# Add common name
 melt.menu <- 
      melt.menu %>% 
      left_join(select(name.sync,
-                      menu_taxa, common_name),
-               by = c('OTU' = 'menu_taxa'))
+                      menu_taxa, 
+                      mp_to_menu),
+               by = c('name' = 'menu_taxa'))
 
-melt.menu.groups <- 
-     melt.menu.groups %>% 
-     left_join(select(name.sync,
-                      menu_taxa, common_name),
-               by = c('name' = 'menu_taxa')) %>% 
-     # Remove species name before group
-     mutate(group = gsub(group,
-                         pattern = '^[^_]*_',
-                         replacement = ''),
-            OTU = gsub(OTU, 
-                       pattern = '_.*$',
-                       replacement = ''))
-
-melt.mb.animal <- 
-     melt.mb.animal %>% 
-     left_join(select(name.sync,
-                      mb_taxa, common_name),
-               by = c('OTU' = 'mb_taxa'))
-
-melt.mb.plant <- 
-     melt.mb.plant %>% 
-     left_join(select(name.sync,
-                      mb_taxa, common_name),
-               by = c('OTU' = 'mb_taxa'))
-
-# Note column naming differences for metaproteomics
 melt.mp <- 
      melt.mp %>% 
      left_join(select(name.sync,
-                      mp_taxa, common_name),
+                      mp_taxa, 
+                      mp_to_menu),
                by = c('name' = 'mp_taxa'))
 ```
 
-### Add detection method
-
 ```{r}
 # Add dataset info to each melted object
-# melt.menu$detection <-  'Menu'
-melt.menu.groups$detection <- 'Menu'
-melt.mb.plant$detection <- 'DNA'
-melt.mb.animal$detection <- 'DNA'
+melt.menu$detection <- 'Menu'
 melt.mp$detection <- 'Protein'
 ```
 
-#### Add tissue type
-
-Menu is embedded, done above
-
 ```{r}
-melt.mp <- 
-     left_join(melt.mp, annotations,
-               by = c('OTU' = 'Accession'))
+# Add tissue type
+# Menu: already done
 ```
 
 ```{r}
+# Metaproteomics
 # Sum abundances within each food taxon and tissue type
+melt.mp <- 
+     left_join(melt.mp, annotations,
+               by = c('OTU' = 'Accession'))
+
 melt.mp <- 
      melt.mp %>% 
      group_by(detection, 
               study,
               subj, 
               date,
-              common_name, 
-              group = category) %>% 
+              mp_to_menu, 
+              food_group = category) %>% 
      summarize(Abundance = sum(Abundance)) %>% 
      ungroup()
-```
-
-```{r}
-# Fill out this column for other datasets (need in join below)
-melt.mb.animal$group <- NA
-melt.mb.plant$group <- NA
 ```
 
 #### Join melts
 
 ```{r}
-melts <- list(
-     # melt.menu, # Full menu
-     melt.menu.groups, # Only cattle and chicken items
-     melt.mb.animal,
-     melt.mb.plant,
-     melt.mp)
+melts <- list(melt.menu, melt.mp)
 ```
 
 ```{r}
@@ -434,8 +314,8 @@ vs <- c('study',
         'subj', 
         'date',
         'detection', 
-        'common_name', 
-        'group',
+        'mp_to_menu', 
+        'food_group',
         'Abundance') # Shared variables to pull from each phyloseq
 
 lapply(melts, ncol)
@@ -452,19 +332,45 @@ rm(melts)
 ```{r}
 melt$detection <- factor(melt$detection, 
                          levels = c('Menu',
-                                    'DNA',
                                     'Protein'))
+```
+
+```{r}
+# Synchronize food group naming:
+melt %>% 
+     group_by(detection) %>% 
+     summarize(unique(food_group))
+```
+```{r}
+melt$food_group[melt$food_group == 'muscle'] <- 'meat'
+melt$food_group[melt$food_group == 'eggs, shell eggs'] <- 'egg'
+melt$food_group[melt$food_group == 'poultry'] <- 'meat'
+melt$food_group[melt$food_group == 'dairy, solid/semi-solid dairy products'] <- 'dairy'
+melt$food_group[melt$food_group == 'dairy, fluid milk'] <- 'dairy'
 ```
 
 # Plot
 
-## Select taxa
+### "Overall" summaries
 
+Note that this is currently with all menu days included.
 ```{r}
-taxa <- c('chicken', 'cattle', 'grains')
+melt %>% 
+     filter(mp_to_menu == 'chicken',
+            study == 'Intervention') %>% 
+     pivot_wider(names_from = detection,
+                 values_from = Abundance) %>% 
+     ggplot(aes(x = Menu, y = Protein, color = subj)) +
+     geom_point(alpha = 0.8) +
+     facet_wrap(~food_group)     
 ```
 
-### All detections
+
+### Pairing to menu
+
+```{r}
+taxa <- c('chicken', 'cattle')
+```
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
@@ -679,9 +585,9 @@ melt.filt <-
 ##### Recode tissue entries
 
 ```{r}
-melt.filt %>% 
+melt %>% 
      group_by(detection) %>% 
-     summarize(unique(group))
+     summarize(unique(food_group))
 ```
 
 ```{r}
