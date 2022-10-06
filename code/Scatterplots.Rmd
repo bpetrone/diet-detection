@@ -21,14 +21,10 @@ library(tidyverse)
 theme_set(theme_bw() +
                theme(
                     axis.text = element_text(size = 12),
-                    axis.title.x = ggtext::element_markdown(size = 14,
-                                                            face = 'bold'),
-                    axis.title.y = ggtext::element_markdown(size = 14,
-                                                            face = 'bold'),
-                    legend.title = element_text(size = 12,
-                                                face = 'bold'),
-                    strip.text = element_text(size = 12,
-                                              face = 'bold')
+                    axis.title.x = ggtext::element_markdown(size = 14),
+                    axis.title.y = ggtext::element_markdown(size = 14),
+                    legend.title = element_text(size = 12),
+                    strip.text = element_text(size = 12)
                )
 )
 ```
