@@ -545,7 +545,7 @@ saveRDS(pred.long,
 pred.long %>%
      ggplot(aes(x = common_name, y = count, fill = prediction)) +
      geom_bar(position = 'stack', stat = 'identity') +
-     scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
+     scale_fill_manual(values = c('#309343','#8AC373', # TP, TN
                                   '#D7191C', '#FDAE61')) + # FP, FN
      facet_grid(cols = vars(kingdom),
                 rows = vars(study),
@@ -872,8 +872,8 @@ for (i in 1:3){
  ggplot(pred.long[[i]],
         aes(x = name, y = count, fill = prediction)) +
           geom_bar(position = 'stack', stat = 'identity') +
-          scale_fill_manual(values = c('#1A9641','#A6D96A', # TP, TN
-                                       '#D7191C', '#FDAE61')) + # FP, FN
+          scale_fill_manual(values = c('#309343','#8AC373', # TP, TN
+                                  '#D7191C', '#FDAE61')) + # FP, FN
           facet_grid(cols = vars(kingdom),
                      rows = vars(study),
                      scales = 'free',
