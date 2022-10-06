@@ -70,6 +70,18 @@ ps.menu
 
 # Pre-process
 
+## Menu
+
+```{r}
+# Group by taxon, omitting food group info
+ps.menu <- 
+     ps.menu %>% 
+     tax_glom(taxrank = 'name')
+
+# Update names, which previously included food group
+taxa_names(ps.menu) <- tax_table(ps.menu)@.Data[, 'name']
+```
+
 ## Pair with 1-2 days prior intake
 
 For this broadest level comparison, let's look only at the two days prior to sampling.
@@ -334,7 +346,6 @@ taxtab <-
 facet <- left_join(facet, taxtab)
 ```
 
-
 ```{r}
 # Extract OTU tables
 asvtab.protein <- otu_table(ps.protein.id)@.Data
@@ -512,6 +523,14 @@ pred.long <-
 ```
 
 ```{r}
+# For biomarkers: how many foods >80% recall with >=3 intake events?
+pred.summary %>% 
+     filter(recall > 0.8 & (tp + fn) >= 3) %>% 
+     pull(common_name) %>% 
+     sort()
+```
+
+```{r}
 # Save for comparison to metabarcoding data
 saveRDS(pred.long,
         here('data', 
@@ -555,6 +574,29 @@ ggsave(here('results',
        height = 4, width = 24)
 ```
 
+#### Performance
+
+```{r}
+# Check rates of performance by taxon
+pred.summary$kingdom <- factor(pred.summary$kingdom,
+                               levels = c('Viridiplantae',
+                                          'Metazoa',
+                                          'Other'))
+```
+```{r}
+ggplot(pred.summary, aes(x = kingdom, y = f_measure)) +
+     geom_boxplot() +
+     geom_jitter(alpha = 0.5, width = 0.1)
+```
+```{r}
+plants <- filter(pred.summary, kingdom == 'Viridiplantae') %>% pull(f_measure)
+animals <- filter(pred.summary, kingdom == 'Metazoa') %>% pull(f_measure)
+
+wilcox.test(plants, animals, 
+            paired = FALSE,
+            conf.int = TRUE)
+```
+
 ### Grouped: to species, family, genera
 
 This repeats the above but vectorized over a list of objects, which contain the menu/protein information grouped to either the species, genus, or family level.
@@ -563,7 +605,6 @@ This repeats the above but vectorized over a list of objects, which contain the 
 rank_names(ps.menu.12)
 rank_names(ps.protein)
 ```
-
 
 ```{r}
 # Glom taxa at these levels (removing common-name labels first)
@@ -803,6 +844,23 @@ for (i in 1:3){
 
 names(pred.long) <- c('species', 'genera', 'families')
 ```
+
+```{r}
+# Save results for comparison to metabarcoding data
+ranks <- c('species', 'genus', 'family')
+for (i in 1:3){
+     saveRDS(pred.long[[i]],
+             here('data', 
+                  'processed', 
+                  'performance-metrics', 
+                  paste0('Metaproteomic 1UP v. menu predictions by shared food ',
+                         ranks[[i]],
+                         ', 1-2d prior, >4 counts per taxon filter, no intake filter.rds')
+                  )
+             )
+}
+```
+
 
 Okay, so now I should be able to iterate over these objects to plot them.
 
