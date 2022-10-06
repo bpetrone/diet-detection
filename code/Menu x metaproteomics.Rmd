@@ -532,11 +532,11 @@ pred.summary %>%
 
 ```{r}
 # Save for comparison to metabarcoding data
-saveRDS(pred.long,
-        here('data', 
-             'processed', 
-             'performance-metrics', 
-             'Metaproteomic 1UP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds'))
+# saveRDS(pred.long,
+#         here('data', 
+#              'processed', 
+#              'performance-metrics', 
+#              'Metaproteomic 1UP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds'))
 ```
 
 #### Plot
@@ -566,12 +566,12 @@ pred.long %>%
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-ggsave(here('results',
-            'manuscript',
-            '3',
-            paste0(plotID,
-                   '_Metaproteomic by-food predictions compared to menu.pdf')),
-       height = 4, width = 24)
+# ggsave(here('results',
+#             'manuscript',
+#             '3',
+#             paste0(plotID,
+#                    '_Metaproteomic by-food predictions compared to menu.pdf')),
+#        height = 4, width = 24)
 ```
 
 #### Performance
@@ -849,15 +849,15 @@ names(pred.long) <- c('species', 'genera', 'families')
 # Save results for comparison to metabarcoding data
 ranks <- c('species', 'genus', 'family')
 for (i in 1:3){
-     saveRDS(pred.long[[i]],
-             here('data', 
-                  'processed', 
-                  'performance-metrics', 
-                  paste0('Metaproteomic 1UP v. menu predictions by shared food ',
-                         ranks[[i]],
-                         ', 1-2d prior, >4 counts per taxon filter, no intake filter.rds')
-                  )
-             )
+     # saveRDS(pred.long[[i]],
+     #         here('data',
+     #              'processed',
+     #              'performance-metrics',
+     #              paste0('Metaproteomic 1UP v. menu predictions by shared food ',
+     #                     ranks[[i]],
+     #                     ', 1-2d prior, >4 counts per taxon filter, no intake filter.rds')
+     #              )
+     #         )
 }
 ```
 
@@ -875,7 +875,6 @@ for (i in 1:3){
           scale_fill_manual(values = c('#309343','#8AC373', # TP, TN
                                   '#D7191C', '#FDAE61')) + # FP, FN
           facet_grid(cols = vars(kingdom),
-                     rows = vars(study),
                      scales = 'free',
                      space = 'free') +
           theme_classic() +
@@ -887,7 +886,8 @@ for (i in 1:3){
                 legend.position = 'none',
                 legend.title = element_blank(), 
                 plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
-                strip.background = element_blank())    
+                strip.background = element_blank(),
+                strip.text = element_blank())    
      
      ggsave(here('results',
                  'manuscript',
@@ -896,6 +896,6 @@ for (i in 1:3){
                         '_Metaproteomic ',
                         names(pred.long)[i],
                         ' predictions compared to menu.pdf')),
-            height = 4, width = 20)
+            height = 4, width = 15)
 }
 ```
