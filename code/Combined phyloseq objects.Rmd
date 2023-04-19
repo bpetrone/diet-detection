@@ -418,7 +418,7 @@ ref.trnL <-
      here('..',
           'food-dbs',
           'data', 
-          'processed', 
+          'outputs', 
           'dada2-compatible',
           'trnL',
           'trnLGH.fasta')
@@ -427,7 +427,7 @@ ref.12SV5 <-
      here('..',
           'food-dbs',
           'data', 
-          'processed', 
+          'outputs', 
           'dada2-compatible',
           '12SV5',
           '12SV5_taxonomy.fasta')
