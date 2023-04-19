@@ -13,6 +13,7 @@ knitr::opts_knit$set(root.dir = file.path(getwd(), '..'))
 ```{r}
 library(cowplot)
 library(ggdendro)
+library(grid) # For combining plots
 library(here)
 library(phyloseq)
 library(tidyverse)
@@ -148,58 +149,37 @@ Try with food groups only
 
 ```{r}
 melt <- 
-     psmelt(ps.menu.subset)
-```
-
-```{r}
-ggplot(melt, aes(x = OTU, y = Sample, fill = Abundance>0)) +
-     geom_tile() +
-     scale_fill_manual(values = c('white', '#7e756d')) +
-     theme(axis.text.y = element_blank(),
-           axis.ticks.y = element_blank())
-```
-Consider excluding some food groups to simplify?
-
-```{r}
-melt %>% 
-     filter(Abundance > 0) %>% 
-     group_by(food_group, name) %>% 
-     count() %>% 
-     group_by(food_group) %>% 
-     summarize(n_tot = length(n)) %>% 
-     arrange(desc(n_tot))
-```
-Removing "other" and "oils-sugars" will drop 29 entries (think this is reasonable-- could still use them in the clustering?)
-
-```{r}
-melt %>% 
+     psmelt(ps.menu.subset) %>% 
      filter(!(food_group %in% c('other',
                                 'oils-sugars'))) %>% 
-     ggplot(aes(x = OTU, y = Sample, fill = Abundance>0)) +
-     geom_tile() +
-     scale_fill_manual(values = c('white', '#7e756d')) +
-     theme(axis.text.y = element_blank(),
-           axis.ticks.y = element_blank())
+     group_by(Sample, subj, date, study, food_group) %>% 
+     summarize(Abundance = sum(Abundance)) %>% 
+     ungroup()
+
+head(melt)
 ```
-A smidge more manageable-- try moving forward with this. 
-Update phyloseq object used for clustering to reflect this change:
 
 ```{r}
+# Update menu phyloseq used for clustering to reflect these changes
 ntaxa(ps.menu.subset)
 ps.menu.subset <- 
      ps.menu.subset %>% 
      subset_taxa(food_group != 'other') %>% 
-     subset_taxa(food_group != 'oils-sugars')
-ntaxa(ps.menu.subset)
+     subset_taxa(food_group != 'oils-sugars') %>% 
+     tax_glom('food_group')
 
-# Remove these from melted object too
-melt <- filter(melt, !(food_group %in% c('other',
-                                         'oils-sugars')))
+# Need to update taxon names to reflext food group
+# (1 food representative chosen at random)
+taxa_names(ps.menu.subset) <- gsub(pattern = '^.+_',
+                                   replacement = '',
+                                   taxa_names(ps.menu.subset))
+
+ntaxa(ps.menu.subset)
 ```
 
-## Add dendrogram
+### Dendrogram
 
-### Samples
+#### Samples
 ```{r}
 # Run clustering
 menu.dat <- as.matrix(ps.menu.subset@otu_table@.Data)
@@ -212,10 +192,10 @@ menu.dendro <-
      as.dendrogram()
 
 # Create dendro
-dendro.plot.y <- ggdendrogram(data = menu.dendro, rotate = TRUE)
+dendro.plot.x <- ggdendrogram(data = menu.dendro, rotate = TRUE)
 
 # Preview the plot
-dendro.plot.y
+dendro.plot.x
 ```
 
 ```{r}
@@ -242,7 +222,6 @@ ifsac.labs <-
 
 head(ifsac.labs)
 ```
-
 
 ```{r}
 # Transcribe IFSAC groupings into an hclust object
@@ -295,52 +274,53 @@ plot(ifsac)                     # look at the result
 #convert to a dendrogram object if needed
 ifsac.d <- as.dendrogram(ifsac)
 ```
+
 ```{r}
-# # Run clustering
-# menu.dat <- as.matrix(ps.menu.subset@otu_table@.Data)
-# # Make data binary:
-# menu.dat[menu.dat > 0] <- 1
+# In order to flip plot without also reversing axes
+# https://stackoverflow.com/questions/16262371/flip-ggdendrogram-plot
+data <- dendro_data(ifsac.d)
+p <- ggplot() + geom_segment(data = segment(data), 
+              aes_string(x = "x", y = "y", xend = "xend", yend = "yend"))
+p <- p + geom_text(data = label(data), 
+              aes_string(x = "x", y = "y", label = "label"), hjust = 1, angle = 0)
+p + scale_y_continuous(expand=c(0.2, 0)) + coord_flip()
 ```
 
 ```{r}
-menu.plot <- 
-     ggplot(menu.dendro.data$segments) + 
-     geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) +
-     geom_tile(data = menu.dendro.data$labels,
-               aes(x, y, fill = kingdom),
-               height = 0.2) +
-     scale_fill_manual(values = c('#b66353',
-                                  '#d7ce9f',
-                                  '#638b66')) 
-  # geom_text(data = menu.dendro.data$labels, aes(x, y, label = label),
-  #           hjust = 1, angle = 90, size = 3) 
-```
-
-```{r}
-# Re-order samples to match
-menu.order <- order.dendrogram(menu.dendro)
-menu.order
-
-melt <- 
+melt <-
      mutate(melt,
-            OTU = factor(OTU,
-                         levels = colnames(menu.dat[, rev(menu.order)])))
+            food_group = factor(food_group,
+                                levels = colnames(menu.dat[,
+                                                         rev(menu.order)])))
+```
+
+## Base plot 
+
+```{r}
+p.heatmap <- 
+     ggplot(melt, aes(y = food_group, x = Sample, fill = Abundance>0)) +
+     geom_tile() +
+     scale_fill_manual(values = c('white', '#7e756d')) +
+     scale_x_discrete(position = 'top') +
+     theme(axis.ticks.y = element_blank(),
+           axis.text.x = element_text(angle = 45, hjust = 0))
+
+p.heatmap
 ```
 
 ## Joint plot
 
 ```{r}
-# Now, update original heatmap with these new levels
-heatmap <- 
-     ggplot(melt, aes(x = Sample, y = OTU, fill = Abundance>0)) +
-     geom_tile() +
-     scale_fill_manual(values = c('white', '#7e756d')) +
-     coord_equal() +
-     theme(axis.text = element_blank(),
-           axis.ticks = element_blank(),
-           legend.position = 'none') 
+plot_grid(p.heatmap, menu.ggdendro)
+```
 
-heatmap
+
+```{r}
+grid::grid.newpage()
+print(p.heatmap, 
+      vp = viewport(x = 0.4, y = 0.5, width = 0.8, height = 1.0))
+print(menu.dendro, 
+      vp = viewport(x = 0.90, y = 0.445, width = 0.2, height = 1.0))
 ```
 
 ```{r}
