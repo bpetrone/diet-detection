@@ -193,7 +193,7 @@ taxa_names(ps.menu.subset) <- gsub(pattern = '^.+_',
 ntaxa(ps.menu.subset)
 ```
 
-### Dendrogram
+### Dendrograms
 
 #### Samples
 ```{r}
@@ -213,19 +213,7 @@ dendro.plot.x <- ggdendrogram(data = menu.dendro, rotate = TRUE)
 # Preview the plot
 dendro.plot.x
 ```
-
-```{r}
-# Re-order samples to match
-menu.order <- order.dendrogram(menu.dendro)
-menu.order
-
-melt <- 
-     mutate(melt,
-            Sample = factor(Sample,
-                            levels = row.names(menu.dat[menu.order, ])))
-```
-
-### Foods 
+#### Foods 
 
 ```{r}
 # Read in labels from dendrogram file
@@ -291,25 +279,6 @@ plot(ifsac)                     # look at the result
 ifsac.d <- as.dendrogram(ifsac)
 ```
 
-```{r}
-# In order to flip plot without also reversing axes
-# https://stackoverflow.com/questions/16262371/flip-ggdendrogram-plot
-data <- dendro_data(ifsac.d)
-p <- ggplot() + geom_segment(data = segment(data), 
-              aes_string(x = "x", y = "y", xend = "xend", yend = "yend"))
-p <- p + geom_text(data = label(data), 
-              aes_string(x = "x", y = "y", label = "label"), hjust = 1, angle = 0)
-p + scale_y_continuous(expand=c(0.2, 0)) + coord_flip()
-```
-
-```{r}
-melt <-
-     mutate(melt,
-            food_group = factor(food_group,
-                                levels = colnames(menu.dat[,
-                                                         rev(menu.order)])))
-```
-
 ### Joint plot
 
 ```{r}
@@ -325,23 +294,7 @@ melt.wide <-
 melt.wide[melt.wide > 0] <- 1
 ```
 
-```{r}
-# Column dendrogram is that we made manually for food groups above
-```
-
-```{r}
-# Row dendrogram is by sample-to-sample dissimilarity
-hClusters <- hclust(dist(melt.wide, method = "jaccard"))
-```
-
-```{r}
-# get subject labels corresponding to the ordering in the dendrogram
-subjLabels <-
-     hClusters$labels |> 
-     gsub(pattern = '_.*',
-          replacement = '') |> 
-          factor()
-```
+Column dendrogram is that we made manually for food groups above, and row dendrogram is our by-sample clustering with Jaccard dissimilarity. 
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
@@ -354,30 +307,20 @@ pdf(here('results',
 
 gplots::heatmap.2(
      as.matrix(melt.wide),
+     # dendrogram = 'both',
+     distfun = dist(as.matrix(melt.wide, method = 'binary')),
+     Rowv = menu.dendro,
+     labRow = labels(menu.dendro), # Pull ordering from dendrogram
+     RowSideColors = subj.colors[gsub(labels(menu.dendro),
+                                      pattern= '_.*',
+                                      replacement = '')],
+     Colv = ifsac.d,
+     labCol = labels(ifsac.d),
      srtCol = 90,
-     dendrogram = 'both',
-     Rowv = as.dendrogram(hClusters),
-     Colv = TRUE,
-     col = c('white', '#7e756d'),
+     col = c('#7e756d', '#ffffff'),
      margin = c(20, 10),
      trace = 'none',
-     density.info = 'none',
-     RowSideColors = subj.colors[subjLabels],
+     density.info = 'none'
 )
-
-gplots::heatmap.2(as.matrix(data_mets_X), 
-          main = "Heatmap for the METS data set",
-          srtCol = 90,
-          dendrogram = "both",
-          Rowv = as.dendrogram(hClusters),
-          Colv = TRUE,
-          trace="none",          
-          margins =c(15,3),
-          # key.xlab = "Cm",
-          denscol = "black",
-          density.info = "density",
-          RowSideColors = labels_colors(hClusters)[rownames(data_mets_X)], # to add nice colored strips   - needs to be in the order of the original trnL object, since the function then uses the dendrogram ordering to choose colors from this  
-          col = some_col_func
-         )
 ```
 
