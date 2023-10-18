@@ -32,8 +32,10 @@ subj.colors <-
 theme_set(theme_bw() +
                theme(
                     axis.text = element_text(size = 12),
-                    axis.title.x = element_text(size = 14),
-                    axis.title.y = element_text(size = 14),
+                    axis.title.x = element_text(size = 12, 
+                                                face = 'bold'),
+                    axis.title.y = element_text(size = 12,
+                                                face = 'bold'),
                     legend.title = ggtext::element_markdown(size = 12),
                     plot.title = element_text(size = 14,
                                                 face = 'bold'),
@@ -44,9 +46,8 @@ theme_set(theme_bw() +
 
 # Read in data
 
-## Metaproteomic phyloseq
-
 ```{r}
+# Metaproteomic phyloseq
 ps.protein <- 
      here('data', 
           'processed', 
@@ -58,10 +59,8 @@ ps.protein <-
 
 ps.protein
 ```
-
-## Menu data phyloseq
-
 ```{r}
+# Menu data phyloseq
 ps.menu <- 
      here('data', 
           'processed', 
@@ -73,10 +72,8 @@ ps.menu <-
 
 ps.menu
 ```
-
-## Metabarcoding phyloseq
-
 ```{r}
+# Metabarcoding phyloseqs
 # 12SV5
 ps.mb.animal <- 
      here('data', 
@@ -86,11 +83,7 @@ ps.mb.animal <-
           'filtered',
           'ps_mb_12SV5.rds') %>% 
      readRDS()
-     
-ps.mb.animal
-```
 
-```{r}
 # trnL
 ps.mb.plant <- 
      here('data',
@@ -100,37 +93,29 @@ ps.mb.plant <-
           'filtered',
           'ps_mb_trnL.rds') %>% 
      readRDS() 
-
+     
+ps.mb.animal
 ps.mb.plant
 ```
-
 # Pre-process
 
 ## Metabarcoding phyloseq
 
-### Remove failed samples
-
 ```{r}
-min(sample_sums(ps.mb.plant)) 
-min(sample_sums(ps.mb.animal))
-```
-
-```{r}
+# Remove failed samples (only occur in plant)
 ps.mb.plant <- prune_samples(sample_sums(ps.mb.plant) > 0, ps.mb.plant)
 ps.mb.plant
 ```
-
 This removes 4 plant samples.
 
-### Combine kingdoms
-
 ```{r}
-# The intersection of non-zero samples
+# Combine kingdoms
+# First get the intersection of non-zero samples
 intersect(sample_names(ps.mb.plant),
           sample_names(ps.mb.animal))
 ```
-
 ```{r}
+# Then combine
 ps.mb <-
      ps.mb.animal %>% 
      prune_samples(sample_names(.) %in% sample_names(ps.mb.plant), .) %>% 
@@ -138,25 +123,20 @@ ps.mb <-
 
 ps.mb
 ```
-
 ```{r}
 rm(ps.mb.plant, ps.mb.animal)
 ```
 
 ## Menu phyloseq
 
-Here, what should I plot? Aggregated menu from 1-2 d before intake (to be consistent w/downstream results?)
-
-Why don't I just start with one day before and see how it goes.
-
-### Subset to lag = -1
-
 ```{r}
+# We have data on all menu days for each participant 
 nsamples(ps.menu)
 ```
 
 ```{r}
-    ps.menu <- 
+# Want to subset to only days occuring prior to each stool sample
+ps.menu <- 
      ps.menu %>% 
      prune_samples(union(sample_data(ps.mb)$delta1,
                          sample_data(ps.protein)$delta1),
@@ -165,7 +145,6 @@ nsamples(ps.menu)
 
 ps.menu
 ```
-
 # Analyze
 
 ## Ordinations
@@ -173,7 +152,27 @@ ps.menu
 #### Metaproteomics
 
 Is metaproteomic data compositional??
-Think that it may be, because PCA on raw data looks wonky.
+
+```{r}
+# Quick QC-- is metaproteomic data compositional?
+# Think yes, but perhaps not in the way that sequencing data is
+ps.protein@otu_table@.Data |> 
+     as.numeric() %>% 
+     data.frame(count = .) |> 
+     ggplot(aes(x = count)) +
+     geom_histogram(binwidth = 100, 
+                    boundary = 0)
+```
+```{r}
+# How many entries are zeros?
+ps.protein@otu_table@.Data |> 
+     table() |> 
+     head()
+```
+
+```{r}
+1441/(nsamples(ps.protein) * ntaxa(ps.protein))
+```
 
 ##### PCA
 
@@ -241,8 +240,8 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 ```{r}
 samdf <- data.frame(ps.protein@sam_data)
-vegan::adonis(distance(ps.protein.clr, 
-                       method = 'euclidean') ~ subj, 
+vegan::adonis2(distance(ps.protein.clr, 
+                        method = 'euclidean') ~ subj, 
               data = samdf)
 ```
 
@@ -255,16 +254,6 @@ ord.protein <-
               distance = 'jaccard',
               binary = TRUE)
 ```
-
-```{r}
-# Raw plot, to be re-done below
-plot_ordination(ps.protein,
-                     ord.protein,
-                     type = 'samples',
-                     color = 'subj') +
-     scale_color_manual(values = subj.colors) 
-```
-
 
 ```{r}
 # Customize plot 
@@ -281,7 +270,7 @@ mp.jacc <-
           y = 'PCo2 (11.9%)') +
      scale_color_manual(values = subj.colors) +
      coord_equal() +
-     ylim(-0.4, 0.3) + xlim(-0.6, 0.3) +
+     # ylim(-0.4, 0.3) + xlim(-0.6, 0.3) +
      labs(title = 'Protein') +
      theme(legend.position = 'none',
            panel.grid = element_blank())
@@ -301,7 +290,7 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ```
 
 ```{r}
-vegan::adonis(distance(ps.protein, 
+vegan::adonis2(distance(ps.protein, 
                        method = 'jaccard',
                        binary = TRUE) ~ subj,
               data = samdf.protein)
@@ -693,10 +682,10 @@ vegan::mantel(dist(asvtab.protein),
 ```{r}
 a <- cowplot::plot_grid(
      menu.jacc,
-     # mp.jacc,
-     # mb.jacc,
-     mp.aitch,
-     mb.aitch,
+     mp.jacc,
+     mb.jacc,
+     # mp.aitch,
+     # mb.aitch,
      nrow = 1,
      # rel_widths = c(1, 1, 1.38),
      rel_widths = c(1.2, 1, 1.5),
@@ -708,12 +697,12 @@ a
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-# ggsave(here('results',
-#             'manuscript',
-#             '2',
-#             paste0(plotID, '_Combined ordinations.pdf')),
-#        device = cairo_pdf,
-#        height = 3, width = 10)
+ggsave(here('results',
+            'manuscript',
+            '2',
+            paste0(plotID, '_Combined ordinations (Jaccard).pdf')),
+       device = cairo_pdf,
+       height = 3, width = 10)
 ```
 
 ```{r}
