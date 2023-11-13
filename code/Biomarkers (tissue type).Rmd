@@ -224,7 +224,7 @@ nsamples(ps.protein)
 
 ### 1-2 days prior (matched)
 
-```{r eval = FALSE}
+```{r}
 # Can't use merge_samples on phyloseq here because some samples make up >1 merge
 
 # Do manually on ASV table
