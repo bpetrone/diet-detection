@@ -191,9 +191,9 @@ Great! This lines up with the number of taxa in the phyloseq object. Subset to r
 
 ```{r}
 annotations <- 
-     proteins.df %>% 
-     select(Accession, category, protein) %>% 
-     distinct() %>% 
+     proteins.df |> 
+     select(Accession, scientific_name, category, protein) %>% 
+     distinct() |> 
      mutate(category = ifelse(is.na(category),
                               yes = 'other',
                               no = category))
@@ -202,32 +202,27 @@ rm(proteins.df)
 ```
 
 ```{r}
+cat('All organisms:')
 table(annotations$category)
+
+cat('\nCattle and chicken only:')
+annotations |> 
+     filter(scientific_name %in% c('Bos taurus',
+                                   'Gallus gallus')) |> 
+     pull(category) |> 
+     table()
 ```
 
 ## Select menu days
 
 ### 1 or 2 days prior
 
-```{r eval = FALSE}
+```{r}
 nsamples(ps.menu)
 nsamples(ps.protein)
 ```
 
-```{r eval = FALSE}
-# Filter based on "delta1" and "delta2" variables embedded in metaproteomic 
-# phyloseq
-ps.menu <-  
-     ps.menu %>% 
-     prune_samples(sample_names(.) %in% c(sample_data(ps.protein)$delta1,
-                                          sample_data(ps.protein)$delta2),
-                   .) %>% 
-     prune_taxa(taxa_sums(.) != 0, .)
-
-ps.menu
-```
-
-### 1 day prior (matched)
+### 1-2 days prior (matched)
 
 ```{r eval = FALSE}
 # Can't use merge_samples on phyloseq here because some samples make up >1 merge
@@ -247,7 +242,7 @@ for (sample in seq(dim(samdf.protein)[1])){
      two.before <- asvtab.menu[samdf.protein$delta2[sample], ]
      # Merge and place in new, aggregated OTU table
      asvtab.menu.12 <- rbind(asvtab.menu.12,
-                             (one.before + two.before)/2)
+                             (one.before + two.before))
      # Update food names (only has to be done once)
      if (sample == 1){names(asvtab.menu.12) <- 
           names(one.before + two.before)}
@@ -264,7 +259,6 @@ ps.menu <- phyloseq(otu_table(asvtab.menu.12, taxa_are_rows = FALSE),
 ps.menu <- prune_taxa(taxa_sums(ps.menu) > 0, ps.menu)
 ps.menu
 ```
-
 ## Subset and melt
 
 Currently I'm concerned only with the following examples of tissue-type biomarkers:
@@ -442,6 +436,13 @@ for (taxon in c('chicken', 'cattle')){
 ```
 
 ## Metaproteomic co-consumption
+
+```{r}
+# x <- 
+     melt |> 
+     names()
+```
+
 
 ```{r}
 x <- melt %>% 
