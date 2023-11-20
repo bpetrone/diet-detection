@@ -308,14 +308,15 @@ melt.mp$detection <- 'Protein'
 
 ```{r}
 # Add tissue type
-# Menu: already done
+# Menu: already done (in "food_group" variable)
 ```
 
 ```{r}
 # Metaproteomics
 # Sum abundances within each food taxon and tissue type
 melt.mp <- 
-     left_join(melt.mp, annotations,
+     left_join(melt.mp, 
+               annotations,
                by = c('OTU' = 'Accession'))
 
 melt.mp <- 
@@ -376,7 +377,120 @@ melt$food_group[melt$food_group == 'dairy, solid/semi-solid dairy products'] <- 
 melt$food_group[melt$food_group == 'dairy, fluid milk'] <- 'dairy'
 ```
 
+```{r}
+# Re-sum intakes within these new groups
+melt <-
+     melt |> 
+     group_by(study, subj, date, detection, mp_to_menu, food_group) |> 
+     summarize(Abundance = sum(Abundance)) |> 
+     ungroup()
+```
+
 # Analyze
+
+## Any detection
+
+Goal is a Chi-squared test that looks like this
+
+................any meat...........any dairy/egg
+Menu              x                        x
+Protein           x                        x
+
+### Chicken
+```{r}
+# Pivot wider to directly compare to two prior days of menu
+x <- 
+     melt |> 
+     filter(mp_to_menu == 'chicken') |> 
+     mutate(Abundance = Abundance > 0) |> 
+     pivot_wider(names_from = detection,
+                 values_from = Abundance) |> 
+     # Now that paired, can remove sample information
+     group_by(food_group) |> 
+     summarize(Menu = sum(Menu),
+               Protein = sum(Protein)) |> 
+     column_to_rownames(var = 'food_group') |> 
+     as.matrix()
+
+x
+
+chisq.test(x)
+```
+
+```{r}
+# Needs to be set up differently for McNemar
+chicken <- 
+     melt |> 
+     filter(mp_to_menu == 'chicken') |> 
+     mutate(Abundance = Abundance > 0) |> 
+     pivot_wider(names_from = detection,
+                 values_from = Abundance) |> 
+     # Now that paired, can remove sample information
+     mutate(across(c(Menu, Protein),
+                   ~factor(.x,
+                           levels = c(TRUE, FALSE))))
+```
+
+```{r}
+egg <- filter(chicken, food_group == 'egg')
+    
+egg <- table(egg$Menu, egg$Protein) 
+mcnemar.test(egg)
+```
+```{r}
+meat <- filter(chicken, food_group == 'meat')
+    
+meat <- table(meat$Menu, meat$Protein) 
+mcnemar.test(meat)
+```
+### Cattle
+```{r}
+# Pivot wider to directly compare to two prior days of menu
+x <- 
+     melt |> 
+     filter(mp_to_menu == 'cattle') |> 
+     mutate(Abundance = Abundance > 0) |> 
+     pivot_wider(names_from = detection,
+                 values_from = Abundance) |> 
+     # Now that paired, can remove sample information
+     group_by(food_group) |> 
+     summarize(Menu = sum(Menu),
+               Protein = sum(Protein)) |> 
+     column_to_rownames(var = 'food_group') |> 
+     as.matrix()
+
+x
+
+chisq.test(x)
+```
+
+```{r}
+# Needs to be set up differently for McNemar
+cattle <- 
+     melt |> 
+     filter(mp_to_menu == 'cattle') |> 
+     mutate(Abundance = Abundance > 0) |> 
+     pivot_wider(names_from = detection,
+                 values_from = Abundance) |> 
+     # Now that paired, can remove sample information
+     mutate(across(c(Menu, Protein),
+                   ~factor(.x,
+                           levels = c(TRUE, FALSE))))
+```
+
+```{r}
+dairy <- filter(cattle, food_group == 'dairy')
+    
+dairy <- table(dairy$Menu, dairy$Protein) 
+mcnemar.test(dairy)
+```
+```{r}
+meat <- filter(chicken, food_group == 'meat')
+    
+meat <- table(meat$Menu, meat$Protein) 
+mcnemar.test(meat)
+```
+
 
 ## Menu co-consumption
 
