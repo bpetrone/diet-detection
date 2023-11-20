@@ -83,25 +83,6 @@ ps.protein <-
           
 ps.protein
 ```
-
-### Menu data phyloseq
-
-This includes information on food group, which should allow for distinction between raw ingredients and their more processed derivatives (*e.g.* apple vs vinegar). 
-
-```{r}
-ps.menu <- 
-     here('data', 
-          'processed', 
-          'phyloseq',
-          'combined',
-          'filtered',
-          'ps_menu.rds') %>% 
-     readRDS()
-
-ps.menu
-head(taxa_names(ps.menu))
-```
-
 ### Protein annotations
 
 ```{r}
@@ -149,81 +130,10 @@ samples <-
 samples
 ```
 
-### Menu
+### >3 detections
 
 ```{r}
-tax_table(ps.menu)@.Data[, 'food_group'] %>% 
-     unique() %>% 
-     sort()
-```
 
-```{r}
-# Remove food groups that we don't want to consider here, even if derived from
-# the source taxon of interest
-ps.menu <- 
-     subset_taxa(ps.menu,
-                 !(food_group %in% c('oils-sugars',
-                                     'other')))
-```
-
-### Combine
-
-```{r}
-melt.menu <- psmelt(ps.menu) 
-melt.mp <- psmelt(ps.protein)
-```
-
-#### Add common name
-Add common name and group by dataset:
-
-```{r}
-melt.menu <- 
-     melt.menu %>% 
-     left_join(select(name.sync,
-                      menu_taxa, 
-                      mp_to_menu),
-               by = c('name' = 'menu_taxa'))
-
-melt.mp <- 
-     melt.mp %>% 
-     left_join(select(name.sync,
-                      mp_taxa, 
-                      mp_to_menu),
-               by = c('name' = 'mp_taxa'))
-```
-
-```{r}
-# Add dataset info to each melted object
-melt.menu$detection <- 'Menu'
-melt.mp$detection <- 'Protein'
-```
-
-```{r}
-melts <- list(melt.menu, melt.mp)
-
-vs <- c('study',
-        'subj', 
-        'date',
-        'detection', 
-        'mp_to_menu',
-        'food_group', # This will induce a warning for protein object
-        'Abundance') # Shared variables to pull from each phyloseq
-
-lapply(melts, ncol)
-melts <- lapply(melts, function(x){select(x, one_of(vs))})
-lapply(melts, ncol)
-```
-
-```{r}
-melt <- bind_rows(melts)
-dim(melt)
-rm(melts)
-```
-
-```{r}
-melt$detection <- factor(melt$detection, 
-                         levels = c('Menu',
-                                    'Protein'))
 ```
 
 ## Analyze
