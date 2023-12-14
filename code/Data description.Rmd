@@ -16,8 +16,10 @@ library(cowplot)
 library(eulerr) # For Euler plots
 library(here)
 library(phyloseq)
-library(tidyverse)
 library(scales) # For comma in plot labels
+library(SuperExactTest)
+library(tidyverse)
+library(UpSetR)
 ```
 
 ```{r}
@@ -44,9 +46,8 @@ study.color <- c('#4e79a7', # Intervention
 
 # Read in data
 
-## Taxon name mapping
-
 ```{r}
+# Taxon name mapping
 name.sync <- 
      here('data',
           'processed',
@@ -56,8 +57,8 @@ name.sync <-
 name.sync
 ```
 ## Metabarcoding
-### trnL
 ```{r}
+# trnL
 ps.mb.plant <- 
      here('data',
           'processed',
@@ -67,11 +68,7 @@ ps.mb.plant <-
           'ps_mb_trnL.rds') %>% 
      readRDS()
 
-ps.mb.plant
-```
-
-### 12SV5
-```{r}
+# 12SV5
 ps.mb.animal <- 
      here('data',
           'processed',
@@ -81,16 +78,17 @@ ps.mb.animal <-
           'ps_mb_12SV5.rds') %>% 
      readRDS()
 
+
+ps.mb.plant
 ps.mb.animal
 ```
-
 ## Metaproteomics
-
-Filtering steps done in notebook "Filtered phyloseq objects":
+Note that this is filtered data:
 - Subset animal proteins to only those certainly of muscle, dairy, or egg origin
 - Filter taxa identified to only those with cumulatively >= 5 PSMs
 
 ```{r}
+# Metaproteomics
 # Tax-glommed
 ps.protein.taxon <- 
      here('data',
@@ -136,9 +134,8 @@ ps.menu <-
 
 ## References
 
-### Metaproteomic database
-
 ```{r }
+# Metaproteomic database
 # Read in the first sheet of the file using read_excel function
 db <- readxl::read_excel(here('data', 
                               'processed',
@@ -148,9 +145,8 @@ db <- readxl::read_excel(here('data',
 head(db)
 ```
 
-### trnL
-
 ```{r}
+# trnL
 ref.trnL <- 
      here('..',
           'food-dbs',
@@ -161,12 +157,6 @@ ref.trnL <-
           'trnLGH.fasta') %>% 
      readDNAStringSet()
 
-ref.trnL
-```
-
-### 12SV5
-
-```{r}
 ref.12SV5 <- 
      here('..',
           'food-dbs',
@@ -177,9 +167,9 @@ ref.12SV5 <-
           '12SV5_taxonomy.fasta') %>% 
      readDNAStringSet()
 
+ref.trnL
 ref.12SV5
 ```
-
 # Pre-process
 
 ## Metaproteomic reference
@@ -232,7 +222,7 @@ db$scientific_name[db$scientific_name == 'Acer nigrum'] <-
      'Acer saccharum subsp. nigrum'
 ``` 
 
-## Metaproteomic
+## Metaproteomic data
 
 ### Separate by kingdom
 
@@ -337,9 +327,8 @@ melt.mp %>%
 
 ### Metabarcoding reads
 
-#### trnL
-
 ```{r}
+# trnL
 melt.mb.plant %>% 
      group_by(Sample, study) %>% 
      summarize(reads_tot = sum(Abundance)) %>% 
@@ -377,9 +366,9 @@ melt.mb.plant %>%
      summarize(median(reads_tot),
                range(reads_tot))
 ```
-#### 12SV5
 
 ```{r}
+# 12SV5
 melt.mb.animal %>% 
      group_by(Sample, study) %>% 
      summarize(reads_tot = sum(Abundance)) %>% 
@@ -841,10 +830,6 @@ melt.mb.animal %>%
 
 What species are shared between metaproteomic, metabarcoding, and (day before sample) menu datasets?
 
-#### DNA and menu only
-
-#### All 3
-
 ```{r}
 ps.mb.plant
 ps.mb.plant <- 
@@ -894,7 +879,7 @@ ps.protein.animal <-
      subset_ps(., samples.animal)
 ```
 
-#### Reference taxa by their shared index
+Reference taxa by their shared index
 
 ```{r}
 # Metabarcoding
@@ -902,19 +887,19 @@ ps.protein.animal <-
 mb.plant.taxa <- 
      taxa_names(ps.mb.plant) %>% 
      data.frame(old = .) %>% 
-     left_join(name.sync, by = c('old' = 'mb_taxa')) %>% 
-     select(old, common_name) %>% 
-     distinct() %>% 
-     pull(common_name)
+     left_join(name.sync, 
+               by = c('old' = 'mb_taxa'),
+               multiple = 'all') %>% 
+     pull(mb_to_mp_to_menu) |> 
+     unique()
 
 # 12SV5
 mb.animal.taxa <- 
      taxa_names(ps.mb.animal) %>% 
      data.frame(old = .) %>% 
      left_join(name.sync, by = c('old' = 'mb_taxa')) %>% 
-     select(old, common_name) %>% 
-     distinct() %>% 
-     pull(common_name)
+     pull(mb_to_mp_to_menu) |> 
+     unique()
 ```
 
 ```{r}
@@ -923,58 +908,70 @@ mb.animal.taxa <-
 protein.plant.taxa <- 
      taxa_names(ps.protein.plant) %>% 
      data.frame(old = .) %>% 
-     left_join(name.sync, by = c('old' = 'mp_taxa')) %>% 
-     select(old, common_name) %>% 
-     distinct() %>% 
-     pull(common_name)
+     left_join(name.sync, 
+               by = c('old' = 'mp_taxa'),
+               multiple = 'all') %>% 
+     pull(mb_to_mp_to_menu) |> 
+     unique()
 
 # Animal
 protein.animal.taxa <- 
      taxa_names(ps.protein.animal) %>% 
      data.frame(old = .) %>% 
-     left_join(name.sync, by = c('old' = 'mp_taxa')) %>% 
-     select(old, common_name) %>% 
-     distinct() %>% 
-     pull(common_name)
+     left_join(name.sync, 
+               by = c('old' = 'mp_taxa'),
+               multiple = 'all') %>% 
+     pull(mb_to_mp_to_menu) |> 
+     unique()
 
 # Other
 protein.other.taxa <- 
      taxa_names(ps.protein.other) %>% 
      data.frame(old = .) %>% 
-     left_join(name.sync, by = c('old' = 'mp_taxa')) %>% 
-     select(old, common_name) %>% 
-     distinct() %>% 
-     pull(common_name)
+     left_join(name.sync, 
+               by = c('old' = 'mp_taxa'),
+               multiple = 'all') %>% 
+     pull(mb_to_mp_to_menu) |> 
+     unique()
 ```
 
 ```{r}
 # Menu
+# These are taxa from ANY menu day, not just 1-2 days before
 # Plant
+# NOTE: this code only works with %>% pipe, not |>
 menu.plant.taxa <- 
      taxa_names(ps.menu.plant) %>% 
-     data.frame(old = .) %>% 
-     left_join(name.sync, by = c('old' = 'menu_taxa')) %>% 
-     select(old, common_name) %>% 
-     distinct() %>% 
-     pull(common_name)
+     # Remove food group info after underscore
+     gsub(pattern = '_.+', replacement = '') %>%
+     data.frame(old = .) %>%
+     left_join(name.sync, 
+               by = c('old' = 'menu_taxa'),
+               multiple = 'all') %>% 
+     pull(mb_to_mp_to_menu) |> 
+     unique()
 
 # Animal
 menu.animal.taxa <- 
      taxa_names(ps.menu.animal) %>% 
+     gsub(pattern = '_.+', replacement = '') %>%
      data.frame(old = .) %>% 
-     left_join(name.sync, by = c('old' = 'menu_taxa')) %>% 
-     select(old, common_name) %>% 
-     distinct() %>% 
-     pull(common_name)
+     left_join(name.sync, 
+               by = c('old' = 'menu_taxa'),
+               multiple = 'all') %>% 
+     pull(mb_to_mp_to_menu) |> 
+     unique()
 
 # Other
 menu.other.taxa <- 
      taxa_names(ps.menu.other) %>% 
+     gsub(pattern = '_.+', replacement = '') %>%
      data.frame(old = .) %>% 
-     left_join(name.sync, by = c('old' = 'menu_taxa')) %>% 
-     select(old, common_name) %>% 
-     distinct() %>% 
-     pull(common_name)
+     left_join(name.sync, 
+               by = c('old' = 'menu_taxa'),
+               multiple = 'all') %>% 
+     pull(mb_to_mp_to_menu) |> 
+     unique()
 ```
 
 ```{r}
@@ -1017,9 +1014,9 @@ plant.df <-
             menu = taxon %in% menu.plant.taxa)
 
 # Quick checks
-sum(plant.df$dna) 
-sum(plant.df$protein) 
-sum(plant.df$menu) 
+sum(plant.df$dna) == length(mb.plant.taxa)
+sum(plant.df$protein) == length(protein.plant.taxa)
+sum(plant.df$menu) == length(menu.plant.taxa)
 ```
 
 ```{r}
@@ -1032,9 +1029,9 @@ animal.df <-
             menu = taxon %in% menu.animal.taxa)
 
 # Quick checks
-sum(animal.df$dna) 
-sum(animal.df$protein) 
-sum(animal.df$menu) 
+sum(animal.df$dna) == length(mb.animal.taxa)
+sum(animal.df$protein) == length(protein.animal.taxa)
+sum(animal.df$menu) == length(menu.animal.taxa)
 ```
 
 ```{r}
@@ -1047,10 +1044,11 @@ other.df <-
             menu = taxon %in% menu.other.taxa)
 
 # Quick checks
-sum(other.df$dna) 
-sum(other.df$protein) 
-sum(other.df$menu) 
+sum(other.df$protein) == length(protein.other.taxa)
+sum(other.df$menu) == length(menu.other.taxa)
 ```
+
+#### Vis
 
 ```{r}
 a <- 
@@ -1098,14 +1096,39 @@ fig3a
 ```
 
 ```{r}
+# A bit tricky to get labels in a friendly orientation here
+# Save figure as-is and then edit as PDF in Illustrator
+
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-ggsave(here('results',
-            'manuscript',
-            'tbd',
-            paste0(plotID, 
-                   '_Plant taxa Euler diagram across methods, with counts, full menu, synced names.pdf')),
-       height = 4, width = 8)
+
+# ggsave(here('results',
+#             'manuscript',
+#             '2',
+#             paste0(plotID, 
+#                    '_Plant taxa Euler diagram across methods, with counts, full menu, synced names.pdf')),
+#        height = 4, width = 8)
 ```
+
+```{r}
+plant.input <- 
+     list(`Menu` = menu.plant.taxa,
+          `DNA` = mb.plant.taxa,
+          `Protein` = protein.plant.taxa)
+
+animal.input <- 
+     list(`Menu` = menu.animal.taxa,
+          `DNA` = mb.animal.taxa,
+          `Protein` = protein.animal.taxa)
+```
+
+```{r}
+# Note that for this to run, can't run theme_set at outset of notebook
+upset(fromList(plant.input),
+      order.by = "freq",
+      mb.ratio = c(0.65, 0.35))
+```
+
+#### Stats
 
 ```{r}
 # How many detections by more than two measures?
@@ -1126,6 +1149,57 @@ animal.totals <-
 
 sum(animal.totals >= 2)/length(animal.totals)
 ```
+
+Is there statistically significant overlap?
+Using method from Wang et al., doi:10.1038/srep16923 and tutorial available at https://github.com/mw201608/SuperExactTest/blob/master/examples/set_html.Md#analyzing-all-possible-intersections-among-four-cis-eqtls-gene-sets
+
+```{r}
+str(plant.input)
+```
+```{r}
+# # taxa detected in each set
+(length.taxon.sets = sapply(plant.input, length))
+```
+
+```{r}
+# Calculate expected overlap size
+total = 117 # The union of all detected plant taxa
+
+(num.expcted.overlap = total*do.call(prod,
+                                     as.list(length.taxon.sets/total)))
+```
+
+```{r}
+# A significant p rejects the null hypothesis that the taxon sets were independent random samples from the population of 117 unique taxa identified
+fit <- MSET(plant.input, n=117, lower.tail=FALSE)
+fit$FE
+fit$p.value
+```
+
+```{r}
+# Now do the same for animal
+total <- length(all.animals)
+fit <- MSET(animal.input, n=total, lower.tail=FALSE)
+fit$FE
+fit$p.value
+```
+
+```{r}
+# All groupwise sets tested for significance
+total <- length(all.plants)
+result <- supertest(plant.input, n=total)
+plot(result, 
+     sort.by="size",
+     margin=c(2,2,2,2), 
+     color.scale.pos=c(0.85,1), 
+     legend.pos=c(0.9,0.15))
+```
+```{r}
+# I'm not entirely sure on how to interpret this table or if I can/should go into further detail-- essentially in that dividing further the only additional significant overlap is between the two molecular measures, but not each individually with the menu
+# Having trouble wrapping my head around that in the moment
+summary(result)
+```
+
 
 ## Per-sample details
 
@@ -1203,7 +1277,10 @@ counts.long$dataset <- factor(counts.long$dataset,
 counts.long$kingdom <- factor(counts.long$kingdom,
                               levels = c('Viridiplantae',
                                          'Metazoa', 
-                                         'Fungi'))
+                                         'Fungi'),
+                              labels = c('Plant',
+                                         'Animal',
+                                         'Other'))
 ```
 
 ```{r}
@@ -1221,16 +1298,17 @@ fig3b
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-ggsave(
-     here(
-          'results',
-          'QC',
-          paste0(plotID,
-                 '_Number of food taxa by measure, shared samples only.pdf'
-                 )
-          ),
-     height = 3,
-     width = 6)
+# ggsave(
+#      here(
+#           'results',
+#           'manuscript',
+#           '2',
+#           paste0(plotID,
+#                  '_Number of food taxa by measure, shared samples only.pdf'
+#                  )
+#           ),
+#      height = 4,
+#      width = 6)
 ```
 
 Statistics on above plot: 
@@ -1241,7 +1319,7 @@ Statistics on above plot:
 viridiplantae <- 
      counts.long %>% 
      mutate(sample = paste(subj, date, sep = '_')) %>% 
-     filter(kingdom == 'Viridiplantae') 
+     filter(kingdom == 'Plant') 
 
 model <- lm(value ~ dataset + sample,
             data = viridiplantae)
@@ -1267,7 +1345,7 @@ pairwise.t.test(viridiplantae$value,
 metazoa <- 
      counts.long %>% 
      mutate(sample = paste(subj, date, sep = '_')) %>% 
-     filter(kingdom == 'Metazoa') 
+     filter(kingdom == 'Animal') 
 
 model <- lm(value ~ dataset + sample,
             data = metazoa)
@@ -1293,27 +1371,4 @@ fungi <-
 
 t.test(fungi$menu_taxa, fungi$protein_taxa,
        paired = TRUE)
-```
-
-```{r}
-# Thinking that A here will be overview graphic
-plot_grid(fig3a, fig3b,
-          labels = c('b', 'c'), 
-          nrow = 2,
-          rel_heights = c(3, 2))
-```
-
-```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-ggsave(
-     here(
-          'results',
-          'manuscript',
-          '1',
-          paste0(plotID,
-                 '_Detections by measure.pdf'
-                 )
-          ),
-     height = 6,
-     width = 4)
 ```
