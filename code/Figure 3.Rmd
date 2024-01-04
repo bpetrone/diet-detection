@@ -382,6 +382,13 @@ if (length(merges) == 1){
 taxa_names(ps.protein.id) <- tax_table(ps.protein.id)[, 'mb_to_mp_to_menu']
 ps.protein.id
 ```
+```{r}
+# Now how many taxa are present in each of the objects about to be compared?
+cat('Recorded:', ntaxa(ps.menu.id), '\n')
+cat('DNA:', ntaxa(ps.mb.id), '\n')
+cat('Protein:', ntaxa(ps.protein.id), '\n')
+```
+
 # Analyze 
 
 ### All taxa
