@@ -300,7 +300,6 @@ pred.long <-
 summary_helper <- function(p){
      # p: pred.long: Long-form summary of per-taxon predictions
      p %>% 
-     select(-study) %>% 
      group_by(prediction, name) %>% 
      summarize(count = sum(count)) %>% 
      pivot_wider(names_from = prediction, values_from = count) %>% 
@@ -308,7 +307,7 @@ summary_helper <- function(p){
             precision = tp/(tp + fp),
             f_measure = (2 * recall * precision)/(recall + precision),
             pos_n = tp + fp) %>% 
-     arrange(desc(f_measure), fn, fp)
+     arrange(desc(f_measure), desc(tn), desc(fp))
      }
 
 pred.summary <- lapply(pred.long, summary_helper)
@@ -363,9 +362,6 @@ pred.long <-
 pred.long <- 
      lapply(pred.long, 
             mutate,
-            study = factor(study,
-                         levels = c('ID', 'HD'),
-                         labels = c('Intervention', 'Habitual')),
             prediction = factor(prediction, levels = c('tp',
                                                        'tn',
                                                        'fp',
@@ -375,8 +371,8 @@ pred.long <-
                                            'False positive',
                                            'False negative')),
             kingdom = factor(kingdom,
-                             levels = c('Viridiplantae',
-                                        'Metazoa',
+                             levels = c('Plants',
+                                        'Animals',
                                         'Other'))
      )
 ```
@@ -394,54 +390,19 @@ names(pred.long) <- c('species', 'genera', 'families')
 ```{r}
 # Save results for comparison to metabarcoding data
 ranks <- c('species', 'genus', 'family')
-for (i in 1:3){
-     # saveRDS(pred.long[[i]],
-     #         here('data',
-     #              'processed',
-     #              'performance-metrics',
-     #              paste0('Metaproteomic 1UP v. menu predictions by shared food ',
-     #                     ranks[[i]],
-     #                     ', 1-2d prior, >4 counts per taxon filter, no intake filter.rds')
-     #              )
-     #         )
-}
+# for (i in 1:3){
+#      saveRDS(pred.long[[i]],
+#              here('data',
+#                   'processed',
+#                   'performance-metrics',
+#                   paste0('NEW_Metaproteomic 1UP v. menu predictions by shared food ',
+#                          ranks[[i]],
+#                          ', 1-2d prior, >4 counts per taxon filter, no intake filter.rds')
+#                   )
+#              )
+# }
 ```
 
+Now these objects can be combined and plotted for a side-by-side comparison with DNA-based data.
 
 Okay, so now I should be able to iterate over these objects to plot them.
-
-#### Plot
-
-```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-for (i in 1:3){
- ggplot(pred.long[[i]],
-        aes(x = name, y = count, fill = prediction)) +
-          geom_bar(position = 'stack', stat = 'identity') +
-          scale_fill_manual(values = c('#309343','#8AC373', # TP, TN
-                                  '#D7191C', '#FDAE61')) + # FP, FN
-          facet_grid(cols = vars(kingdom),
-                     scales = 'free',
-                     space = 'free') +
-          theme_classic() +
-          theme(axis.text.x = element_text(angle = 40, hjust = 1),
-                axis.text.y = element_blank(), 
-                axis.ticks = element_blank(),
-                axis.line = element_blank(),
-                axis.title = element_blank(),
-                legend.position = 'none',
-                legend.title = element_blank(), 
-                plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
-                strip.background = element_blank(),
-                strip.text = element_blank())    
-     
-     ggsave(here('results',
-                 'manuscript',
-                 '3',
-                 paste0(plotID,
-                        '_Metaproteomic ',
-                        names(pred.long)[i],
-                        ' predictions compared to menu.pdf')),
-            height = 4, width = 15)
-}
-```
