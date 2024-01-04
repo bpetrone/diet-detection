@@ -596,7 +596,6 @@ wilcox.test(plants, animals,
             paired = FALSE,
             conf.int = TRUE)
 ```
-
 ### Grouped: to species, family, genera
 
 This repeats the above but vectorized over a list of objects, which contain the menu/protein information grouped to either the species, genus, or family level.

@@ -34,55 +34,130 @@ theme_set(theme_bw() +
 ## Metabarcoding performance metrics
 
 ```{r}
+# pred <- 
+#      here('data',
+#           'processed',
+#           'performance-metrics',
+#           'DNA and protein v. menu predictions by shared food taxa, 1-2d prior, no intake filter.rds') |> 
+#      readRDS()
+
 # 1-2 days' prior menu, >4 counts per taxon
-pred.mb <- 
-     here('data', 
+pred.mb.all <-
+     here('data',
           'processed',
           'performance-metrics',
-          'Metabarcoding v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>%
+          'Metabarcoding v. menu predictions by shared food taxa, 1-2d prior, no intake filter.rds') %>%
+     readRDS()
+
+pred.mb.species <-
+     here('data',
+          'processed',
+          'performance-metrics',
+          'Metabarcoding v. menu predictions by shared food species, 1-2d prior, no intake filter.rds') %>%
+     readRDS()
+
+pred.mb.genus <-
+     here('data',
+          'processed',
+          'performance-metrics',
+          'Metabarcoding v. menu predictions by shared food genus, 1-2d prior, no intake filter.rds') %>%
+     readRDS()
+
+pred.mb.family <-
+     here('data',
+          'processed',
+          'performance-metrics',
+          'Metabarcoding v. menu predictions by shared food family, 1-2d prior, no intake filter.rds') %>%
      readRDS()
 ```
 
 ## Metaproteomic performance metrics
 
 ```{r}
-# 1PUP
-pred.mp.pup <- 
-     here('data', 
-          'processed',
-          'performance-metrics',
-          'Metaproteomic 1PUP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
-     readRDS()
-
 # 1UP
-pred.mp.up <- 
+pred.mp.all <- 
      here('data', 
           'processed',
           'performance-metrics',
           'Metaproteomic 1UP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
      readRDS()
+
+pred.mp.species <- 
+     here('data', 
+          'processed',
+          'performance-metrics',
+          'Metaproteomic 1UP v. menu predictions by shared food species, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
+     readRDS()
+
+pred.mp.genus <- 
+     here('data', 
+          'processed',
+          'performance-metrics',
+          'Metaproteomic 1UP v. menu predictions by shared food genus, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
+     readRDS()
+
+pred.mp.family <- 
+     here('data', 
+          'processed',
+          'performance-metrics',
+          'Metaproteomic 1UP v. menu predictions by shared food family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
+     readRDS()
 ```
 
 # Pre-process
 
-```{r}
-# Annotate each dataset prior to joining
-pred.mb$detection <- 'DNA'
-pred.mp.pup$detection <- 'Protein (1PUP)'
-pred.mp.up$detection <- 'Protein (1UP)'
+```{r eval = FALSE}
+# Rename "all" (common_name) to grouped taxon (name)
+pred.mb.all <- rename(pred.mb.all, name = common_name)
+pred.mp.all <- rename(pred.mp.all, name = common_name)
 ```
 
-```{r}
-# Get shared variables
-vs <- 
-     intersect(names(pred.mb), names(pred.mp.pup)) %>% 
-     intersect(names(pred.mp.up))
+```{r eval = FALSE}
+# Annotate each dataset prior to joining
+pred.mb.all$level <- 'all'
+pred.mb.species$level <- 'species'
+pred.mb.genus$level <- 'genus'
+pred.mb.family$level <- 'family'
 
-# Just concatenate end to end for now
+pred.mp.all$level <- 'all'
+pred.mp.species$level <- 'species'
+pred.mp.genus$level <- 'genus'
+pred.mp.family$level <- 'family'
+```
+
+```{r eval = FALSE}
+pred.mb <- 
+     bind_rows(
+          pred.mb.all,
+          pred.mb.species,
+          pred.mb.genus,
+          pred.mb.family
+     )
+
+rm(pred.mb.all, pred.mb.species, pred.mb.genus, pred.mb.family)
+
+pred.mp <- 
+     bind_rows(
+          pred.mp.all,
+          pred.mp.species,
+          pred.mp.genus,
+          pred.mp.family
+     )
+
+rm(pred.mp.all, pred.mp.species, pred.mp.genus, pred.mp.family)
+```
+
+
+```{r eval = FALSE}
+# Annotate detection, then make final join
+pred.mb$detection <- 'DNA'
+pred.mp$detection <- 'Protein'
+
 pred <- 
-     bind_rows(select(pred.mb, one_of(vs)),
-               select(pred.mp.pup, one_of(vs)),
-               select(pred.mp.up, one_of(vs)))
+     bind_rows(pred.mb,
+               pred.mp)
+
+rm(pred.mb, pred.mp)
 
 pred
 ```
@@ -92,24 +167,31 @@ Calculate F measure.
 
 ```{r}
 # Need to shift data to wide form
-pred <- pivot_wider(pred, names_from = prediction, values_from = count)
+pred <- 
+     pivot_wider(pred, names_from = prediction, values_from = n) %>% 
+     # Group and summarize across the two studies
+     select(-study) %>%
+     group_by(kingdom, common_name, marker) %>% 
+     summarise(across(c(starts_with('True '),
+                        starts_with('False')),
+                      sum))
+
 pred
 ```
+
 ```{r}
-# Calculate recall (sensitivity), precision
+# Calculate FPR, FNR
 pred.summary <- 
      pred %>% 
      rename(TP = `True positive`, TN = `True negative`,
             FP = `False positive`, FN = `False negative`) %>% 
-     mutate(recall = TP/(TP + FN), 
-            specificity = TN/(TN + FP),
-            precision = TP/(TP + FP),
-            f_measure = (2 * recall * precision)/(recall + precision))
+     mutate(fpr = FP/(FP+TN),
+            fnr = FN/(FN+TP))
 
 pred.summary
 ```
 
-```{r}
+```{r eval = FALSE}
 # Pivot longer
 pred.summary.long <- 
      pred.summary %>% 
@@ -129,7 +211,80 @@ pred.summary.long <-
 
 pred.summary.long
 ```
+```{r eval = FALSE}
+# Factor levels for plots
+pred.summary$level <- factor(pred.summary$level,
+                             levels = c('all',
+                                        'species',
+                                        'genus',
+                                        'family'))
+```
+
 # Visualize 
+
+## FPR, FNR
+
+```{r}
+# Reshape data
+false.rates <-
+     pred.summary %>% 
+     select(-c(TN, TP, FN, FP)) |> 
+     pivot_longer(
+          cols = c(fpr, fnr),
+          names_to = 'stat',
+          values_to = 'value') |> 
+     mutate(stat = toupper(stat)) |> 
+     pivot_wider(names_from = marker,
+                 values_from = value,
+                 values_fill = 0) |> 
+     rename(DNA = dna,
+            Protein = protein)
+```
+
+```{r}
+# Plot 
+ggplot(false.rates, aes(x = DNA, y = Protein, color = kingdom)) +
+     geom_point(alpha = 0.5,
+                size = 2) +
+     facet_wrap(~stat) +
+     # geom_text(aes(label = common_name), angle = 20, hjust = 0) +
+     scale_color_manual(values = c('#59a14f', '#e15759', 'gray50')) +
+     coord_equal()
+```
+
+```{r}
+# Stats
+false.rates |> 
+     group_by(stat) |> 
+     summarize(rho = cor.test(DNA, Protein)$estimate,
+               p = cor.test(DNA, Protein)$p.value)
+```
+
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'manuscript',
+            '3',
+            paste0(plotID, '_Metaproteomic (1UP) x metabarcoding recall.pdf')),
+       height = 4, width = 4)
+```
+
+```{r}
+ggplot(false.rates, aes(x = specificity_DNA, y = specificity_1PUP)) +
+     geom_point(alpha = 0.5) +
+     coord_equal()
+```
+
+```{r}
+cor.test(pred.summary$recall_1UP,
+         pred.summary$recall_DNA,
+         method = 'spearman')
+```
+```
+
+
 
 ## Between 1UP & 1PUP
 
@@ -191,6 +346,41 @@ lines(ecdf(pred.summary[pred.summary$detection=="Protein (1UP)",]$f_measure),
       col="blue")
 ```
 
+
+```{r}
+ggplot(pred.summary, aes(y = f_measure, 
+                         x = detection, 
+                         fill = level)) +
+     geom_boxplot(outlier.shape = NA) +
+     # geom_point(alpha = 0.5, position = position_jitterdodge())
+     labs(y = 'F measure', fill = 'Taxa in\nanalysis') +
+     scale_fill_manual(values = c('gray90',
+                                  'gray70',
+                                  'gray50',
+                                  'gray30')) +
+     theme(axis.title.x = element_blank())
+```
+```{r}
+anova(lm(f_measure ~ level * detection, data = pred.summary))
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'manuscript',
+            '4',
+            paste0(plotID, '_F measure by analysis.png')),
+       height = 4, width = 5)
+```
+
+```{r}
+# Higher for plant or animal taxa?
+pred.summary %>% 
+     group_by(detection, kingdom) %>% 
+     summarize(mean(f_measure, na.rm = TRUE))
+```
+
 ## Across measures
 
 I'm going to say it's better to lean towards positive detections, and work with 1UP.
@@ -250,11 +440,71 @@ cor.test(pred.summary$precision_1UP,
 ### Recall, precision
 
 ```{r}
-ggplot(pred.summary, aes(x = precision_DNA, y = precision_1UP)) +
+scatterplots.df <-
+     pred.summary %>% 
+     select(kingdom, name, level, detection, recall, precision) %>% 
+     pivot_wider(values_from = c(recall, precision),
+                 names_from = detection)
+
+scatterplots.df
+```
+#### Precision 
+```{r}
+ggplot(scatterplots.df, aes(x = precision_DNA, y = precision_Protein)) +
      geom_point(alpha = 0.5, aes(color = kingdom)) +
      # geom_text(aes(label = common_name), angle = 20, hjust = 0) +
+     facet_wrap(~level, nrow = 1) +
      scale_color_manual(values = c('#59a14f', '#e15759', 'gray50')) +
-     labs(x = 'Precision (DNA)', y = 'Precision (Protein)') +
+     labs(x = 'Precision (DNA)', y = 'Precision (Protein)', color = 'Food\nkingdom') +
+     scale_x_continuous(breaks = seq(0, 1, 0.5),
+                        labels = c('0', '0.5', '1')) +
+     scale_y_continuous(breaks = seq(0, 1, 0.5),
+                        labels = c('0', '0.5', '1')) +
+     coord_equal()
+```
+
+```{r}
+scatterplots.df %>% 
+     group_by(level) %>% 
+     summarize(rho = cor.test(~ precision_DNA + precision_Protein,
+                              method = 'spearman')$estimate,
+               p = cor.test(~ precision_DNA + precision_Protein,
+                              method = 'spearman')$p.value)
+```
+
+```{r}
+scatterplots.df %>% 
+     group_by(level) %>% 
+     summarize(rho = cor.test(~ recall_DNA + precision_Protein,
+                              method = 'spearman')$estimate,
+               p = cor.test(~ recall_DNA + precision_Protein,
+                              method = 'spearman')$p.value)
+```
+
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results', 
+            'manuscript',
+            '4',
+            paste0(plotID, '_Metaproteomic x metabarcoding precision.pdf')),
+       device = cairo_pdf,
+       height = 4, width = 7)
+```
+
+#### Recall
+```{r}
+ggplot(scatterplots.df, aes(x = recall_DNA, y = recall_Protein)) +
+     geom_point(alpha = 0.5, aes(color = kingdom)) +
+     # geom_text(aes(label = common_name), angle = 20, hjust = 0) +
+     facet_wrap(~level, nrow = 1) +
+     scale_color_manual(values = c('#59a14f', '#e15759', 'gray50')) +
+     scale_x_continuous(breaks = seq(0, 1, 0.5),
+                        labels = c('0', '0.5', '1')) +
+     scale_y_continuous(breaks = seq(0, 1, 0.5),
+                        labels = c('0', '0.5', '1')) +
+     labs(x = 'Recall (DNA)', y = 'Recall (Protein)', color = 'Food\nkingdom') +
      coord_equal()
 ```
 
@@ -263,11 +513,11 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 ggsave(here('results', 
             'manuscript',
-            '3',
-            paste0(plotID, '_Metaproteomic (1UP) x metabarcoding precision.pdf')),
-       height = 4, width = 4)
+            '4',
+            paste0(plotID, '_Metaproteomic x metabarcoding recall.pdf')),
+       device = cairo_pdf,
+       height = 4, width = 7)
 ```
-
 
 ### Correlation by detection type
 

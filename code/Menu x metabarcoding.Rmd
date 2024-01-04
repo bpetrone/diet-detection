@@ -1,11 +1,9 @@
 ---
-title: "Kleiner lab database testing"
+title: "Menu x metabarcoding"
 output:
   html_document:
     df_print: paged
 ---
-
-Here we are evaluating the preliminary data shared by the Kleiner lab at NCSU to determine if their metaproteomic database should be adjusted (e.g. filtering out homologs to human proteins, other ideas?) before continuing with analysis of the DFC samples.
 
 # Setup
 
@@ -24,8 +22,6 @@ library(tidyverse)
 # Read in data
 
 ## Synchronized names
-
-## Taxon name mapping
 
 ```{r}
 name.sync <- 
@@ -473,7 +469,8 @@ pred.summary <- left_join(pred.summary, taxtab)
 pred.long <- 
      pred.summary %>% 
      select(common_name, kingdom) %>% 
-     right_join(pred.long) %>% 
+     right_join(pred.long,
+                multiple = 'all') %>% 
      select(kingdom, common_name, everything())
 ```
 
