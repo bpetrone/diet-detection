@@ -23,20 +23,6 @@ library(tidyverse)
 
 # Read in data
 
-## Synchronized names
-
-## Taxon name mapping
-
-```{r}
-name.sync <- 
-     here('data',
-          'processed',
-          'Naming discrepancies.xlsx') %>% 
-     readxl::read_excel()
-
-name.sync
-```
-
 ## Metaproteomic phyloseq
 
 ```{r}
@@ -67,7 +53,6 @@ ps.menu <-
 
 ps.menu
 ```
-
 # Pre-process
 
 ## Menu
@@ -136,9 +121,12 @@ There are `r ntaxa(ps.menu.12)` recorded in the menu in the 2 days prior to each
 
 This is now handled in the `Figure 3` notebook.
 
-Want to make these tables the same same size (taking the union of their columns, and populating the new additions to each with zeros since the food wasn't detected in that dataset).
+### Grouped: species, genus, family
+
+#### Define helper functions
+
 ```{r}
-# Helper function to pad out columns
+# Helper function to pad out columns of two ASV tables that contain different taxa as members
 pad_columns <- function(x, y, fill = 0){
      # Takes two matrices and synchronizes columns across them, filling added 
      # cols with a set value
@@ -172,48 +160,21 @@ pad_columns <- function(x, y, fill = 0){
 ```
 
 ```{r}
-# Group results by study and reorganize
+# Helper function to group results by study and reorganize
 reformat <- function(pred, label){
-     # Relabel results with study (based on sample) and prediction type
+     # Relabel results with prediction type
      pred <- 
           data.frame(pred, check.names = FALSE) %>% 
-          rownames_to_column(var = 'study') %>% 
-          mutate(study = substr(study, 1, 2)) %>%  # 1st 2 chars: HD/ID
-          group_by(study) %>% 
           summarize(across(.cols = everything(),
                            ~sum(.x))) %>% 
           mutate(prediction = label) %>% 
-          select(study, prediction, everything())
+          select(prediction, everything())
      
      pred
 }
 ```
 
-#### Performance
-
-```{r}
-# Check rates of performance by taxon
-pred.summary$kingdom <- factor(pred.summary$kingdom,
-                               levels = c('Viridiplantae',
-                                          'Metazoa',
-                                          'Other'))
-```
-```{r}
-ggplot(pred.summary, aes(x = kingdom, y = f_measure)) +
-     geom_boxplot() +
-     geom_jitter(alpha = 0.5, width = 0.1)
-```
-```{r}
-plants <- filter(pred.summary, kingdom == 'Viridiplantae') %>% pull(f_measure)
-animals <- filter(pred.summary, kingdom == 'Metazoa') %>% pull(f_measure)
-
-wilcox.test(plants, animals, 
-            paired = FALSE,
-            conf.int = TRUE)
-```
-### Grouped: to species, family, genera
-
-This repeats the above but vectorized over a list of objects, which contain the menu/protein information grouped to either the species, genus, or family level.
+Calculate performance vectorized over a list of objects, which contain the menu/protein information grouped to either the species, genus, or family level.
 
 ```{r}
 rank_names(ps.menu.12)
@@ -221,15 +182,7 @@ rank_names(ps.protein)
 ```
 
 ```{r}
-# Glom taxa at these levels (removing common-name labels first)
-# Remove common name, which inhibits glom
-tax_table(ps.menu.12) <- 
-     ps.menu.12@tax_table@.Data %>% 
-     data.frame() %>% 
-     select(-mp_to_menu) %>% 
-     as.matrix()
-
-# Do glom
+# Glom taxa at these levels 
 menus <- 
      lapply(list('species', 'genus', 'family'),
             tax_glom,
@@ -243,12 +196,6 @@ taxa_names(menus[[3]]) <- tax_table(menus[[3]])@.Data[, 'family']
 
 ```{r}
 # Metaproteomic
-tax_table(ps.protein) <- 
-     ps.protein@tax_table@.Data %>% 
-     data.frame() %>% 
-     select(-mp_to_menu) %>% 
-     as.matrix()
-
 proteins <- 
      lapply(list('species', 'genus', 'family'),
             tax_glom,
@@ -323,21 +270,6 @@ fn <- mapply(function(record, detect){record & !detect},
 
 ```{r}
 # Group results by study and reorganize
-reformat <- function(pred, label){
-     # Relabel results with study (based on sample) and prediction type
-     pred <- 
-          data.frame(pred, check.names = FALSE) %>% 
-          rownames_to_column(var = 'study') %>% 
-          mutate(study = substr(study, 1, 2)) %>%  # 1st 2 chars: HD/ID
-          group_by(study) %>% 
-          summarize(across(.cols = everything(),
-                           ~sum(.x))) %>% 
-          mutate(prediction = label) %>% 
-          select(study, prediction, everything())
-     
-     pred
-}
-
 tp <- lapply(tp, reformat, label = 'tp')
 tn <- lapply(tn, reformat, label = 'tn')
 fp <- lapply(fp, reformat, label = 'fp')
@@ -356,7 +288,7 @@ pred <-
 pred.long <- 
      lapply(pred,
             pivot_longer,
-            cols = -c(prediction, study),
+            cols = -prediction,
             names_to = 'name',
             values_to = 'count')
 ```
@@ -401,10 +333,10 @@ taxtabs <-
      # "Other": fungi and bacteria
      lapply(.,
             mutate,
-            kingdom = ifelse(!(kingdom %in% c('Viridiplantae',
-                                              'Metazoa')),
-                             yes = 'Other',
-                             no = kingdom))
+            kingdom = case_when(kingdom == 'Viridiplantae' ~ 'Plants',
+                                kingdom == 'Metazoa' ~ 'Animals',
+                                kingdom == 'Fungi' ~ 'Other',
+                                is.na(kingdom) ~ 'Other'))
 ```
 
 ```{r}
