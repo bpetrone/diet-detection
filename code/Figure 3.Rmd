@@ -154,7 +154,6 @@ ps.mb
 # Remove separated objects
 rm(ps.plant, ps.animal)
 ```
-
 ## Metaproteomics
 
 Nothing to do here:
@@ -505,6 +504,7 @@ melt$fn_protein <- mapply(and_na, !melt$abd_protein, melt$abd_menu)
 head(melt)
 ```
 ```{r}
+# Pivot this data into long form, grouping by food and counting up predictions across samples (TP, TN, FP, FN)
 melt <-
      melt |> 
      # Pull info on study from sample name
@@ -522,16 +522,6 @@ melt <-
 ```
 
 ```{r}
-# Remove entries that are all NA
-# i.e., detected foods that were not recorded in the menu
-melt |> 
-     group_by(common_name, marker) |> 
-     summarize(total = sum(n)) |> 
-     filter()
-```
-
-
-```{r}
 # Factor data for visualization
 # Calculate F-measure to be used downstream
 # For this ranking, combine results from both cohorts
@@ -544,7 +534,7 @@ pred.summary <-
      mutate(recall = tp/(tp + fn),
             precision = tp/(tp + fp),
             f_measure = (2 * recall * precision)/(recall + precision)) %>% 
-     arrange(marker, desc(f_measure), fn, fp)
+     arrange(marker, desc(f_measure), desc(tn), desc(fp))
 
 pred.summary
 ```
@@ -576,14 +566,13 @@ melt <-
                                          'True negative',
                                          'False positive',
                                          'False negative')),
+          kingdom = case_when(kingdom == 'Viridiplantae' ~ 'Plants',
+                              kingdom == 'Metazoa' ~ 'Animals',
+                              kingdom == 'Fungi' ~ 'Other',
+                              is.na(kingdom) ~ 'Other'),
           kingdom = factor(kingdom,
-                           levels = c('Viridiplantae',
-                                      'Metazoa',
-                                      'Fungi',
-                                      'NA'),
-                           labels = c('Plants',
+                           levels = c('Plants',
                                       'Animals',
-                                      'Other',
                                       'Other')))
 ```
 
@@ -647,6 +636,18 @@ melt %>%
            strip.background = element_blank()) 
 ```
 
+Helpful to look at "zoomed out"
+But, if interested in taxon labels, can also break into individual rows
+
+```{r}
+# Actually think I might need to just generate small "sub-plots" by facet and stitch together in Illustrator because I'm already using two facet variables to make the above plot
+# Add facets to go across multiple panels
+# pred.long <- 
+#      pred.long |> 
+#      arrange(common_name) |> 
+#      mutate(facet = sort(rep(1:4, 96))) # Tall: 4 rows
+```
+
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
@@ -671,10 +672,6 @@ tax_table(ps.menu.12) <-
      select(-mb_to_mp_to_menu) %>% 
      as.matrix()
 
-# Note that tax_glom doesn't like NAs, so revert to zeros for now:
-# (These come from annotating failed samples for trnL)
-otu_table(ps.mb)[is.na(otu_table(ps.mb))] <- 0
-
 menus <- 
      lapply(list('species', 'genus', 'family'),
             tax_glom,
@@ -688,11 +685,16 @@ taxa_names(menus[[3]]) <- tax_table(menus[[3]])@.Data[, 'family']
 
 ```{r}
 # Metabarcoding
+# Note that tax_glom removes taxa that are NA at the glommed level by default
 tax_table(ps.mb) <- 
      ps.mb@tax_table@.Data %>% 
      data.frame() %>% 
      select(-mb_to_mp_to_menu) %>% 
      as.matrix()
+
+# Note that tax_glom doesn't like NAs, so revert to zeros for now:
+# (These come from annotating failed samples for trnL)
+otu_table(ps.mb)[is.na(otu_table(ps.mb))] <- 0
 
 asvs <- 
      lapply(list('species', 'genus', 'family'),
@@ -779,6 +781,8 @@ melts <-
 Need to figure out how to handle failed samples in this framework
 And if I'm labeling NAs vs 0s correctly. 
 
+---Think this is the transition point between new and old code---
+
 #### Label predictions
 
 Want to make these tables the same same size (taking the union of their columns, and populating the new additions to each with zeros since the food wasn't detected in that dataset). Use `pad_columns()` helper function defined above, but first, list plant columns, which will need to be populated with NAs for the failed samples.
@@ -791,8 +795,7 @@ plants <-
             lapply(menus, colnames), 
             lapply(asvs, colnames))
 
-# However, want to select only those that are plant-based (only failed samples
-# from trnL, not 12SV5). Use taxonomy to judge:
+# However, want to select only those that are plant-based (only failed samples from trnL, not 12SV5). Use taxonomy to judge:
 taxtab.plants <- 
      merge_phyloseq(ps.menu.12, ps.mb) %>% 
      tax_table() %>% 
