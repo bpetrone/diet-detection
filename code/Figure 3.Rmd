@@ -92,24 +92,34 @@ ps.protein
 ## Menu
 
 ```{r}
-# Group by taxon, omitting food group info
+# This currently has food group info in taxon name:
+ps.menu |> 
+     taxa_names() |> 
+     head()
+```
+```{r}
+# Group by taxon to omit
 ps.menu <- 
      ps.menu %>% 
      tax_glom(taxrank = 'name')
 
 # Update names, which previously included food group
 taxa_names(ps.menu) <- tax_table(ps.menu)@.Data[, 'name']
+
+ps.menu |> 
+     taxa_names() |> 
+     head()
 ```
 
 ## Metabarcoding
 
 ```{r}
-# The 12SV5 data have a shifted taxonomy, I think I need to go back and figure 
-# this out. Maybe due to assignTaxonomy()?
+# The 12SV5 data have a shifted taxonomy, maybe due to assignTaxonomy()?
 # Below, kingdom should be superkingdom, phylum should be kingdom.
 # Think it's class that's throwing this off, for some should be Mammalia
 ps.animal@tax_table@.Data
-
+```
+```{r}
 # Update accordingly
 tax_table(ps.animal) <- 
      tax_table(ps.animal)@.Data %>% 
@@ -122,6 +132,8 @@ tax_table(ps.animal) <-
      select(superkingdom, kingdom, phylum, everything()) %>% 
      column_to_rownames(var = 'row') %>% 
      as.matrix()
+
+tax_table(ps.animal)[1:3, 1:3]
 ```
 
 ```{r}
