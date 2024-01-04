@@ -157,21 +157,26 @@ rm(ps.plant, ps.animal)
 
 ## Metaproteomics
 
-Nothing to do here
+Nothing to do here:
 
 ```{r}
 taxa_names(ps.protein) |> head()
-sample_names(ps.protein) |> head()
+ps.protein
 ```
 ## Pair with 1-2 days prior intake
 
 For this broadest level comparison, let's look only at the two days prior to sampling.
 
 ```{r}
-# These already exist in sample data:
+# These already exist in the sample data:
 sample_variables(ps.mb)[grep(pattern = 'delta',
                              sample_variables(ps.mb))]
 
+sample_variables(ps.protein)[grep(pattern = 'delta',
+                             sample_variables(ps.protein))]
+```
+
+```{r}
 samdf.mb <- 
      sample_data(ps.mb) %>% 
      data.frame() %>% 
@@ -179,7 +184,7 @@ samdf.mb <-
 ```
 
 ```{r}
-# Can't use merge_samples on phyloseq here because some samples make up >1 merge
+# Collapse the ASV table entries from the two days prior to each sample into a single entry.  NOTE: Can't use merge_samples on phyloseq here because some samples make up >1 merge
 
 # Do manually on ASV table
 asvtab.menu <- otu_table(ps.menu)@.Data
@@ -208,8 +213,12 @@ ps.menu.12 <- phyloseq(otu_table(asvtab.menu.12, taxa_are_rows = FALSE),
 ps.menu.12 <- prune_taxa(taxa_sums(ps.menu.12) > 0, ps.menu.12)
 ps.menu.12
 ```
-
-There are `r ntaxa(ps.menu.12)` recorded in the menu in the 2 days prior to each sample, `r ntaxa(ps.mb)` detected by metabarcoding, and `r ntaxa(ps.protein)` detected by metaproteomics.
+```{r}
+# How many taxa are present in each of the objects about to be compared?
+cat('Recorded:', ntaxa(ps.menu.12), '\n')
+cat('DNA:', ntaxa(ps.mb), '\n')
+cat('Protein:', ntaxa(ps.protein), '\n')
+```
 
 ## Reference taxa by their shared index
 
