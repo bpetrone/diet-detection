@@ -31,24 +31,26 @@ theme_set(theme_bw() +
 
 # Read in data
 
-## Metabarcoding performance metrics
+## Performance metrics
+
+### "All taxa" comparison
 
 ```{r}
-# pred <- 
-#      here('data',
-#           'processed',
-#           'performance-metrics',
-#           'DNA and protein v. menu predictions by shared food taxa, 1-2d prior, no intake filter.rds') |> 
-#      readRDS()
-
-# 1-2 days' prior menu, >4 counts per taxon
-pred.mb.all <-
+# This is both DNA and protein-based data in the same object
+# Note: one entry per study
+pred <-
      here('data',
           'processed',
           'performance-metrics',
-          'Metabarcoding v. menu predictions by shared food taxa, 1-2d prior, no intake filter.rds') %>%
+          'DNA and protein v. menu predictions by shared food taxa, 1-2d prior, no intake filter.rds') |>
      readRDS()
+```
 
+### Glommed ranks
+
+#### Metabarcoding performance metrics
+
+```{r}
 pred.mb.species <-
      here('data',
           'processed',
@@ -75,13 +77,6 @@ pred.mb.family <-
 
 ```{r}
 # 1UP
-pred.mp.all <- 
-     here('data', 
-          'processed',
-          'performance-metrics',
-          'Metaproteomic 1UP v. menu predictions by shared food taxa, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
-     readRDS()
-
 pred.mp.species <- 
      here('data', 
           'processed',
@@ -106,118 +101,150 @@ pred.mp.family <-
 
 # Pre-process
 
-```{r eval = FALSE}
-# Rename "all" (common_name) to grouped taxon (name)
-pred.mb.all <- rename(pred.mb.all, name = common_name)
-pred.mp.all <- rename(pred.mp.all, name = common_name)
+## Tidy datasets
+
+Note that data are formatted slightly differently between "all taxon" and grouped taxonomic rank:
+
+```{r}
+head(pred)
+```
+```{r}
+head(pred.mb.species)
 ```
 
-```{r eval = FALSE}
-# Annotate each dataset prior to joining
-pred.mb.all$level <- 'all'
+```{r}
+# Rename variables in 'all' to sync
+pred <- 
+     pred |> 
+     rename(name = common_name,
+            count = n)
+```
+
+```{r}
+# Summarize results across studies, indicate level
+pred <- 
+     pred |> 
+     group_by(name,
+              kingdom,
+              marker,
+              prediction) |> 
+     summarize(count = sum(count)) |> 
+     mutate(level = 'all')
+```
+
+```{r eval}
+# For glommed data, annotate prior to joining
 pred.mb.species$level <- 'species'
 pred.mb.genus$level <- 'genus'
 pred.mb.family$level <- 'family'
 
-pred.mp.all$level <- 'all'
 pred.mp.species$level <- 'species'
 pred.mp.genus$level <- 'genus'
 pred.mp.family$level <- 'family'
 ```
 
-```{r eval = FALSE}
+```{r}
+# Combine glommed data
 pred.mb <- 
      bind_rows(
-          pred.mb.all,
           pred.mb.species,
           pred.mb.genus,
           pred.mb.family
      )
 
-rm(pred.mb.all, pred.mb.species, pred.mb.genus, pred.mb.family)
+rm(pred.mb.species, pred.mb.genus, pred.mb.family)
 
 pred.mp <- 
      bind_rows(
-          pred.mp.all,
           pred.mp.species,
           pred.mp.genus,
           pred.mp.family
      )
 
-rm(pred.mp.all, pred.mp.species, pred.mp.genus, pred.mp.family)
+rm(pred.mp.species, pred.mp.genus, pred.mp.family)
 ```
 
+```{r}
+# Annotate detection
+pred.mb$marker <- 'DNA'
+pred.mp$marker <- 'Protein'
+```
 
-```{r eval = FALSE}
-# Annotate detection, then make final join
-pred.mb$detection <- 'DNA'
-pred.mp$detection <- 'Protein'
+```{r}
+# Synchronize factor variables
+pred.mb <- 
+     pred.mb |> 
+     mutate(prediction = factor(prediction,
+                                levels = c('tp',
+                                           'tn',
+                                           'fp',
+                                           'fn'),
+                                labels = c('True positive',
+                                           'True negative',
+                                           'False positive',
+                                           'False negative')),
+            kingdom = factor(kingdom,
+                             levels = c('Plants',
+                                        'Animals',
+                                        'Other')),
+            marker = factor(marker,
+                            levels = c('Protein',
+                                       'DNA')))
 
+pred.mp <- 
+     pred.mp |> 
+     # Predictions already factored
+     mutate(kingdom = factor(kingdom,
+                             levels = c('Plants',
+                                        'Animals',
+                                        'Other')),
+            marker = factor(marker,
+                            levels = c('Protein',
+                                       'DNA')))
+```
+
+## Combine
+
+```{r}
 pred <- 
-     bind_rows(pred.mb,
-               pred.mp)
+     pred |> 
+     bind_rows(pred.mb) |> 
+     bind_rows(pred.mp)
+
+# Make final factor adjustment to level variable
+pred$level <- factor(pred$level,
+                     levels = c('all',
+                                'family',
+                                'genus',
+                                'species'),
+                     labels = c('All',
+                                'Family',
+                                'Genus',
+                                'Species'))
 
 rm(pred.mb, pred.mp)
 
 pred
 ```
-## Additional stats
 
-Calculate F measure.
+## Calculate summary metrics
 
-```{r}
-# Need to shift data to wide form
-pred <- 
-     pivot_wider(pred, names_from = prediction, values_from = n) %>% 
-     # Group and summarize across the two studies
-     select(-study) %>%
-     group_by(kingdom, common_name, marker) %>% 
-     summarise(across(c(starts_with('True '),
-                        starts_with('False')),
-                      sum))
-
-pred
-```
+Calculate FPR, FNR.
 
 ```{r}
-# Calculate FPR, FNR
+# Shift data wide
 pred.summary <- 
      pred %>% 
+     pivot_wider(names_from = prediction, values_from = count) |> 
+     # For simplicity
      rename(TP = `True positive`, TN = `True negative`,
             FP = `False positive`, FN = `False negative`) %>% 
      mutate(fpr = FP/(FP+TN),
-            fnr = FN/(FN+TP))
+            fnr = FN/(FN+TP),
+            precision = TP/(TP+FP),
+            recall = 1 - fnr)
 
 pred.summary
-```
-
-```{r eval = FALSE}
-# Pivot longer
-pred.summary.long <- 
-     pred.summary %>% 
-     select(-c(recall, precision, specificity, f_measure)) %>% 
-     pivot_longer(cols = c(TP, TN, FP, FN),
-                  names_to = 'stat',
-                  values_to = 'value') %>% 
-     pivot_wider(names_from = detection,
-                 values_from = value,
-                 values_fill = 0) %>% 
-     mutate(stat = factor(stat,
-                          levels = c('TP', 'TN', 'FP', 'FN'),
-                          labels = c('True positive',
-                                     'True negative',
-                                     'False positive',
-                                     'False negative')))
-
-pred.summary.long
-```
-```{r eval = FALSE}
-# Factor levels for plots
-pred.summary$level <- factor(pred.summary$level,
-                             levels = c('all',
-                                        'species',
-                                        'genus',
-                                        'family'))
 ```
 
 # Visualize 
@@ -227,18 +254,14 @@ pred.summary$level <- factor(pred.summary$level,
 ```{r}
 # Reshape data
 false.rates <-
-     pred.summary %>% 
-     select(-c(TN, TP, FN, FP)) |> 
+     pred.summary %>%
+     select(-c(TN, TP, FN, FP)) |>
      pivot_longer(
-          cols = c(fpr, fnr),
+          cols = c(fpr, fnr, precision, recall),
           names_to = 'stat',
-          values_to = 'value') |> 
-     mutate(stat = toupper(stat)) |> 
+          values_to = 'value') |>
      pivot_wider(names_from = marker,
-                 values_from = value,
-                 values_fill = 0) |> 
-     rename(DNA = dna,
-            Protein = protein)
+                 values_from = value)
 ```
 
 ```{r}
@@ -246,7 +269,8 @@ false.rates <-
 ggplot(false.rates, aes(x = DNA, y = Protein, color = kingdom)) +
      geom_point(alpha = 0.5,
                 size = 2) +
-     facet_wrap(~stat) +
+     facet_grid(rows = vars(stat),
+                cols = vars(level)) +
      # geom_text(aes(label = common_name), angle = 20, hjust = 0) +
      scale_color_manual(values = c('#59a14f', '#e15759', 'gray50')) +
      coord_equal()
@@ -255,11 +279,13 @@ ggplot(false.rates, aes(x = DNA, y = Protein, color = kingdom)) +
 ```{r}
 # Stats
 false.rates |> 
-     group_by(stat) |> 
+     group_by(stat, level) |> 
      summarize(rho = cor.test(DNA, Protein)$estimate,
-               p = cor.test(DNA, Protein)$p.value)
+               p = cor.test(DNA, Protein)$p.value,
+               p_adj = p.adjust(p, method = 'BH'))
 ```
 
+Interesting-- I thought FPR, FNR would be clearer, but actually much less so than precision and recall is 
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
@@ -270,21 +296,6 @@ ggsave(here('results',
             paste0(plotID, '_Metaproteomic (1UP) x metabarcoding recall.pdf')),
        height = 4, width = 4)
 ```
-
-```{r}
-ggplot(false.rates, aes(x = specificity_DNA, y = specificity_1PUP)) +
-     geom_point(alpha = 0.5) +
-     coord_equal()
-```
-
-```{r}
-cor.test(pred.summary$recall_1UP,
-         pred.summary$recall_DNA,
-         method = 'spearman')
-```
-```
-
-
 
 ## Between 1UP & 1PUP
 
@@ -774,3 +785,25 @@ cor.test(pred.summary$specificity_DNA,
          method = 'spearman')
 ```
 
+# Animals vs plants?
+
+```{r}
+# Check rates of performance by taxon
+pred.summary$kingdom <- factor(pred.summary$kingdom,
+                               levels = c('Viridiplantae',
+                                          'Metazoa',
+                                          'Other'))
+```
+```{r}
+ggplot(pred.summary, aes(x = kingdom, y = f_measure)) +
+     geom_boxplot() +
+     geom_jitter(alpha = 0.5, width = 0.1)
+```
+```{r}
+plants <- filter(pred.summary, kingdom == 'Viridiplantae') %>% pull(f_measure)
+animals <- filter(pred.summary, kingdom == 'Metazoa') %>% pull(f_measure)
+
+wilcox.test(plants, animals, 
+            paired = FALSE,
+            conf.int = TRUE)
+```
