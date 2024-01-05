@@ -115,13 +115,19 @@ There are `r ntaxa(ps.menu.12)` recorded in the menu in the 2 days prior to each
 
 # Analyze 
 
-## Metaproteomics x menu
-
 ### All taxa
 
 This is now handled in the `Figure 3` notebook.
 
 ### Grouped: species, genus, family
+
+Differently from the "all taxa" matching that's done in the Fig. S5 notebook, by grouping to a set taxonomic level we'll effectively force mismatches between the molecular and menu dataset.  For example, if DNA can specify only "Allium" but the record can specify "Allium sativum", there will be a discrepancy between detected and recorded taxa glommed at the species level (garlic recorded, but not detected).
+
+The question is how to factor this into the performance-- in the strictest sense, we could call it 0 (not detected-- which is accurate in the interpretation that the DNA truly can't determine garlic intake but rather only intake of members of the Allium genus).  A more liberal view would be to "trim" to only those taxa that have a match at the given taxonomic rank.
+
+I'm going to go with the stricter interpretation and can write the text to reflect that.  Essentially the performance is then measuring how well each molecular test does *at* that taxonomic rank (if for example assessing species-level intakes is what's of interest). 
+
+Note that this happens primarily for DNA, much less so for protein taxa (just a handful of animals specified at the family level, and rarer ones like eel at that). 
 
 #### Define helper functions
 
@@ -390,19 +396,17 @@ names(pred.long) <- c('species', 'genera', 'families')
 ```{r}
 # Save results for comparison to metabarcoding data
 ranks <- c('species', 'genus', 'family')
-# for (i in 1:3){
-#      saveRDS(pred.long[[i]],
-#              here('data',
-#                   'processed',
-#                   'performance-metrics',
-#                   paste0('NEW_Metaproteomic 1UP v. menu predictions by shared food ',
-#                          ranks[[i]],
-#                          ', 1-2d prior, >4 counts per taxon filter, no intake filter.rds')
-#                   )
-#              )
-# }
+for (i in 1:3){
+     saveRDS(pred.long[[i]],
+             here('data',
+                  'processed',
+                  'performance-metrics',
+                  paste0('Metaproteomic 1UP v. menu predictions by shared food ',
+                         ranks[[i]],
+                         ', 1-2d prior, >4 counts per taxon filter, no intake filter.rds')
+                  )
+             )
+}
 ```
 
 Now these objects can be combined and plotted for a side-by-side comparison with DNA-based data.
-
-Okay, so now I should be able to iterate over these objects to plot them.
