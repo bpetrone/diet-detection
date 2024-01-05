@@ -242,7 +242,8 @@ pred.summary <-
      mutate(fpr = FP/(FP+TN),
             fnr = FN/(FN+TP),
             precision = TP/(TP+FP),
-            recall = 1 - fnr)
+            recall = 1 - fnr,
+            f_measure = (2 * recall * precision)/(recall + precision))
 
 pred.summary
 ```
@@ -253,11 +254,11 @@ pred.summary
 
 ```{r}
 # Reshape data
-false.rates <-
+pred.summary.long <-
      pred.summary %>%
      select(-c(TN, TP, FN, FP)) |>
      pivot_longer(
-          cols = c(fpr, fnr, precision, recall),
+          cols = c(fpr, fnr, precision, recall, f_measure),
           names_to = 'stat',
           values_to = 'value') |>
      pivot_wider(names_from = marker,
@@ -266,7 +267,7 @@ false.rates <-
 
 ```{r}
 # Plot 
-ggplot(false.rates, aes(x = DNA, y = Protein, color = kingdom)) +
+ggplot(pred.summary.long, aes(x = DNA, y = Protein, color = kingdom)) +
      geom_point(alpha = 0.5,
                 size = 2) +
      facet_grid(rows = vars(stat),
@@ -278,14 +279,136 @@ ggplot(false.rates, aes(x = DNA, y = Protein, color = kingdom)) +
 
 ```{r}
 # Stats
-false.rates |> 
+pred.summary.long |> 
      group_by(stat, level) |> 
      summarize(rho = cor.test(DNA, Protein)$estimate,
                p = cor.test(DNA, Protein)$p.value,
                p_adj = p.adjust(p, method = 'BH'))
 ```
 
-Interesting-- I thought FPR, FNR would be clearer, but actually much less so than precision and recall is 
+Interesting-- I thought FPR, FNR would be clearer, but actually much less so than precision and recall is. Why would this be???
+
+## Recall, precision
+
+```{r}
+# Plot 
+pred.summary.long |> 
+     filter(stat %in% c('recall', 'precision')) |> 
+     mutate(stat = str_to_title(stat)) |> 
+     ggplot(aes(x = DNA, y = Protein, color = kingdom)) +
+     geom_point(alpha = 0.5,
+                size = 2) +
+     facet_grid(rows = vars(stat),
+                cols = vars(level)) +
+     # geom_text(aes(label = common_name), angle = 20, hjust = 0) +
+     scale_color_manual(values = c('#59a14f', '#e15759', 'gray50')) +
+     scale_x_continuous(breaks = c(0, 0.5, 1),
+                        labels = c(0, 0.5, 1)) +
+     scale_y_continuous(breaks = c(0, 0.5, 1),
+                        labels = c(0, 0.5, 1)) +
+     coord_equal() +
+     theme(legend.position = 'none',
+           panel.spacing.y = unit(0.3, 'in'))
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results',
+            'manuscript',
+            '4',
+            paste0(plotID, '_DNA v protein precision, recall.pdf')),
+       device = cairo_pdf,
+       height = 4, width = 8)
+```
+
+```{r}
+# Stats
+pred.summary.long |> 
+     filter(stat %in% c('precision', 'recall')) |> 
+     group_by(stat, level) |> 
+     summarize(rho = cor.test(DNA, Protein)$estimate,
+               p = cor.test(DNA, Protein)$p.value,
+               p_adj = p.adjust(p, method = 'BH'))
+```
+
+## Qualitative quadrants
+
+```{r}
+quads <- 
+     pred.summary |> 
+     filter(level == 'All') |> 
+     select(-(level:fnr)) |> 
+     pivot_wider(names_from = marker,
+                 values_from = c(precision, recall, f_measure))
+```
+
+```{r}
+quads |> 
+     filter(f_measure_DNA > 0.8 & f_measure_Protein > 0.8)
+```
+
+```{r}
+quads |> 
+     filter(f_measure_DNA < 0.2 & f_measure_Protein > 0.7)
+```
+```{r}
+quads |> 
+     filter(f_measure_DNA > 0.5 & f_measure_Protein < 0.5)
+```
+
+```{r}
+quads |> 
+     filter(f_measure_DNA < 0.5 & f_measure_Protein < 0.5)
+```
+
+
+## F measure
+
+```{r}
+# Calculate medians and MAD for crossbar
+fmeas_stats <- 
+     pred.summary.long |> 
+     filter(stat == 'f_measure') |> 
+     pivot_longer(cols = c(Protein, DNA),
+                  names_to = 'marker') |>
+     group_by(marker, level) |> 
+     summarize(value = median(value, na.rm = TRUE),
+               mad = mad(value, na.rm = TRUE))
+
+head(fmeas_stats)
+```
+
+
+```{r}
+# Plot 
+pred.summary.long |> 
+     filter(stat == 'f_measure') |> 
+     pivot_longer(cols = c(Protein, DNA),
+                  names_to = 'marker') |>
+     ggplot(aes(x = level, 
+                y = value, 
+                shape = marker)) +
+     # geom_boxplot() +
+     geom_point(aes(color = marker),
+                alpha = 0.5,
+                position=position_jitterdodge(jitter.width = 0.1,
+                                              dodge.width = 0.8),
+                size = 2) +
+     geom_crossbar(data = fmeas_stats,
+                   aes(ymin = value,
+                       ymax = value),
+                   position = position_jitterdodge(jitter.width = 0,
+                                              dodge.width = 0.6)) +
+     scale_color_manual(values = c('#849db1', '#fbb04e')) + 
+     # scale_fill_manual(values = c('#849db1', '#fbb04e')) + 
+     # ylim(0, 1.2) +
+     # Need shape as grouping variable for flexibility w/color
+     scale_shape_manual(values = c(16, 16)) +
+     labs(y = 'Predictive<br>performance',
+          fill = 'Molecular\ndetection') +
+     theme(axis.title.x = element_blank())
+```
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
@@ -293,86 +416,53 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 ggsave(here('results', 
             'manuscript',
             '3',
-            paste0(plotID, '_Metaproteomic (1UP) x metabarcoding recall.pdf')),
-       height = 4, width = 4)
-```
-
-## Between 1UP & 1PUP
-
-```{r}
-# Are there foods for which all entries are 0 (i.e., detected by DNA, but not by protein?)  Would want to remove these so as not to inflate the correlation 
-drop <-
-     pred.summary.long %>% 
-     select(-DNA) %>% 
-     group_by(common_name) %>% 
-     filter(all(`Protein (1PUP)` == 0) & all(`Protein (1UP)` == 0)) %>% 
-     pull(common_name) %>% 
-     unique()
-
-drop
+            paste0(plotID, '_F measure by analysis.pdf')),
+       height = 2, width = 5)
 ```
 
 ```{r}
-pred.summary.long %>% 
-     filter(!(common_name %in% drop)) %>% 
-     ggplot(aes(x = `Protein (1UP)`, 
-                y = `Protein (1PUP)`)) +
-     geom_point(alpha = 0.5) +
-     coord_equal() +
-     facet_wrap(~stat)
-```
-```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-
-ggsave(here('results', 
-            'performance metrics', 
-            paste0(plotID, '_Metaproteomic (1PUP) x metaproteomic (1UP) detactions.pdf')),
-       height = 4, width = 4)
+anova(lm(f_measure ~ level * marker, data = pred.summary))
 ```
 
-So we get an relative gain in positive detections for 1UP, or a relative gain in negative detections for 1PUP. 
+# Animals vs plants?
 
 ```{r}
-pred.summary %>% 
-     filter(detection != 'DNA') %>% 
-     ggplot(aes(x = 1-specificity, y = recall)) +
-     geom_point(alpha = 0.5) +
-     facet_wrap(~detection) +
-     coord_equal()
+# Calculate medians and MAD for crossbar
+fmeas_stats <- 
+     pred.summary.long |> 
+     filter(stat == 'f_measure' & level == 'All' & kingdom != 'Other') |> 
+     pivot_longer(cols = c(Protein, DNA),
+                  names_to = 'marker') |>
+     group_by(marker, kingdom) |> 
+     summarize(value = median(value, na.rm = TRUE))
+
+head(fmeas_stats)
 ```
 
 ```{r}
-pred.summary %>% 
-     filter(detection != 'DNA') %>% 
-     ggplot(aes(x = f_measure)) +
-     geom_histogram(binwidth = 0.05,
-                    boundary = 1) +
-     facet_wrap(~detection) 
-```
-
-```{r}
-plot(ecdf(pred.summary[pred.summary$detection=="Protein (1PUP)",]$f_measure),
-     col="green")
-lines(ecdf(pred.summary[pred.summary$detection=="Protein (1UP)",]$f_measure),
-      col="blue")
-```
-
-
-```{r}
-ggplot(pred.summary, aes(y = f_measure, 
-                         x = detection, 
-                         fill = level)) +
-     geom_boxplot(outlier.shape = NA) +
-     # geom_point(alpha = 0.5, position = position_jitterdodge())
-     labs(y = 'F measure', fill = 'Taxa in\nanalysis') +
-     scale_fill_manual(values = c('gray90',
-                                  'gray70',
-                                  'gray50',
-                                  'gray30')) +
-     theme(axis.title.x = element_blank())
-```
-```{r}
-anova(lm(f_measure ~ level * detection, data = pred.summary))
+pred.summary.long |> 
+     filter(level == 'All' & kingdom != 'Other') |> 
+     filter(stat == 'f_measure') |> 
+     pivot_longer(cols = c(Protein, DNA),
+                  names_to = 'marker') |>
+     ggplot(aes(x = marker, 
+                y = value, 
+                shape = kingdom)) +
+     geom_point(aes(color = kingdom),
+                position = position_jitterdodge(jitter.width = 0.2,
+                                                dodge.width = 0.6),
+                alpha = 0.5, size = 2) +
+     geom_crossbar(data = fmeas_stats,
+                   aes(ymin = value,
+                       ymax = value),
+                   position = position_jitterdodge(jitter.width = 0,
+                                              dodge.width = 0.6),
+                   width = 0.7) +
+     scale_color_manual(values = c('#59a14f', '#e15759')) +
+     scale_shape_manual(values = c(16, 16)) +
+     labs(y = 'Predictive<br>performance') +
+     theme(axis.title.x = element_blank(),
+           legend.position = 'none')
 ```
 
 ```{r}
@@ -380,30 +470,42 @@ plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
 ggsave(here('results', 
             'manuscript',
-            '4',
-            paste0(plotID, '_F measure by analysis.png')),
-       height = 4, width = 5)
+            '3',
+            paste0(plotID, '_F measure by kingdom.pdf')),
+       device = cairo_pdf,
+       height = 2, width = 3)
 ```
 
-# Animals vs plants?
+```{r}
+# DNA
+plants <- 
+     filter(pred.summary, 
+            kingdom == 'Plants' & marker == 'DNA') %>% 
+     pull(f_measure)
 
-```{r}
-# Check rates of performance by taxon
-pred.summary$kingdom <- factor(pred.summary$kingdom,
-                               levels = c('Viridiplantae',
-                                          'Metazoa',
-                                          'Other'))
-```
-```{r}
-ggplot(pred.summary, aes(x = kingdom, y = f_measure)) +
-     geom_boxplot() +
-     geom_jitter(alpha = 0.5, width = 0.1)
-```
-```{r}
-plants <- filter(pred.summary, kingdom == 'Viridiplantae') %>% pull(f_measure)
-animals <- filter(pred.summary, kingdom == 'Metazoa') %>% pull(f_measure)
+animals <- 
+     filter(pred.summary, 
+            kingdom == 'Animals' & marker == 'DNA') %>% 
+     pull(f_measure)
 
 wilcox.test(plants, animals, 
             paired = FALSE,
             conf.int = TRUE)
 ```
+```{r}
+# Protein
+plants <- 
+     filter(pred.summary, 
+            kingdom == 'Plants' & marker == 'Protein') %>% 
+     pull(f_measure)
+
+animals <- 
+     filter(pred.summary, 
+            kingdom == 'Animals' & marker == 'Protein') %>% 
+     pull(f_measure)
+
+wilcox.test(plants, animals, 
+            paired = FALSE,
+            conf.int = TRUE)
+```
+
