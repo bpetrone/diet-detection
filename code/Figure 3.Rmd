@@ -1,0 +1,188 @@
+---
+title: "Performance scatterplots"
+output: html_notebook
+---
+
+# Setup
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r libraries, echo=FALSE}
+library(here) 
+library(phyloseq)
+library(tidyverse)
+```
+
+```{r}
+# Plotting themes
+theme_set(theme_bw() +
+               theme(
+                    axis.text = element_text(size = 12),
+                    axis.title.x = ggtext::element_markdown(size = 14),
+                    axis.title.y = ggtext::element_markdown(size = 14),
+                    legend.title = element_text(size = 12),
+                    strip.text = element_text(size = 12)
+               )
+)
+```
+
+# Read in data
+
+Here, setting up for family-level visualization-- so can just read in these two datasets (DNA and protein).
+
+## Metabarcoding performance metrics
+
+```{r}
+pred.mb.family <-
+     here('data',
+          'processed',
+          'performance-metrics',
+          'Metabarcoding v. menu predictions by shared food family, 1-2d prior, no intake filter.rds') %>%
+     readRDS()
+```
+
+## Metaproteomic performance metrics
+
+```{r}
+pred.mp.family <- 
+     here('data', 
+          'processed',
+          'performance-metrics',
+          'Metaproteomic 1UP v. menu predictions by shared food family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
+     readRDS()
+```
+
+# Pre-process
+
+## Tidy
+
+Note that data are formatted slightly differently:
+
+```{r}
+head(pred.mb.family, 2)
+```
+```{r}
+head(pred.mp.family, 2)
+```
+
+```{r}
+# Annotate detection
+pred.mb.family$marker <- 'DNA'
+pred.mp.family$marker <- 'Protein'
+```
+
+```{r}
+# Synchronize factor variables
+pred.mb.family <- 
+     pred.mb.family |> 
+     mutate(prediction = factor(prediction,
+                                levels = c('tp',
+                                           'tn',
+                                           'fp',
+                                           'fn'),
+                                labels = c('True positive',
+                                           'True negative',
+                                           'False positive',
+                                           'False negative')),
+            kingdom = factor(kingdom,
+                             levels = c('Plants',
+                                        'Animals',
+                                        'Other')),
+            marker = factor(marker,
+                            levels = c('Protein',
+                                       'DNA')))
+
+pred.mp.family <- 
+     pred.mp.family |> 
+     # Predictions already factored
+     mutate(kingdom = factor(kingdom,
+                             levels = c('Plants',
+                                        'Animals',
+                                        'Other')),
+            marker = factor(marker,
+                            levels = c('Protein',
+                                       'DNA')))
+```
+
+## Combine
+
+```{r}
+pred <- bind_rows(pred.mb.family, pred.mp.family)
+
+rm(pred.mb.family, pred.mp.family)
+
+pred
+```
+
+## Sync taxa
+
+```{r}
+pred
+```
+
+## Calculate summary metrics
+
+Calculate FPR, FNR.
+
+```{r}
+# Shift data wide
+# pred.summary <- 
+#      pred %>% 
+#      pivot_wider(names_from = prediction, values_from = count) |> 
+#      # For simplicity
+#      rename(TP = `True positive`, TN = `True negative`,
+#             FP = `False positive`, FN = `False negative`) %>% 
+#      mutate(precision = TP/(TP+FP),
+#             recall = 1 - fnr,
+#             f_measure = (2 * recall * precision)/(recall + precision))
+# 
+# pred.summary
+```
+
+# Visualize 
+
+#### Plot
+
+Need to fix
+Gray bars where there's currently white
+NA for taxon not detected in the dataset (vs 0)
+height of plant bars
+
+```{r}
+ggplot(pred,
+        aes(x = name, y = count, fill = prediction)) +
+          geom_bar(position = 'stack', stat = 'identity') +
+          scale_fill_manual(values = c('#309343',
+                                       '#8AC373',
+                                       '#D7191C', 
+                                       '#FDAE61')) + 
+          facet_grid(cols = vars(kingdom),
+                     rows = vars(marker),
+                     scales = 'free',
+                     space = 'free') +
+          theme_classic() +
+          theme(axis.text.x = element_text(angle = 40, hjust = 1),
+                axis.text.y = element_blank(), 
+                axis.ticks = element_blank(),
+                axis.line = element_blank(),
+                axis.title = element_blank(),
+                legend.position = 'none',
+                legend.title = element_blank(), 
+                plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
+                strip.background = element_blank(),
+                strip.text = element_blank())    
+```
+
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+ggsave(here('results',
+            'manuscript',
+            '3',
+            paste0(plotID,
+                   '_Metaproteomic family predictions compared to menu.pdf')),
+       height = 4, width = 15)
+```
+
