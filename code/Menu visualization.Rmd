@@ -160,6 +160,121 @@ ps.menu.subset
 
 ## Visualize
 
+### Foods within a single group (inset)
+
+```{r}
+ps.veg <- 
+     ps.menu.subset |> 
+     subset_taxa(food_group == 'vegetables, vegetable row crops')
+
+# Update taxon names
+taxa_names(ps.veg) <- ps.veg@tax_table@.Data[,'common_names']
+
+ps.veg
+```
+
+#### Dendrogram
+```{r}
+# Run clustering on samples
+menu.dat <- as.matrix(ps.veg@otu_table@.Data)
+# Make data binary:
+menu.dat[menu.dat > 0] <- 1
+
+# If all entries are 0, distance will be NaN
+# correct this and then proceed
+menu.dendro <- vegan::vegdist(menu.dat,
+                    method = 'jaccard')
+
+menu.dendro[is.na(menu.dendro)] <- 1
+
+menu.dendro <- 
+     menu.dendro |> 
+     hclust(method = 'average') %>% 
+     as.dendrogram()
+
+# Create dendro
+dendro.plot.x <- ggdendrogram(data = menu.dendro, rotate = TRUE)
+
+# Preview the plot
+dendro.plot.x
+```
+
+#### Heatmap
+
+```{r}
+melt <- 
+     psmelt(ps.veg) %>% 
+     group_by(Sample, subj, date, study, common_names) %>% 
+     summarize(Abundance = sum(Abundance)) %>% 
+     ungroup()
+
+head(melt)
+```
+
+```{r}
+# Reshape data so samples in rows, features in columns
+melt.wide <-
+     melt |> 
+     select(Sample, common_names, Abundance) |> 
+     pivot_wider(names_from = 'common_names',
+                 values_from = 'Abundance') |> 
+     column_to_rownames(var = 'Sample')
+
+# Binarize
+melt.wide[melt.wide > 0] <- 1
+```
+
+```{r}
+# Preview
+# (Labels help check if heatmap row ordering is behaving)
+gplots::heatmap.2(
+     as.matrix(melt.wide),
+     dendrogram = 'row',
+     Rowv = menu.dendro,
+     # Note row colors are re-ordered under the hood based
+     # on dendrogram input
+     RowSideColors = subj.colors[gsub(row.names(melt.wide),
+                                      pattern= '_.*',
+                                      replacement = '')],
+     key = FALSE,
+     col = c('#ffffff', '#7e756d'),
+     trace = 'none',
+     density.info = 'none'
+)
+```
+
+```{r}
+# Save
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+pdf(here('results', 
+         'manuscript', 
+         '1',
+         paste0(plotID, '_Menu visualization (row crops).pdf')),
+       height = 8.5, width = 4)
+
+gplots::heatmap.2(
+     as.matrix(melt.wide),
+     dendrogram = 'row',
+     Rowv = menu.dendro,
+     # Note row colors are re-ordered under the hood based
+     # on dendrogram input
+     RowSideColors = subj.colors[gsub(row.names(melt.wide),
+                                      pattern= '_.*',
+                                      replacement = '')],
+     key = FALSE,
+     margins = c(7, 5),
+     col = c('#ffffff', '#7e756d'),
+     srtCol = 45,
+     labRow = FALSE,
+     trace = 'none',
+     density.info = 'none'
+)
+```
+
+
+### Food groups
+
 First pass
 Try with food groups only
 
@@ -173,6 +288,19 @@ melt <-
      ungroup()
 
 head(melt)
+```
+
+```{r}
+# Reshape data so samples in rows, features in columns
+melt.wide <-
+     melt |> 
+     select(Sample, food_group, Abundance) |> 
+     pivot_wider(names_from = 'food_group',
+                 values_from = 'Abundance') |> 
+     column_to_rownames(var = 'Sample')
+
+# Binarize
+melt.wide[melt.wide > 0] <- 1
 ```
 
 ```{r}
@@ -327,4 +455,5 @@ gplots::heatmap.2(
      density.info = 'none'
 )
 ```
+
 
