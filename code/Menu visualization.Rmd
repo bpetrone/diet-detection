@@ -296,6 +296,9 @@ melt.wide[melt.wide > 0] <- 1
 
 Column dendrogram is that we made manually for food groups above, and row dendrogram is our by-sample clustering with Jaccard dissimilarity. 
 
+Having trouble with dendrogram ordering
+Columns (food groups) work 
+
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
@@ -303,20 +306,21 @@ pdf(here('results',
          'manuscript', 
          '1',
          paste0(plotID, '_Menu visualization.pdf')),
-       height = 10)
+       height = 8.5)
 
 gplots::heatmap.2(
      as.matrix(melt.wide),
-     # dendrogram = 'both',
-     distfun = dist(as.matrix(melt.wide, method = 'binary')),
+     dendrogram = 'both',
      Rowv = menu.dendro,
-     labRow = labels(menu.dendro), # Pull ordering from dendrogram
-     RowSideColors = subj.colors[gsub(labels(menu.dendro),
+     # Note row colors are re-ordered under the hood based
+     # on dendrogram input
+     RowSideColors = subj.colors[gsub(row.names(melt.wide),
                                       pattern= '_.*',
                                       replacement = '')],
      Colv = ifsac.d,
      labCol = labels(ifsac.d),
      srtCol = 90,
+     key = FALSE,
      col = c('#7e756d', '#ffffff'),
      margin = c(20, 10),
      trace = 'none',
