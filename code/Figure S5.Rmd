@@ -651,10 +651,10 @@ But, if interested in taxon labels, can also break into individual rows
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
 
-# ggsave(here('results',
-#             'manuscript',
-#             '3',
-#             paste0(plotID,
-#                    '_Metabarcoding and metaproteomic by-food predictions compared to menu.pdf')),
-#        height = 4, width = 24)
+ggsave(here('results',
+            'manuscript',
+            'supplemental',
+            paste0(plotID,
+                   '_Metabarcoding and metaproteomic by-food predictions compared to menu.pdf')),
+       height = 6, width = 24)
 ```

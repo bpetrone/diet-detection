@@ -31,149 +31,461 @@ theme_set(theme_bw() +
 
 # Read in data
 
-Here, setting up for family-level visualization-- so can just read in these two datasets (DNA and protein).
-
-## Metabarcoding performance metrics
+## Menu data phyloseq
 
 ```{r}
-pred.mb.family <-
-     here('data',
-          'processed',
-          'performance-metrics',
-          'Metabarcoding v. menu predictions by shared food family, 1-2d prior, no intake filter.rds') %>%
-     readRDS()
-```
-
-## Metaproteomic performance metrics
-
-```{r}
-pred.mp.family <- 
+# Menu data phyloseq
+ps.menu <- 
      here('data', 
-          'processed',
-          'performance-metrics',
-          'Metaproteomic 1UP v. menu predictions by shared food family, 1-2d prior, >4 counts per taxon filter, no intake filter.rds') %>% 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_menu.rds') %>% 
      readRDS()
+
+ps.menu
+```
+## Metabarcoding phyloseqs
+
+```{r}
+# Metabarcoding phyloseqs
+ps.animal <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mb_12SV5.rds') %>% 
+     readRDS()
+
+ps.animal
+
+ps.plant <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mb_trnL.rds') %>% 
+     readRDS()
+
+ps.plant
+```
+## Metaproteomic phyloseq
+
+```{r}
+ps.protein <- 
+     here('data', 
+          'processed', 
+          'phyloseq',
+          'combined',
+          'filtered',
+          # 'ps_mp_1PUP_taxa.rds') %>% # >=1 protein unique peptide
+          'ps_mp_1UP_taxa.rds') %>% # >=1 unique peptide
+     readRDS()
+          
+ps.protein
 ```
 
 # Pre-process
 
-## Tidy
-
-Note that data are formatted slightly differently:
+## Menu
 
 ```{r}
-head(pred.mb.family, 2)
+# This currently has food group info in taxon name:
+ps.menu |> 
+     taxa_names() |> 
+     head()
 ```
 ```{r}
-head(pred.mp.family, 2)
+# Group by taxon to omit
+ps.menu <- 
+     ps.menu %>% 
+     tax_glom(taxrank = 'name')
+
+# Update names, which previously included food group
+taxa_names(ps.menu) <- tax_table(ps.menu)@.Data[, 'name']
+
+ps.menu |> 
+     taxa_names() |> 
+     head()
+```
+
+## Metabarcoding
+
+```{r}
+# The 12SV5 data have a shifted taxonomy, maybe due to assignTaxonomy()?
+# Below, kingdom should be superkingdom, phylum should be kingdom.
+# Think it's class that's throwing this off, for some should be Mammalia
+ps.animal@tax_table@.Data
+```
+```{r}
+# Update accordingly
+tax_table(ps.animal) <- 
+     tax_table(ps.animal)@.Data %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'row') %>% 
+     mutate(superkingdom = kingdom,
+            kingdom = phylum,
+            phylum = class) %>% 
+     select(-class) %>% 
+     select(superkingdom, kingdom, phylum, everything()) %>% 
+     column_to_rownames(var = 'row') %>% 
+     as.matrix()
+
+tax_table(ps.animal)[1:3, 1:3]
 ```
 
 ```{r}
-# Annotate detection
-pred.mb.family$marker <- 'DNA'
-pred.mp.family$marker <- 'Protein'
+# Note failed trnL samples and relabel with NAs prior to merge
+failed <- 
+     which(sample_sums(ps.plant)==0) %>% 
+     names()
+
+asvtab.plant <- ps.plant@otu_table@.Data
+asvtab.plant[failed, ] <- NA
+otu_table(ps.plant) <- otu_table(asvtab.plant,
+                                 taxa_are_rows = FALSE)
+
+# Combine into a single object
+ps.mb <- merge_phyloseq(ps.plant, ps.animal)
+ps.mb
+
+# Remove separated objects
+rm(ps.plant, ps.animal)
+```
+## Metaproteomics
+
+Nothing to do here:
+
+```{r}
+taxa_names(ps.protein) |> head()
+ps.protein
+```
+## Pair with 1-2 days prior intake
+
+For this broadest level comparison, let's look only at the two days prior to sampling.
+
+```{r}
+# These already exist in the sample data:
+sample_variables(ps.mb)[grep(pattern = 'delta',
+                             sample_variables(ps.mb))]
+
+sample_variables(ps.protein)[grep(pattern = 'delta',
+                             sample_variables(ps.protein))]
 ```
 
 ```{r}
-# Synchronize factor variables
-pred.mb.family <- 
-     pred.mb.family |> 
-     mutate(prediction = factor(prediction,
-                                levels = c('tp',
-                                           'tn',
-                                           'fp',
-                                           'fn'),
-                                labels = c('True positive',
-                                           'True negative',
-                                           'False positive',
-                                           'False negative')),
-            kingdom = factor(kingdom,
-                             levels = c('Plants',
-                                        'Animals',
-                                        'Other')),
-            marker = factor(marker,
-                            levels = c('Protein',
-                                       'DNA')))
+samdf.mb <- 
+     sample_data(ps.mb) %>% 
+     data.frame() %>% 
+     rownames_to_column(var = 'row') 
+```
 
-pred.mp.family <- 
-     pred.mp.family |> 
-     # Predictions already factored
-     mutate(kingdom = factor(kingdom,
-                             levels = c('Plants',
-                                        'Animals',
-                                        'Other')),
-            marker = factor(marker,
-                            levels = c('Protein',
-                                       'DNA')))
+```{r}
+# Collapse the ASV table entries from the two days prior to each sample into a single entry.  NOTE: Can't use merge_samples on phyloseq here because some samples make up >1 merge
+
+# Do manually on ASV table
+asvtab.menu <- otu_table(ps.menu)@.Data
+asvtab.menu.12 <- data.frame()
+
+for (sample in seq(dim(samdf.mb)[1])){
+     # Pull menu day -1
+     one.before <- asvtab.menu[samdf.mb$delta1[sample], ]
+     # Pull menu day -2
+     two.before <- asvtab.menu[samdf.mb$delta2[sample], ]
+     # Merge and place in new, aggregated OTU table
+     asvtab.menu.12 <- rbind(asvtab.menu.12,
+                             one.before + two.before)
+     # Update food names (only has to be done once)
+     if (sample == 1){names(asvtab.menu.12) <- names(one.before + two.before)}
+     # Update sample name
+     row.names(asvtab.menu.12)[sample] <- samdf.mb$row[sample]
+}
+
+# Now rebuild a subsetted phyloseq object
+ps.menu.12 <- phyloseq(otu_table(asvtab.menu.12, taxa_are_rows = FALSE),
+                       sample_data(ps.mb), # Now this matches
+                       tax_table(ps.menu)) # Menu-specific taxonomy
+
+# Remove any taxa that aren't present any longer
+ps.menu.12 <- prune_taxa(taxa_sums(ps.menu.12) > 0, ps.menu.12)
+ps.menu.12
+```
+```{r}
+# How many taxa are present in each of the objects about to be compared?
+cat('Recorded:', ntaxa(ps.menu.12), '\n')
+cat('DNA:', ntaxa(ps.mb), '\n')
+cat('Protein:', ntaxa(ps.protein), '\n')
+```
+
+## Reference taxa by their shared family
+
+```{r}
+ps.menu.12 <- tax_glom(ps.menu.12, taxrank = 'family')
+ps.protein <- tax_glom(ps.protein, taxrank = 'family')
+```
+
+```{r}
+# Note that tax_glom doesn't like NA entries (for failed plant entries in metabarcoding dataset)
+otu_table(ps.mb)[is.na(otu_table(ps.mb))] <- 0
+ps.mb <- tax_glom(ps.mb, taxrank = 'family')
+```
+
+```{r}
+# Update names to the family level
+taxa_names(ps.menu.12) <- tax_table(ps.menu.12)@.Data[, 'family']
+taxa_names(ps.mb) <- tax_table(ps.mb)@.Data[, 'family']
+taxa_names(ps.protein) <- tax_table(ps.protein)@.Data[, 'family']
+```
+
+```{r}
+# Now, let's go back and re-index the failed samples so they have NAs for the plant families
+plant_families <- 
+     ps.mb@tax_table@.Data |> 
+     data.frame() |> 
+     filter(kingdom == 'Viridiplantae') |> 
+     pull(family)
+
+otu_table(ps.mb)@.Data[failed, plant_families] <- NA
 ```
 
 ## Combine
 
 ```{r}
-pred <- bind_rows(pred.mb.family, pred.mp.family)
+# Melt objects and join together
+melt.menu <- 
+     ps.menu.12 |> 
+     psmelt() |> 
+     select(Sample,
+            common_name = OTU,
+            abd_menu = Abundance,
+            kingdom)
 
-rm(pred.mb.family, pred.mp.family)
+melt.mb <- 
+     ps.mb |> 
+     psmelt() |> 
+     select(Sample,
+            common_name = OTU,
+            abd_dna = Abundance,
+            kingdom)
 
-pred
+melt.mp <- 
+     ps.protein |> 
+     psmelt() |> 
+     select(Sample,
+            common_name = OTU,
+            abd_protein = Abundance,
+            kingdom)
 ```
 
-## Sync taxa
-
 ```{r}
-pred
+# Join together
+melt <- 
+     full_join(melt.menu,
+               melt.mb,
+               by = c('Sample',
+                      'kingdom',
+                      'common_name')) |> 
+     full_join(melt.mp,
+               by = c('Sample',
+                      'kingdom',
+                      'common_name'))
+
+n_distinct(melt$common_name)
 ```
 
-## Calculate summary metrics
+```{r}
+cat('Expected # taxa after merge is', 
+    length(union(union(taxa_names(ps.menu.12), 
+                   taxa_names(ps.mb)),
+             taxa_names(ps.protein)))
+)
+```
 
-Calculate FPR, FNR.
+Note that this strategy makes entries that weren't detected by a measure NA. For the menu data, we'll convert these to FALSE-- an item was detected by a molecular measure but not recorded in the menu.  Will leave the DNA and protein NAs as-is because I want these to be represented visually as gaps on the plot.
 
 ```{r}
-# Shift data wide
-# pred.summary <- 
-#      pred %>% 
-#      pivot_wider(names_from = prediction, values_from = count) |> 
-#      # For simplicity
-#      rename(TP = `True positive`, TN = `True negative`,
-#             FP = `False positive`, FN = `False negative`) %>% 
-#      mutate(precision = TP/(TP+FP),
-#             recall = 1 - fnr,
-#             f_measure = (2 * recall * precision)/(recall + precision))
-# 
-# pred.summary
+melt$abd_menu[is.na(melt$abd_menu)] <- 0
+```
+
+```{r}
+# Make abundances binary
+melt <- 
+     mutate(melt,
+            across(starts_with('abd_'),
+                   function(x){x > 0}))
+```
+
+```{r}
+# Label predictions 
+# If failed samples present (OTU table entries are NAs), need to define a 
+# version of "&" that does not return FALSE for NA & FALSE 
+and_na <- function(x, y){
+     
+     # Instead returns NA
+     return <- NULL
+     if (any(is.na(c(x,y)))){
+          # If there's also FALSE, change the output
+          if (FALSE %in% c(x, y)){
+               return <- NA
+          } else {
+          # Otherwise keep as-is
+               return <- x & y
+          }
+     } else {
+          return <- x & y
+     }
+     
+     return
+}
+```
+
+```{r}
+# Label predictions
+# True positives
+melt$tp_dna <- mapply(and_na, melt$abd_dna, melt$abd_menu)
+melt$tp_protein <- mapply(and_na, melt$abd_protein, melt$abd_menu)
+
+# True negatives
+melt$tn_dna <- mapply(and_na, !melt$abd_dna, !melt$abd_menu)
+melt$tn_protein <- mapply(and_na, !melt$abd_protein, !melt$abd_menu)
+
+# False positives
+melt$fp_dna <- mapply(and_na, melt$abd_dna, !melt$abd_menu)
+melt$fp_protein <- mapply(and_na, melt$abd_protein, !melt$abd_menu)
+
+# False negatives
+melt$fn_dna <- mapply(and_na, !melt$abd_dna, melt$abd_menu)
+melt$fn_protein <- mapply(and_na, !melt$abd_protein, melt$abd_menu)
+```
+
+```{r}
+head(melt)
+```
+```{r}
+# Pivot this data into long form, grouping by food and counting up predictions across samples (TP, TN, FP, FN)
+melt <-
+     melt |> 
+     # Pull info on study from sample name
+     mutate(study = substr(Sample, 
+                           start = 1, 
+                           stop = 2)) |>
+     select(-starts_with('abd')) |> 
+     pivot_longer(cols = matches('protein|dna'),
+                  names_sep = '_',
+                  names_to = c('prediction',
+                               'marker')) |>
+     group_by(study, common_name, kingdom, marker, prediction) |> 
+     # Count the number of TRUEs for each prediction
+     summarize(n = sum(value, na.rm = TRUE)) 
+```
+
+```{r}
+# Factor data for visualization
+# Calculate F-measure to be used downstream
+# For this ranking, combine results from both cohorts
+pred.summary <-
+     melt %>% 
+     select(-study) %>% 
+     group_by(common_name, marker, prediction) %>% 
+     summarize(n = sum(n)) %>% 
+     pivot_wider(names_from = prediction, values_from = n) %>% 
+     mutate(recall = tp/(tp + fn),
+            precision = tp/(tp + fp),
+            f_measure = (2 * recall * precision)/(recall + precision)) %>% 
+     arrange(marker, desc(f_measure), desc(tn), desc(fp))
+
+pred.summary
+```
+
+```{r}
+# Now that joins complete, add factor levels
+# Factor foods by DNA first
+food.levels <- 
+     pred.summary |> 
+     filter(marker == 'protein') |> 
+     pull(common_name)
+
+melt <- 
+     melt %>% 
+     mutate(
+          study = factor(study,
+                         levels = c('HD', 'ID'),
+                         labels = c('Habitual', 'Intervetion')),
+          marker = factor(marker,
+                          levels = c('protein', 'dna'),
+                          labels = c('Protein', 'DNA')),
+          common_name = factor(common_name, 
+                               levels = food.levels),
+          prediction = factor(prediction, levels = c('tp',
+                                                     'tn',
+                                                     'fp',
+                                                     'fn'),
+                              labels = c('True positive',
+                                         'True negative',
+                                         'False positive',
+                                         'False negative')),
+          kingdom = case_when(kingdom == 'Viridiplantae' ~ 'Plants',
+                              kingdom == 'Metazoa' ~ 'Animals',
+                              kingdom == 'Fungi' ~ 'Other',
+                              is.na(kingdom) ~ 'Other'),
+          kingdom = factor(kingdom,
+                           levels = c('Plants',
+                                      'Animals',
+                                      'Other')))
 ```
 
 # Visualize 
 
-#### Plot
+```{r}
+# Add a "Not detected" category for items detected by only one or the other measure, not both
+# If this happens, TP + TN + FP + FN = 0 for the marker
+not_detected <- 
+     melt |> 
+     group_by(kingdom, common_name, marker) |> 
+     summarize(count = sum(n)) |> 
+     filter(count == 0) |> 
+     select(-count) |> 
+     mutate(prediction = 'Absent from dataset',
+            n = 1)
 
-Need to fix
-Gray bars where there's currently white
-NA for taxon not detected in the dataset (vs 0)
-height of plant bars
+not_detected
+
+# Append to main dataset
+melt <- bind_rows(melt, not_detected)
+
+# Refactor prediction category
+melt$prediction <- factor(melt$prediction, 
+                              levels = c('True positive',
+                                         'True negative',
+                                         'False positive',
+                                         'False negative',
+                                         'Absent from dataset'))
+```
 
 ```{r}
-ggplot(pred,
-        aes(x = name, y = count, fill = prediction)) +
-          geom_bar(position = 'stack', stat = 'identity') +
-          scale_fill_manual(values = c('#309343',
-                                       '#8AC373',
-                                       '#D7191C', 
-                                       '#FDAE61')) + 
-          facet_grid(cols = vars(kingdom),
-                     rows = vars(marker),
-                     scales = 'free',
-                     space = 'free') +
-          theme_classic() +
-          theme(axis.text.x = element_text(angle = 40, hjust = 1),
-                axis.text.y = element_blank(), 
-                axis.ticks = element_blank(),
-                axis.line = element_blank(),
-                axis.title = element_blank(),
-                legend.position = 'none',
-                legend.title = element_blank(), 
-                plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
-                strip.background = element_blank(),
-                strip.text = element_blank())    
+melt %>%
+     ggplot(aes(x = common_name, y = n, fill = prediction)) +
+     geom_bar(position = 'fill', stat = 'identity') +
+     scale_fill_manual(values = c('#309343','#8AC373', # TP, TN
+                                  '#D7191C', '#FDAE61',# FP, FN
+                                  'gray90')) + # Absent
+     facet_grid(cols = vars(kingdom),
+                rows = vars(marker),
+                scales = 'free',
+                space = 'free') +
+     theme_classic() +
+     theme(axis.text.x = element_text(angle = 40, hjust = 1),
+           axis.text.y = element_blank(), 
+           axis.ticks = element_blank(),
+           axis.line = element_blank(),
+           axis.title = element_blank(),
+           legend.position = 'none',
+           legend.title = element_blank(), 
+           plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
+           strip.background = element_blank()) 
 ```
 
 ```{r}
@@ -182,7 +494,7 @@ ggsave(here('results',
             'manuscript',
             '3',
             paste0(plotID,
-                   '_Metaproteomic family predictions compared to menu.pdf')),
+                   '_Molecular family predictions compared to menu.pdf')),
        height = 4, width = 15)
 ```
 
