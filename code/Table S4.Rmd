@@ -1,0 +1,241 @@
+---
+title: "Table S4: Taxon abundance and prevalence"
+output: html_notebook
+---
+
+# Setup
+
+```{r setup}
+require(knitr)
+knitr::opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r}
+library(here)
+library(phyloseq)
+library(tidyverse)
+```
+
+# Read in data
+
+## Metabarcoding
+```{r}
+# trnL
+ps.mb.plant <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mb_trnL.rds') %>% 
+     readRDS()
+
+# 12SV5
+ps.mb.animal <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mb_12SV5.rds') %>% 
+     readRDS()
+
+
+ps.mb.plant
+ps.mb.animal
+```
+```{r}
+# Pointer to reference database for taxonomic ID
+sql <- '/Volumes/All_Staff/localreference/ncbi_taxonomy/accessionTaxa.sql'
+```
+
+## Metaproteomics
+Note that this is filtered data:
+- Subset animal proteins to only those certainly of muscle, dairy, or egg origin
+- Filter taxa identified to only those with cumulatively >= 5 PSMs
+
+```{r}
+# Metaproteomics
+# Tax-glommed
+ps.protein.taxon <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mp_1UP_taxa.rds') %>%
+     readRDS()
+
+# By protein
+ps.protein <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_mp_1UP.rds') %>%
+     readRDS()
+```
+
+# Analyze
+
+## Metabarcoding
+
+### 12SV5
+
+```{r}
+melt.mb.animal <- psmelt(ps.mb.animal)
+```
+
+```{r}
+# Assign taxon ID
+taxon_to_id <- 
+     data.frame(taxon = taxa_names(ps.mb.animal)) |> 
+     mutate(id = taxonomizr::getId(taxon, sql))
+
+melt.mb.animal <- 
+     left_join(melt.mb.animal,
+               taxon_to_id,
+               by = c('OTU' = 'taxon'),
+               multiple = 'all')
+
+```
+
+```{r}
+# Tidy columns
+mb.animal.table <- 
+     melt.mb.animal |> 
+     select(taxid = id,
+            taxon = OTU,
+            Sample, 
+            Abundance) |> 
+     filter(Abundance > 0) 
+```
+
+```{r}
+# Summarize
+mb.animal.table <- 
+     mb.animal.table |> 
+     group_by(Sample) |> 
+     # Calculate relative abundance
+     mutate(Abundance_rel = Abundance/sum(Abundance)) |> 
+     group_by(taxid, taxon) |>
+     summarize(mean_reads = mean(Abundance_rel),
+               n_reads = sum(Abundance),
+               n_samples = length(Sample)) |> 
+     arrange(desc(mean_reads), desc(n_samples), desc(n_reads))
+```
+
+```{r}
+mb.animal.table
+```
+
+```{r}
+write_csv(mb.animal.table,
+          here('results',
+               'summary tables',
+               'S4_Metabarcoding 12SV5 taxa.csv'))
+```
+
+### trnL
+
+```{r}
+melt.mb.plant <- psmelt(ps.mb.plant)
+```
+
+```{r}
+# Assign taxon ID
+taxon_to_id <- 
+     data.frame(taxon = taxa_names(ps.mb.plant)) |> 
+     mutate(id = taxonomizr::getId(taxon, sql))
+
+melt.mb.plant <- 
+     left_join(melt.mb.plant,
+               taxon_to_id,
+               by = c('OTU' = 'taxon'),
+               multiple = 'all')
+```
+
+```{r}
+# Tidy columns
+mb.plant.table <- 
+     melt.mb.plant |> 
+     select(taxid = id,
+            taxon = OTU,
+            Sample, 
+            Abundance) |> 
+     filter(Abundance > 0) 
+```
+
+```{r}
+# Summarize
+mb.plant.table <- 
+     mb.plant.table |> 
+     group_by(Sample) |> 
+     # Calculate relative abundance
+     mutate(Abundance_rel = Abundance/sum(Abundance)) |> 
+     group_by(taxid, taxon) |>
+     summarize(mean_reads = mean(Abundance_rel),
+               n_reads = sum(Abundance),
+               n_samples = length(Sample)) |> 
+     arrange(desc(mean_reads), desc(n_samples), desc(n_reads))
+```
+
+```{r}
+mb.plant.table
+```
+```{r}
+# Manually add combined taxon names where appropriate
+
+```
+
+```{r}
+write_csv(mb.plant.table,
+          here('results',
+               'summary tables',
+               'S4_Metabarcoding 12SV5 taxa.csv'))
+```
+
+## Metaproteomics
+
+```{r}
+melt.mp <- psmelt(ps.protein.taxon)
+```
+
+```{r}
+# Assign taxon ID
+taxon_to_id <- 
+     data.frame(taxon = taxa_names(ps.protein.taxon)) |> 
+     mutate(id = taxonomizr::getId(taxon, sql))
+
+melt.mp <- 
+     left_join(melt.mp,
+               taxon_to_id,
+               by = c('OTU' = 'taxon'),
+               multiple = 'all')
+```
+
+```{r}
+# Tidy columns
+mp.table <- 
+     melt.mp |> 
+     select(taxid = id,
+            taxon = OTU,
+            Sample, 
+            Abundance) |> 
+     filter(Abundance > 0) |> 
+     group_by(Sample) |> 
+     # Calculate relative abundance
+     mutate(Abundance_rel = Abundance/sum(Abundance)) |> 
+     group_by(taxid, taxon) |>
+     summarize(mean_psms = mean(Abundance_rel),
+               n_psms = sum(Abundance),
+               n_samples = length(Sample)) |> 
+     arrange(desc(mean_psms), desc(n_samples), desc(n_psms))
+```
+
+```{r}
+write_csv(mp.table,
+          here('results', 'summary tables', 'S4_Metaproteomic taxa.csv'))
+```
+
