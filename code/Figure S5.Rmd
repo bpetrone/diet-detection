@@ -612,7 +612,7 @@ melt$prediction <- factor(melt$prediction,
                                          'False negative',
                                          'Absent from dataset'))
 ```
-
+##### Landscape
 ```{r}
 melt %>%
      ggplot(aes(x = common_name, y = n, fill = prediction)) +
@@ -635,9 +635,21 @@ melt %>%
            plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
            strip.background = element_blank()) 
 ```
+```{r}
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+ggsave(here('results',
+            'manuscript',
+            'supplemental',
+            paste0(plotID,
+                   '_Metabarcoding and metaproteomic by-food predictions compared to menu.pdf')),
+       height = 6, width = 24)
+```
 
 Helpful to look at "zoomed out"
 But, if interested in taxon labels, can also break into individual rows
+
+##### Portrait
 
 ```{r}
 # Actually think I might need to just generate small "sub-plots" by facet and stitch together in Illustrator because I'm already using two facet variables to make the above plot
@@ -647,6 +659,105 @@ But, if interested in taxon labels, can also break into individual rows
 #      arrange(common_name) |> 
 #      mutate(facet = sort(rep(1:4, 96))) # Tall: 4 rows
 ```
+
+```{r}
+# How many of these facets to make?
+melt |> 
+     filter(kingdom == 'Plants') |> 
+     pull(common_name) |> 
+     n_distinct()
+
+melt |> 
+     filter(kingdom == 'Animals') |> 
+     pull(common_name) |> 
+     n_distinct()
+
+melt |> 
+     filter(kingdom == 'Other') |> 
+     pull(common_name) |> 
+     n_distinct()
+
+# We'll aim for row lengths of 29, which will correspond to 
+# 4 rows of plant taxa
+# 1 row of animal taxa
+# 1 row of other taxa
+row_len <- 29
+```
+
+```{r}
+# First, need to re-order the factor levels within each kingdom, rather than globally as they are in the landscape plot above
+
+pred.summary <- 
+     melt |> 
+     ungroup() |> 
+     select(kingdom, common_name) |> 
+     distinct() |> 
+     left_join(pred.summary, multiple = 'all') |> 
+     filter(marker == 'protein') # Let proteomic data drive the factoring
+
+order_factors <- function(df) {
+  # Split data frame by group
+  split_df <- split(df, df$kingdom)
+  
+  # Order each group by performance (descending)
+  ordered_groups <- lapply(split_df, function(sub_df) {
+    sub_df[order(-sub_df$f_measure), ]
+  })
+  
+  # Combine the ordered groups
+  ordered_df <- do.call(rbind, ordered_groups)
+  
+  return(ordered_df$common_name)
+}
+
+# Get ordered factor levels
+ordered_common_names <- order_factors(pred.summary)
+
+# Display the result
+ordered_common_names
+```
+
+```{r}
+common_names <- levels(melt$common_name)
+
+# Function to slice the common_names into increments
+slice_vector <- function(vector, length) {
+     split(vector, ceiling(seq_along(vector) / length))
+}
+
+# Slice the character vector
+sliced_vector <- slice_vector(common_names, row_len)
+
+# Display the result
+sliced_vector
+```
+
+```{r}
+for (r in sliced_vector){
+     melt %>%
+          filter(common_name %in% r)
+          ggplot(aes(x = common_name, y = n, fill = prediction)) +
+          geom_bar(position = 'fill', stat = 'identity') +
+          scale_fill_manual(values = c('#309343','#8AC373', # TP, TN
+                                       '#D7191C', '#FDAE61',# FP, FN
+                                       'gray90')) + # Absent
+          facet_grid(cols = vars(kingdom),
+                     rows = vars(marker),
+                     scales = 'free',
+                     space = 'free') +
+          theme_classic() +
+          theme(axis.text.x = element_text(angle = 40, hjust = 1),
+                axis.text.y = element_blank(), 
+                axis.ticks = element_blank(),
+                axis.line = element_blank(),
+                axis.title = element_blank(),
+                legend.position = 'none',
+                legend.title = element_blank(), 
+                plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
+                strip.background = element_blank())
+}
+```
+
 
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
