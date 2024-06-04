@@ -446,6 +446,14 @@ cat('Expected # taxa after merge is',
 Note that this strategy makes entries that weren't detected by a measure NA. For the menu data, we'll convert these to FALSE-- an item was detected by a molecular measure but not recorded in the menu.  Will leave the DNA and protein NAs as-is because I want these to be represented visually as gaps on the plot.
 
 ```{r}
+# One fiddly little renaming
+# In downstream plots, "squash, pumpkin (incl butternut)" is a long enough label that it distorts the proportions of the plot
+# Rename here before continuing
+melt$common_name[melt$common_name == 'squash, pumpkin (incl butternut)'] <- 
+     'squash, pumpkin'
+```
+
+```{r}
 melt$abd_menu[is.na(melt$abd_menu)] <- 0
 ```
 
@@ -637,13 +645,13 @@ melt %>%
 ```
 ```{r}
 plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-
-ggsave(here('results',
-            'manuscript',
-            'supplemental',
-            paste0(plotID,
-                   '_Metabarcoding and metaproteomic by-food predictions compared to menu.pdf')),
-       height = 6, width = 24)
+# 
+# ggsave(here('results',
+#             'manuscript',
+#             'supplemental',
+#             paste0(plotID,
+#                    '_Metabarcoding and metaproteomic by-food predictions compared to menu.pdf')),
+#        height = 6, width = 24)
 ```
 
 Helpful to look at "zoomed out"
@@ -677,11 +685,10 @@ melt |>
      pull(common_name) |> 
      n_distinct()
 
-# We'll aim for row lengths of 29, which will correspond to 
-# 4 rows of plant taxa
-# 1 row of animal taxa
-# 1 row of other taxa
-row_len <- 29
+# We'll aim for row lengths of 58, which will correspond to 
+# 2 rows of plant taxa
+# 1 row of animal taxa and other taxa
+row_len <- 58
 ```
 
 ```{r}
@@ -718,24 +725,29 @@ ordered_common_names
 ```
 
 ```{r}
-common_names <- levels(melt$common_name)
+# Now update this leveling in the data we'll plot
+melt$common_name <- factor(melt$common_name, levels = ordered_common_names)
+```
 
+```{r}
 # Function to slice the common_names into increments
 slice_vector <- function(vector, length) {
      split(vector, ceiling(seq_along(vector) / length))
 }
 
 # Slice the character vector
-sliced_vector <- slice_vector(common_names, row_len)
+sliced_vector <- slice_vector(ordered_common_names, row_len)
 
 # Display the result
 sliced_vector
 ```
 
 ```{r}
-for (r in sliced_vector){
+plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
+
+for (r in seq_along(sliced_vector)){
      melt %>%
-          filter(common_name %in% r)
+          filter(common_name %in% sliced_vector[[r]]) |> 
           ggplot(aes(x = common_name, y = n, fill = prediction)) +
           geom_bar(position = 'fill', stat = 'identity') +
           scale_fill_manual(values = c('#309343','#8AC373', # TP, TN
@@ -753,19 +765,29 @@ for (r in sliced_vector){
                 axis.title = element_blank(),
                 legend.position = 'none',
                 legend.title = element_blank(), 
-                plot.margin = margin(0, 0.5, 0.5, 0.5, 'in'),
+                plot.margin = margin(0, 0.5, 0.5, 1, 'in'),
                 strip.background = element_blank())
+          
+     if (r !=3){
+          ggsave(here('results',
+                      'manuscript',
+                      'supplemental',
+                      'by-food prediction',
+                      paste0(plotID,
+                             '_Portrait row ',
+                             r,
+                             '_Metabarcoding and metaproteomic by-food predictions compared to menu.pdf')),
+       height = 4, width = 10)
+     } else {
+         ggsave(here('results',
+                      'manuscript',
+                      'supplemental',
+                      'by-food prediction',
+                      paste0(plotID,
+                             '_Portrait row ',
+                             r,
+                             '_Metabarcoding and metaproteomic by-food predictions compared to menu.pdf')),
+       height = 4.5, width = 8) 
+     }
 }
-```
-
-
-```{r}
-plotID <- paste(Sys.Date(), as.character(sample(000:999,1)), sep=".")
-
-ggsave(here('results',
-            'manuscript',
-            'supplemental',
-            paste0(plotID,
-                   '_Metabarcoding and metaproteomic by-food predictions compared to menu.pdf')),
-       height = 6, width = 24)
 ```
