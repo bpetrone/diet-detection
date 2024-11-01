@@ -108,35 +108,332 @@ annotations
 ### Samples
 
 ```{r}
+# Tidy variables
 samples$date <- as.Date(samples$date,
                         format = '%m/%d/%y')
-```
 
-```{r}
-# Add detection for each so shading is done by facet, below
-detection <- c('Menu', 'Protein')
-subj <- unique(samples$subj)
-
-samples <-
-     expand.grid(detection = detection, 
-                 subj = subj) %>% 
-     right_join(samples) %>% 
-     arrange(study, subj, date) %>% 
-     select(subj:time, detection) %>% 
-     mutate(subj = factor(subj, 
-                          labels = c('HD',
-                                     'ID1', 'ID2', 'ID3', 'ID4')))
+samples$subj <- factor(samples$subj, 
+                       labels = c('HD',
+                                  'ID1', 'ID2', 'ID3', 'ID4'))
 
 samples
 ```
 
-### >3 detections
+### Names
 
 ```{r}
+# Remove taxa where distinction is made in menu to prevent duplicate join
+name.sync <- 
+     filter(name.sync, 
+            (menu_taxa != 'Pisum sativum var. macrocarpum' | is.na(menu_taxa)))
+```
+
+### Proteins
+
+Filter out proteins from animal taxa without an annotation ("other"), which may include host- and microbial cross-identifications.
+
+```{r}
+exclude <- 
+     annotations |> 
+     filter(category == 'other') |> 
+     pull(word)
+
+# Now find corresponding protein accessions
+nrow(proteins.df)
+proteins.df <-
+     proteins.df |> 
+     mutate(word = gsub(Description,
+                        pattern = ' OS=.*',
+                        replacement = '')) |> 
+     filter(!(word %in% exclude))
+
+nrow(proteins.df)
+```
+
+Note that the dilemma here is I'm curating this for animals only-- no similar filter is being applied to plants and fungi.
+
+```{r}
+# Also remove these entries from phyloseq object before melting
+ntaxa(ps.protein)
+
+ps.protein <- 
+     prune_taxa(taxa_names(ps.protein) %in% proteins.df$Accession,
+                ps.protein)
+
+ntaxa(ps.protein)
+```
+
+### Melted phyloseq
+
+```{r}
+melt <- psmelt(ps.protein)
+```
+
+```{r}
+# Join to common names
+melt <- 
+     name.sync |> 
+     filter(!is.na(mp_taxa)) |> 
+     select(mp_taxa, common_names) |> 
+     right_join(melt, 
+                by = join_by(mp_taxa == name),
+                multiple = 'all') |> 
+     select(OTU,
+            kingdom,
+            name = mp_taxa,
+            common_name = common_names, # Not all filled in
+            # May need to revisit
+            Sample,
+            Abundance,
+            study,
+            subj,
+            date)
+```
+
+### >=5 detections
+
+```{r}
+multiples <- 
+     melt |> 
+     group_by(kingdom, name, common_name, Sample) |> 
+     summarize(PSMs = sum(Abundance)) |> 
+     filter(PSMs > 0) |> 
+     group_by(kingdom, name, common_name) |> 
+     summarize(detections = n_distinct(Sample)) |> 
+     filter(detections >= 5)
+
+arrange(multiples, desc(detections))
+```
+
+```{r}
+# Filter data to only these taxa
+dim(melt)
+melt <- 
+     filter(melt,
+            name %in% multiples$name)
+
+dim(melt)
+```
+
+Interesting-- this removes less than I expected.
+
+## Analyze
+
+```{r}
+# What's our starting potential number of proteins?
+n_distinct(melt$OTU)
+```
+
+
+Try to identify "dominant proteins" for each taxon. 
+
+One simple theory is that there's more likely to be a dominant protein if there are fewer proteins overall.
+
+So I could tally those and use them as a starting point.
+
+```{r}
+multiples <- 
+     melt |> 
+     group_by(name) |> 
+     summarize(unique_PSMs = n_distinct(OTU),
+               cumulative_PSMs = sum(Abundance),
+               ratio = cumulative_PSMs/unique_PSMs) |> 
+     left_join(x = multiples) |> 
+     arrange(unique_PSMs, detections)
+
+multiples
+```
+
+```{r}
+# Write to table
+# write_csv(multiples,
+#           here('data',
+#                'processed',
+#                'biomarkers',
+#                'Automated biomarker list (taxon-level, >=5 detections).csv'))
+```
+
+## Visualize
+
+### Cumulative v unique PSMs
+
+#### Scatterplot
+
+```{r}
+ggplot(multiples, aes(x = unique_PSMs,
+                      y = cumulative_PSMs,
+                      size = detections,
+                      color = kingdom)) +
+     geom_point(alpha = 0.3) +
+     scale_color_manual(values = c('gray50', '#e15759', '#59a14f')) + 
+     scale_y_log10() +
+     labs(y = 'Total PSMs identified to food',
+          x = 'Number of unique proteins<br>detected for food',
+          size = 'Number of samples\nfood present in',
+          color = 'Food kingdom')
+     
+```
+
+```{r}
+ggplot(multiples, aes(x = unique_PSMs,
+                      y = cumulative_PSMs,
+                      size = detections,
+                      color = kingdom)) +
+     geom_point(alpha = 0.3) +
+     scale_color_manual(values = c('gray50', '#e15759', '#59a14f')) + 
+     scale_y_log10() + 
+     scale_x_log10() +
+     labs(y = 'Total PSMs identified to food',
+          x = 'Number of unique proteins<br>detected for food',
+          size = 'Number of samples\nfood present in',
+          color = 'Food kingdom')
+```
+
+This looks like a pretty reasonable threshold-- we'll keep everything less than ~32 unique PSMs as a manageable first pass (10^1.5).
+
+```{r}
+# How many proteins would be kept by this strategy?
+# Make a list of brief annotations for joining
+annotations_brief <- 
+     proteins.df |> 
+     select(Accession, Description) |> 
+     distinct()
+
+# And a reduced melt for joining too
+melt_brief <- 
+     melt |> 
+     select(OTU, 
+            name,
+            Abundance) |>
+     group_by(OTU, name) |> 
+     summarize(Abundance = sum(Abundance))
+
+uniques <- 
+     multiples |> 
+     filter(unique_PSMs < 32) |> 
+     left_join(melt_brief,
+               multiple = 'all') |> 
+     left_join(annotations_brief,
+               by = c('OTU' = 'Accession')) |> 
+     select(-ends_with('PSMs'),
+            -ratio)
+```
+
+#### Ratio histogram
+
+Another way to get at cutpoint
+A neat supplemental plot might be labeling these outliers
+Or perhaps labeling them on the scatterplot above
+
+```{r}
+ggplot(multiples, aes(x = ratio)) +
+     geom_histogram(boundary = 0,
+                    binwidth = 5)
+```
+
+## Shared across samples
+
+Now try filtering to only those that are shared across every sample with a detection
+The concern here is that if false-positive detections (homology to host or microbe)-- would also expect to turn up here too.
+
+```{r}
+shared <- 
+     select(multiples,
+            kingdom, 
+            name,
+            common_name,
+            taxon_samples = detections) # Total samples taxon was detected in
+     
+shared <- 
+     melt |> 
+     filter(Abundance > 0) |> 
+     group_by(name, OTU) |> 
+     summarize(protein_samples = n_distinct(Sample), # Total protein was detected in
+               total_PSMs = sum(Abundance)) |>  
+     ungroup() |> 
+     right_join(shared, 
+                multiple = 'all')
+```
+
+Now just as a first pass let's see if any of these are identical (i.e. the taxon was detected in 10 samples and the specific protein was also detected in 10 samples)
+
+```{r}
+shared |> 
+     filter(protein_samples == taxon_samples) |> 
+     left_join(annotations_brief,
+               by = c('OTU' = 'Accession')) |> 
+     select(name, common_name, OTU, Description)
+```
+```{r}
+# >50% of detections
+shared <-
+     shared |> 
+     filter(protein_samples >= taxon_samples*0.5) |> 
+     left_join(annotations_brief,
+               by = c('OTU' = 'Accession')) |> 
+     select(name, 
+            common_name, 
+            OTU, 
+            Description, 
+            n_samples_with_taxon = taxon_samples,
+            n_samples_with_protein = protein_samples,
+            total_PSMs)
+```
+
+```{r}
+write_csv(shared,
+          here('data', 
+               'processed',
+               'biomarkers',
+               'Automated biomarker list (shared, >=5 detections).csv'))
+```
+
+
+### Scatterplot
+
+```{r}
+ggplot(shared, aes(x = taxon_samples, y = protein_samples)) + 
+     geom_abline(slope = 1,
+                 intercept = 0,
+                 color = '#e15759',
+                 size = 1,
+                 linetype = 'dashed') +
+     geom_point(alpha = 0.1, size = 3) +
+     xlim(1, 26) +
+     ylim(1, 26) +
+     coord_equal()
+```
+
+What gets included at cutoff by percentage?
+
+```{r}
+ggplot(shared, aes(x = taxon_samples, 
+                   y = protein_samples,
+                   color = (protein_samples/taxon_samples) > 0.5)) + 
+     geom_abline(slope = 1,
+                 intercept = 0,
+                 color = '#e15759',
+                 alpha = 0.8,
+                 size = 1,
+                 linetype = 'dashed') +
+     geom_point(alpha = 0.3, size = 3) +
+     xlim(1, 26) +
+     ylim(1, 26) +
+     coord_equal() +
+     scale_color_manual(values = c('gray80', '#59a14f')) +
+     labs(x = 'Samples with detected food',
+          y = 'Samples with detected protein<br>(from same food)',
+          color = 'Protein detected in\n>50% of cases')
+```
+
+```{r}
+# Filter and save this list
 
 ```
 
-## Analyze
+## Intersection of the two approaches
+
+
 
 ### Apple
 

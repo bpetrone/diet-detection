@@ -50,7 +50,7 @@ study.color <- c('#4e79a7', # Weight Loss
 fs <-
      here('data', 
           'raw',
-          '2_All5FDRProteins_Excel_Files_DB2.1Search_Healthy donor') %>%
+          'raw_All5FDRProteins_Excel_Files_DB2.1Search_Healthy donor') %>%
      list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
@@ -81,7 +81,7 @@ rm(fs, dfs)
 fs <-
      here('data', 
           'raw',
-          '2_All5FDRProteins_Excel_Files_DB2.1Search_Including Outlier') %>%
+          'raw_All5FDRProteins_Excel_Files_DB2.1Search_Including Outlier') %>%
      list.files(pattern = ".xlsx", full.names = T)
 
 # Read and synchronize names
@@ -164,8 +164,8 @@ n_distinct(proteins.df$id)
 proteins.df <- 
      mutate(proteins.df,
             study = ifelse(subj == '908',
-                           yes = 'Healthy donor',
-                           no = 'Weight loss'))
+                           yes = 'Habitual Diet',
+                           no = 'Intervention'))
 ```
 
 ## Remove outlier
@@ -186,7 +186,9 @@ n_distinct(proteins.df$id)
 str(proteins.df)
 ```
 
-## Filter master proteins
+## Filter 
+
+### Master proteins
 
 ```{r}
 table(proteins.df$Master)
@@ -212,7 +214,39 @@ sum(proteins.df$`# PSMs`)
 839318/2324012
 ```
 
-TODO: Go through this logic again to make sure I am understanding.  Does this filtering change regardless of whether I'm using PUP or UP analysis?
+### >1UP
+
+Some master proteins don't have >1 unique peptide (or >1 protein unique peptide); exclude these:
+
+```{r}
+filter(proteins.df, `# Unique Peptides` == 0) %>% 
+     group_by(category) %>% 
+     count()
+```
+
+```{r}
+filter(proteins.df, `# Protein Unique Peptides` == 0) %>% 
+     group_by(category) %>% 
+     count()
+```
+
+Keep only those with at least one unique peptide in the protein group.
+
+```{r}
+sum(proteins.df$`# PSMs`)
+```
+
+```{r}
+proteins.df <- 
+     proteins.df %>% 
+     filter(`# Unique Peptides` > 0) 
+```
+
+```{r}
+sum(proteins.df$`# PSMs`)/sum(proteins.df$`# PSMs`)
+```
+
+Oh, okay-- so these proteins didn't have any PSMs. Interesting-- wonder why they get included in table?
 
 ## QC parameters
 
@@ -285,6 +319,20 @@ proteins.df <-
 
 ```{r}
 unique(proteins.df$category)
+```
+
+```{r}
+# Save for sharing with Alfredo
+proteins.df %>% 
+     select(study, 
+            subj, 
+            date, 
+            category, 
+            Accession,
+            everything()) %>% 
+     saveRDS(here('data',
+                  'processed',
+                  '5FDR_1UP_all proteins.rds'))
 ```
 
 # Analyze

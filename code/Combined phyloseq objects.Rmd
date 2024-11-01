@@ -414,13 +414,19 @@ sample_names(mb.animal) <- paste(sample_data(mb.animal)$subj,
 ### Update assignment
 
 ```{r}
-ref.trnL <- 
+# ref.trnL <- 
+#      here('..',
+#           'food-dbs',
+#           'data', 
+#           'outputs', 
+#           'dada2-compatible',
+#           'trnL',
+#           'trnLGH.fasta')
+
+ref.trnL <-
      here('..',
-          'food-dbs',
-          'data', 
-          'outputs', 
-          'dada2-compatible',
-          'trnL',
+          'trnL-pipeline',
+          'reference',
           'trnLGH.fasta')
 
 ref.12SV5 <- 

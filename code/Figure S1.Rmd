@@ -1,0 +1,126 @@
+---
+title: "Figure S1"
+output: html_notebook
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+require("knitr")
+opts_knit$set(root.dir = file.path(getwd(), '..'))
+```
+
+```{r}
+library(here)
+library(lubridate)
+library(phyloseq)
+library(tidyverse)
+```
+
+```{r}
+colors.detection <- 
+     c('#849db1', 
+       '#fbb04e',
+       '#7e756d')
+
+names(colors.detection) <- 
+     c('DNA',
+       'Protein',
+       'Menu')
+```
+
+```{r}
+# Plotting themes
+theme_set(theme_bw() +
+               theme(
+                    axis.text = element_text(size = 12),
+                    axis.title.x = ggtext::element_markdown(size = 14),
+                    axis.title.y = ggtext::element_markdown(size = 14),
+                    legend.title = element_text(size = 12,
+                                                face = 'bold'),
+                    strip.text = element_text(size = 12,
+                                              face = 'bold')
+               )
+)
+```
+
+## Read in files
+
+### Sample dates
+
+```{r}
+samples <- 
+     here('data',
+          'metadata',
+          'Sample collection times.csv') %>% 
+     read_csv()
+
+samples
+```
+### Menu dates
+
+Extract from phyloseq object
+```{r}
+menus <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'ps_menu.rds') |> 
+     readRDS() |> 
+     sample_data()
+
+menus
+```
+
+## Tidy data
+
+### Samples
+
+```{r}
+# Recode subject IDs to match ID shorthand for dataset
+samples$subj <- 
+     factor(samples$subj,
+            labels = c('HD', 'ID1', 'ID2', 'ID3', 'ID4'))
+```
+
+```{r}
+# Convert to date
+samples$date <- 
+     as.Date(samples$date, 
+        format = '%m/%d/%y')
+```
+
+Organize for plotting
+```{r}
+# Tally sample dates
+samples <- 
+     samples |> 
+     group_by(study, subj, date) |> 
+     count() |> 
+     select(-n) # All n=1
+```
+
+Want to remove information about specific "month" and map all dates onto an idealized month that begins one week prior to the first sample collected. 
+```{r}
+# Organize for plotting
+samples |> 
+     group_by(study, subj) |> 
+     mutate(earliest = min(date)) |> # First sample day for each subject
+     ungroup() |> 
+     mutate(earliest_day = wday(earliest), # Calculate day, Sunday = 1
+            increment = earliest_day + 5, # Find the preceding Monday
+            start = earliest - increment,
+            start_day = weekdays(start)) |> 
+     select(study, 
+            subj,
+            date,
+            start)
+```
+
+## Visualize
+
+### Calendar layout
+
+```{r}
+
+```
+

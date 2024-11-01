@@ -140,7 +140,7 @@ ps.menu <-
 db <- readxl::read_excel(here('data', 
                               'processed',
                               'DietaryDB_ForDavidLab.xlsx'), 
-                         sheet = 1, 
+                         sheet = 2, # "Realistic Foods" sheet 
                          n_max = 547) # Exclude annotations at end of file
 head(db)
 ```
@@ -420,7 +420,6 @@ db %>%
      summarize(n_distinct(scientific_name))
 ```
 plant* is Rhodophyta (plant)
-NA is hake (animal)
 
 ### Metabarcoding
 
@@ -454,12 +453,12 @@ ref.12SV5 <-
               remove = FALSE) %>% 
      MButils::lowest_level()
 
-ref.12SV5.db
+ref.12SV5
 ```
 ```{r}
 # Number of animals
 # Note one of these is human: exclude
-n_distinct(ref.12SV5.db$name) - 1
+n_distinct(ref.12SV5$name) - 1
 ```
 
 #### trnL
@@ -834,7 +833,7 @@ What species are shared between metaproteomic, metabarcoding, and (day before sa
 ps.mb.plant
 ps.mb.plant <- 
      ps.mb.plant %>% 
-     prune_samples(sample_sums(.) > 0, .) %>% 
+     # prune_samples(sample_sums(.) > 0, .) %>% 
      prune_taxa(taxa_sums(.) > 0, .)
 
 ps.mb.plant
@@ -866,17 +865,17 @@ subset_ps <- function(ps, samples){
 }
 
 # Now, subset each dataset (except menu)
-ps.mb.plant <- subset_ps(ps.mb.plant, samples.plant)
+# ps.mb.plant <- subset_ps(ps.mb.plant, samples.plant)
 ps.protein.plant <- 
      ps.protein.taxon %>% 
-     subset_taxa(kingdom == 'Viridiplantae') %>% 
-     subset_ps(., samples.plant)
+     subset_taxa(kingdom == 'Viridiplantae')
+     # subset_ps(., samples.plant)
 
-ps.mb.animal <- subset_ps(ps.mb.animal, samples.animal)
+# ps.mb.animal <- subset_ps(ps.mb.animal, samples.animal)
 ps.protein.animal <- 
      ps.protein.taxon %>% 
-     subset_taxa(kingdom == 'Metazoa') %>% 
-     subset_ps(., samples.animal)
+     subset_taxa(kingdom == 'Metazoa') 
+     # subset_ps(., samples.animal)
 ```
 
 Reference taxa by their shared index
@@ -1288,7 +1287,7 @@ fig3b <-
      ggplot(counts.long, aes(x = kingdom, y = value, fill = dataset)) +
      geom_boxplot() +
      labs(x = 'Kingdom',
-          y = 'Number of taxa', fill = 'Measure') +
+          y = 'Number of taxa per sample', fill = 'Measure') +
      # scale_y_log10() +
      scale_fill_manual(values = c('#7e756d', '#fbb04e', '#849db1')) +
      theme(legend.position = 'none')

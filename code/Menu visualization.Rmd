@@ -388,6 +388,7 @@ ifsac$merge <- matrix(c(-2, -3,   # 1
                         13, 24, # 25
                         7, 25 # 26
                         ), nc = 2, byrow = TRUE) 
+
 ifsac$height <- c(rep(4, 2),
                   rep(5, 3),
                   6, 7,
@@ -398,6 +399,7 @@ ifsac$height <- c(rep(4, 2),
                   2, 3, 4,
                   rep(3, 2),
                   4, 5, 6, 7, 8) # define merge heights
+
 ifsac$order <- 1:27      # leaf order (trivial if hand-entered)
 ifsac$labels <- ifsac.labs    # labels of leaves
 class(ifsac) <- "hclust"        # make it an hclust object
@@ -447,7 +449,7 @@ gplots::heatmap.2(
                                       replacement = '')],
      Colv = ifsac.d,
      labCol = labels(ifsac.d),
-     srtCol = 90,
+     srtCol = 45,
      key = FALSE,
      col = c('#7e756d', '#ffffff'),
      margin = c(20, 10),

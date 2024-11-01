@@ -46,7 +46,7 @@ ps.mb.animal
 ```
 ```{r}
 # Pointer to reference database for taxonomic ID
-sql <- '/Volumes/All_Staff/localreference/ncbi_taxonomy/accessionTaxa.sql'
+sql <- '/Volumes/dusom_mgm-david/All_Staff/localreference/ncbi_taxonomy/accessionTaxa.sql'
 ```
 
 ## Metaproteomics
@@ -193,7 +193,7 @@ mb.plant.table
 write_csv(mb.plant.table,
           here('results',
                'summary tables',
-               'S4_Metabarcoding 12SV5 taxa.csv'))
+               'S4_Metabarcoding trnL taxa.csv'))
 ```
 
 ## Metaproteomics

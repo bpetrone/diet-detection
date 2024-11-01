@@ -16,382 +16,165 @@ library(phyloseq)
 
 # Read in data
 
-## Samples shared Summer 2020
+## Menu
 
 ```{r}
+ps.menu <- 
+     here('data',
+          'processed',
+          'phyloseq',
+          'combined',
+          'filtered',
+          'ps_menu.rds') %>% 
+     readRDS()
+
+ps.menu
+```
+
+## Proteins
+
+```{r}
+proteins.df <- 
+     here('data',
+          'processed',
+          'share',
+          '5FDR_1UP_all proteins.rds') %>% 
+     readRDS()
+
+proteins.df
+```
+# Pre-process
+
+### Samples
+
+```{r}
+# Pull this from metaproteomic data
 samples <- 
-     here('data', 'metadata', '20200723_MTA DFC samples shared.csv') %>% 
-     read_csv() %>% 
-     mutate(sample.date = as.Date(sample.date, format = '%m/%d/%y')) %>% 
-     rename(ID = subj, date = sample.date) # Rename to line up with menu data
+     proteins.df %>% 
+     select(study, subj, date) %>% 
+     distinct()
+
+samples
+```
+```{r}
+# Add delta for join to menu
+samples <- 
+     bind_rows(samples, 
+               samples) %>% 
+     arrange(study, subj, date) %>% 
+     mutate(delta = rep(1:2, 26)) %>% 
+     mutate(delta_date = date - delta)
 ```
 
-## Diet data 
+### Menu
 
-### Exported menus
+Subset to taxa of interest: rice and eggs
 
 ```{r}
-fs <- list.files(here('..', 'dfc', 'data', 'raw', 'RealChoices', 
-                      'itemized-reports'),
-                 pattern = '.csv', full.names = TRUE)
-
-# Get subject IDs from filename
-ids <-
-     sapply(fs, basename) %>%
-     sapply(gsub, pattern = '_.*', replacement = '')
-
-# Read in the list of files
-menus.raw <- lapply(fs, read_csv,
-                    col_types = cols(.default = 'c', sex = 'f', meal = 'f',
-                                     status = 'f'))
-
-# Name by subject ID
-names(menus.raw) <- ids
+# What's available?
+colnames(ps.menu@otu_table@.Data)[grep(colnames(ps.menu@otu_table@.Data), pattern = 'Oryza')]
+colnames(ps.menu@otu_table@.Data)[grep(colnames(ps.menu@otu_table@.Data), pattern = 'Gallus')]
 ```
 
-Bind all rows together
+"Oryza sativa_other" contains ingredients like rice wine vinegar.  Let's subset to grains and eggs for now, and then can add more details on eggs if Alfredo wants yolk/white difference.
+
 ```{r}
-menus <- bind_rows(menus.raw, .id = 'ID')
+menu <- 
+     ps.menu %>% 
+     prune_taxa(c("Oryza sativa_grains",
+                  "Gallus gallus_eggs, shell eggs"), .) %>% 
+     psmelt() %>% 
+     rename(food = OTU) %>% 
+     mutate(food = ifelse(food == 'Gallus gallus_eggs, shell eggs',
+                          yes = 'eggs',
+                          no = 'rice')) %>% 
+     select(study, subj, date, food, Abundance) %>% 
+     # Recode subject IDs to original
+     mutate(subj = factor(subj,
+                          levels = c('HD', 
+                                     'ID1', 
+                                     'ID2',
+                                     'ID3',
+                                     'ID4'),
+                          labels = c('908',
+                                     'AK65',
+                                     'JN55',
+                                     'ML48',
+                                     'PC74'))) %>% 
+     mutate(subj = as.character(subj))
+
+menu
 ```
-
-Do data cleaning and type adjustments
-
 ```{r}
-menus <-
-     menus %>%
-     select(-id) %>% # Remove RealChoices ID
-     rename(menu_item_name = menu_item_name) %>% 
-     mutate(date = as.Date(date, format = "%m/%d/%Y"),
-            ID = factor(ID, levels = c('PC74', 'AK65', 'ML48', 'JN55'))) %>%
-     mutate_at(vars(c(servings, calories:fats)), as.numeric)
-```
-
-Filter out no show meals
-```{r}
-dim(menus)[1] # 1117
-
-menus <- filter(menus, status != 'No show')
-dim(menus)[1] # 1083
-```
-
-Now, only need the first 3 weeks of any participant's stay, since this was when stool samples were collected. Remove the 4th week of entries by noting each person's start date at DFC
-
-```{r}
-start <-
-     c('7/29/19', '9/9/19', '9/30/19', '11/6/19') %>%
-     as.Date(format = '%m/%d/%y')
-
-names(start) <- c('PC74', 'AK65', 'ML48', 'JN55')
-```
-
-And then calculating a day index relative to this start date
-
-```{r}
-menus.13 <-
-     menus %>%
-     mutate(day.delta = as.integer(date - start[ID])) %>%
-     filter(day.delta <= 18)
-
-dim(menus.13)[1] # 825
-```
-
-### Sharon's extended coding
-
-```{r}
-# Variable named for unique recipes consumed from weeks 1-3
-menus.13.unique <-
-     here('..', 'dfc', 'data', 'processed', 'RealChoices',
-          'WORKING_PC74,AK65,ML48_Coded menu v4 (quantity).csv') %>%
-     read_csv(col_types = cols(.default = 'f',
-                               ingredient_list = 'c',
-                               family = 'c', subfamily = 'c',
-                               genus = 'c', species = 'c', subspecies = 'c',
-                               variety = 'c', cultivar_grp = 'c',
-                               recipe_amount = 'n', servings_per_recipe = 'n',
-                               FDC_ID = 'c', est_grams_consumed = 'n'))
-
-# Add JN55-specific meals (coded in a separate batch)
-menus.13.unique <- 
-     here('..', 'dfc', 'data', 'processed', 'RealChoices',
-          'WORKING_JN55_Coded menu v3 (quantity).csv') %>%
-     read_csv(col_types = cols(.default = 'f',
-                               ingredient_list = 'c',
-                               family = 'c', subfamily = 'c',
-                               genus = 'c', species = 'c', subspecies = 'c',
-                               variety = 'c', cultivar_grp = 'c',
-                               recipe_amount = 'n', servings_per_recipe = 'n',
-                               FDC_ID = 'c', est_grams_consumed = 'n')) %>% 
-     bind_rows(menus.13.unique)
-```
-
-### Join together with itemized participant menu
-
-Join to subject-specific menu
-
-```{r}
-menus.13 <- left_join(menus.13, menus.13.unique)
-
-rm(menus.13.unique)
-```
-
-### Bind to Outside Meals data
-
-Outside meals data adds 137 line-item entries to 4830 from the exported menu data.
-
-```{r}
-menus.outside <-
-        here('..', 'dfc', 'data', 'processed', 'RealChoices',
-             'WORKING_Outside meals manual export v4 (quantity).csv') %>%
-        read_csv(col_types = cols(.default = 'f',
-                                  Date = 'c',
-                                  ingredient_list = 'c',
-                                  family = 'c', subfamily = 'c',
-                                  genus = 'c', species = 'c', 
-                                  subspecies = 'c',
-                                  variety = 'c', cultivar_grp = 'c',
-                                  recipe_amount = 'n',
-                                  servings_per_recipe = 'n', FDC_ID = 'c',
-                                  est_grams_consumed = 'n'))
-```
-
-Remove nutrition info so that columns line up
-
-```{r}
-menus.13 <- select(menus.13, -c(sex, calories:fats))
-```
-
-```{r}
-# Rename columns to match menus.13
-menus.outside$Date <- as.Date(menus.outside$Date, '%m/%d/%y')
-# Couldn't get this to work in mutate, so weird!
-
-menus.outside <-
-        menus.outside %>%
-        rename(ID = Participant,
-               date = Date,
-               location = Location,
-               meal = Meal,
-               menu_item_name = Food) %>%
-        mutate(status = 'Served',
-               day.delta = as.integer(date - start[ID]),
-               servings = 1, # Set this by default (especially if using presence-absence, needs to be non-NA)
-               `serving size` = NA)
-
-# Add location information to DFC menu
-menus.13$location = 'DFC cafeteria'
-```
-
-```{r}
-menus.13 <- bind_rows(menus.13, menus.outside)
-rm(menus.outside)
-```
-
-### Tidy
-
-#### Calculate serving-adjusted amounts
-
-Sharon coded data recipe-by-recipe, not linked to any particular participant.  Since people may eat more than one serving,
-
-```{r}
-unique(menus.13$servings)
-```
-need to adjust accordingly.
-
-Are any amounts missing?
-```{r}
-filter(menus.13, is.na(est_grams_consumed)) %>%
-        pull(ID) %>%
-        unique()
-```
-
-```{r}
-menus.13 <- mutate(menus.13,
-                   est_grams_consumed_total = est_grams_consumed * servings)
-```
-
-#### Small corrections (before naming)
-Some entries for Capsicum genus written as 'Capsicum annuum'; replace
-```{r}
-menus.13$genus[menus.13$genus == 'Capsicum annuum'] <- 'Capsicum'
-```
-
-#### Naming system
-
-Think I'll need to expand/refine but just start with genus-species for now
-```{r}
-menus.13 <-
-        menus.13 %>%
-        # Make initial name
-        mutate(taxon_name =
-                       ifelse(is.na(species),
-                              yes = genus, # If NA species, omit from name
-                              no = paste(genus, species))) %>% # otherwise include
-        # Expand with subspecies/variety/cultivar info
-        mutate(taxon_name =
-                       ifelse(is.na(subspecies),
-                              yes = taxon_name,
-                              no = paste(taxon_name, 'subsp.', subspecies))) %>%
-        mutate(taxon_name =
-                       ifelse(is.na(variety),
-                              yes = taxon_name,
-                              no = paste(taxon_name, 'var.', variety))) %>%
-        mutate(taxon_name =
-                       ifelse(is.na(cultivar_grp),
-                              yes = taxon_name,
-                              no = paste(taxon_name, cultivar_grp, 'group')))
-
-```
-
-In some cases, food may be listed as NA at genus/species level, but have a family designation.  Catch this if the case
-
-```{r}
-menus.13 <- mutate(menus.13,
-                   taxon_name =
-                           ifelse(is.na(taxon_name) & !is.na(family),
-                                  yes = family, no = taxon_name))
-```
-
-#### Small corrections (after naming)
-
-Manually correct names so that they are synchronized with NCBI taxonomy.
-Note that NCBI has on their website the disclaimer "The NCBI taxonomy database is not an authoritative source for nomenclature or classification - please consult the relevant scientific literature for the most reliable information."
-* Brassica oleracea Botrytis group (cauliflower): Listed as "Brassica oleracea var. botrytis"
-* Brassica oleracea Italica group (broccoli): Listed as "Brassica oleracea var. italica"
-* Capsicum annuum Jalapeno group: No group listing, just Capsicum annuum
-* Raphanus raphanistrum subsp. sativus (radish): Seems to be synonymous with Raphanus sativus, and looking now I find more commonly listed as R. sativus
-* Allium cepa var. aggregatum Aggregatum group (shallot): Listed as "Allium cepa var. aggregatum"
-* Capsicum annuum Cayenne group: No group listing, just Capsicum annuum
-* Brassica oleracea Capitata group (red cabbage): Listed instead as "Brassica oleracea var. capitata"
-* Pisum sativum Macrocarpon group (sugar snap peas): Heterotypic synonym of "Pisum sativum var. macrocarpum" (double-checked spelling change)
-* Capsicum frutescens var. tabasco: No varieties listed
-* Artemisia dracunculus var. sativa: "var. sativa" not listed in NCBI taxonomy, trim
-* Capsicum annuum Pimiento group: No group listing, just Capsicum annuum
-* Brassica oleracea Gemmifera group (brussels sprouts): Listed as "Brassica oleracea var. gemmifera"
-
-Correction of automatically-replaced queries (e.g. a close enough synonym that it's found in NCBI taxonomy, and replaced with the default term):
-* Citrus x latifolia changed to Citrus latifolia
-* Citrus x sinensis changed to Citrus sinensis
-* Brassica oleracea Acephala group (kale): Heterotypic synonym of "Brassica oleracea subsp. acephala", but then query returns Brassica oleracea var. viridis
-
-```{r}
-menus.13$taxon_name[menus.13$taxon_name == 'Brassica oleracea Botrytis group'] <- 'Brassica oleracea var. botrytis'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Brassica oleracea Italica group'] <- 'Brassica oleracea var. italica'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Capsicum annuum Jalapeno group'] <- 'Capsicum annuum'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Raphanus raphanistrum subsp. sativus'] <- 'Raphanus sativus'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Allium cepa var. aggregatum Aggregatum group'] <- 'Allium cepa var. aggregatum'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Capsicum annuum Cayenne group'] <- 'Capsicum annuum'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Capsicum annuum Pimiento group'] <- 'Capsicum annuum'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Brassica oleracea Capitata group'] <- 'Brassica oleracea var. capitata'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Pisum sativum Macrocarpon group'] <- 'Pisum sativum var. macrocarpum'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Capsicum frutescens var. tabasco'] <- 'Capsicum frutescens'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Brassica oleracea Acephala group'] <- 'Brassica oleracea var. viridis'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Citrus x sinensis'] <- 'Citrus sinensis'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Citrus x latifolia'] <- 'Citrus latifolia'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Artemisia dracunculus var. sativa'] <- 'Artemisia dracunculus'
-
-menus.13$taxon_name[menus.13$taxon_name == 'Brassica oleracea Gemmifera group'] <- 'Brassica oleracea var. gemmifera'
-```
-
-Ok, so it seems that the only taxonomic resolution I lose by switching to a taxid-based naming is the peppers (not distinguishing cayenne and jalapeno, and reducing tabasco to species level).
-
-#### Filter out non-specific meals
-
-This is limited (to my knowledge) to Salad Bar and Fresh Fruit Choice offerings, for which a full selection is listed but we don't know what comprised the available options on a given day.
-
-I'm more comfortable filtering *out* because Fresh Fruit Choice is a set of 12 foods, likely only one of which was eaten-- so we take more of a hit by including them on the menu than excluding them.
-
-But maybe there is a better way to handle this?
-
-```{r}
-exclude <- c('Salad Bar',
-             'Salad Bar [Low Carb - incl 2TBS Classic Ranch OR 2 tsp olive oil]',
-             'Fresh Fruit Choice')
-
-before <- dim(menus.13)[1]
-menus.13 <- filter(menus.13, !(menu_item_name %in% exclude))
-after <- dim(menus.13)[1]
-```
-
-This removes a good percentage of line-item entries: `r 100*(before-after)/before` percent.
-
-### QC
-
-What accounts for entries without a taxonomic label?
-
-```{r}
-menus.13 %>%
-        filter(is.na(taxon_name)) %>%
-        # filter_at(vars(family:cultivar_grp), all_vars(is.na(.))) %>%
-        pull(`Item Name`) %>%
-        unique()
-```
-
-Mostly oils (cooking spray), spices/condiments, and mixed ingredients
-Also remove these for now: this excludes an additional `r sum(is.na(menus.13$taxon_name))` entries.
-
-# Subset to shared samples
-
-Ali requested 2 days of eating prior to the sample, except for PC74.  For this subject, share all available data.
-
-```{r}
-samples <- mutate(samples, 
-                  minus.1 = date - 1, 
-                  minus.2 = date - 2)
-
-diet.subset <- 
+# Join to sample data
+samples <- 
      samples %>% 
-     select(-date) %>% 
-     pivot_longer(cols = starts_with('minus'), 
-                  names_to = 'delta', values_to = 'date')
-```
-
-Left join by these selected dates
-
-```{r}
-menu.subset <- 
-     diet.subset %>% 
-     select(-delta) %>% 
-     left_join(menus.13) %>% 
-     select(ID, date, meal, menu_item_name, `serving size`, 
-            est_grams_consumed_total, `Item Name`, taxon_name, animal:fungus)   
-            # Refine columns to only those Ali will need
+     left_join(menu,
+               by = c('study', 
+                      'subj', 
+                      'delta_date' = 'date'))
 ```
 
 ```{r}
-dim(menus.13)
-dim(menu.subset)
+# Pivot wider to have days side-by-side
+samples <- 
+     samples %>% 
+     pivot_wider(names_from = 'food',
+                 values_from = 'Abundance') %>% 
+     mutate(delta = -delta) %>% 
+     select(-delta_date) %>% 
+     pivot_wider(names_from = delta,
+                 values_from = c(rice, eggs))
 ```
 
 ```{r}
-# PC74
-diet.subset.pc74 <- 
-     menus.13 %>%
-     filter(ID == 'PC74') %>% 
-     select(ID, date, location, meal, menu_item_name, `serving size`, 
-            est_grams_consumed_total, `Item Name`, taxon_name, animal:fungus)   
-            # Refine columns to only those Ali will need
+samples
 ```
 
+## Proteins
 
-Save file
+Already filtered to only proteins with >1UP and master proteins of the protein group. 
+
+### Duplicate names
+
 ```{r}
-# write_csv(menu.subset, 
-#           here('data', 'processed', '20200929_2 days prior paired menu.csv'))
+proteins.df %>% 
+     filter(grepl('\n', Accession)) %>% 
+     select(Accession, Description, `# PSMs`)
+```
+```{r}
+# Are any of these chicken or rice?
+proteins.df %>% 
+     filter(grepl('\n', Accession)) %>% 
+     filter(grepl('Gall_', Accession)) %>% 
+     # select(Accession, Description) %>% 
+     # distinct()
+     group_by(subj, date) %>%
+     summarize(psms_tot = sum(`# PSMs`)) %>%
+     pull(psms_tot) 
+```
+```{r}
+proteins.df %>% 
+     filter(grepl('\n', Accession)) %>% 
+     filter(grepl('Osa_', Accession)) %>% 
+     select(Accession, Description, `# PSMs`)
+```
+Note these to Alfredo and see how I should follow up.
 
-write_csv(diet.subset.pc74,
-          here('data', 'processed', '20210716_PC74 full menu.csv'))
+```{r}
+write_csv(samples,
+          here('data', 
+               'processed', 
+               'share',
+               'Rice and egg intake by sample.csv'))
+```
+
+```{r}
+# Also write protein data as CSV
+write_csv(proteins.df,
+          here('data',
+               'processed',
+               'share',
+               '5FDR_1UP_all proteins.csv'))
 ```
 
